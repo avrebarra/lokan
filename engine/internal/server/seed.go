@@ -10,11 +10,11 @@ import (
 
 // SeedDemoData creates the demo airline tasks and returns how many tasks were
 // created. IDs come from the project counter.
-func SeedDemoData(root string) (int, error) {
+func SeedDemoData(board string) (int, error) {
 	created := 0
 
 	// epic 1: new route launch
-	epic1, err := seedTask(root, types.TaskFrontmatter{
+	epic1, err := seedTask(board, types.TaskFrontmatter{
 		Type: types.TypeEpic, Title: "Launch SFO–NRT Route",
 		Status: types.StatusInProgress, Priority: types.PriorityCritical,
 		Tags: []string{"routes", "international"},
@@ -24,7 +24,7 @@ func SeedDemoData(root string) (int, error) {
 	}
 	created++
 
-	t1, err := seedTask(root, types.TaskFrontmatter{
+	t1, err := seedTask(board, types.TaskFrontmatter{
 		Type: types.TypeTask, Title: "Submit route approval to FAA and JCAB",
 		Status: types.StatusDone, Priority: types.PriorityCritical, Parent: epic1,
 		Tags: []string{"compliance", "international"},
@@ -34,7 +34,7 @@ func SeedDemoData(root string) (int, error) {
 	}
 	created++
 
-	if _, err := seedTask(root, types.TaskFrontmatter{
+	if _, err := seedTask(board, types.TaskFrontmatter{
 		Type: types.TypeSubtask, Title: "Prepare bilateral air service agreement documents",
 		Status: types.StatusDone, Priority: types.PriorityHigh, Parent: t1,
 	}); err != nil {
@@ -42,7 +42,7 @@ func SeedDemoData(root string) (int, error) {
 	}
 	created++
 
-	if _, err := seedTask(root, types.TaskFrontmatter{
+	if _, err := seedTask(board, types.TaskFrontmatter{
 		Type: types.TypeSubtask, Title: "Coordinate slot allocation at Narita Airport",
 		Status: types.StatusDone, Priority: types.PriorityHigh, Parent: t1,
 	}); err != nil {
@@ -50,7 +50,7 @@ func SeedDemoData(root string) (int, error) {
 	}
 	created++
 
-	t2, err := seedTask(root, types.TaskFrontmatter{
+	t2, err := seedTask(board, types.TaskFrontmatter{
 		Type: types.TypeTask, Title: "Assign Boeing 787-9 fleet for long-haul",
 		Status: types.StatusInProgress, Priority: types.PriorityHigh, Parent: epic1,
 		Tags: []string{"fleet", "operations"},
@@ -60,7 +60,7 @@ func SeedDemoData(root string) (int, error) {
 	}
 	created++
 
-	if _, err := seedTask(root, types.TaskFrontmatter{
+	if _, err := seedTask(board, types.TaskFrontmatter{
 		Type: types.TypeSubtask, Title: "Schedule pre-departure maintenance check",
 		Status: types.StatusInProgress, Priority: types.PriorityCritical, Parent: t2,
 	}); err != nil {
@@ -68,7 +68,7 @@ func SeedDemoData(root string) (int, error) {
 	}
 	created++
 
-	if _, err := seedTask(root, types.TaskFrontmatter{
+	if _, err := seedTask(board, types.TaskFrontmatter{
 		Type: types.TypeSubtask, Title: "Configure cabin for 14-hour flight (meals, IFE)",
 		Status: types.StatusTodo, Priority: types.PriorityMedium, Parent: t2,
 	}); err != nil {
@@ -76,7 +76,7 @@ func SeedDemoData(root string) (int, error) {
 	}
 	created++
 
-	if _, err := seedTask(root, types.TaskFrontmatter{
+	if _, err := seedTask(board, types.TaskFrontmatter{
 		Type: types.TypeTask, Title: "Hire and train Japan-route cabin crew",
 		Status: types.StatusTodo, Priority: types.PriorityHigh, Parent: epic1,
 		Tags: []string{"crew", "training"},
@@ -85,7 +85,7 @@ func SeedDemoData(root string) (int, error) {
 	}
 	created++
 
-	if _, err := seedTask(root, types.TaskFrontmatter{
+	if _, err := seedTask(board, types.TaskFrontmatter{
 		Type: types.TypeTask, Title: "Launch marketing campaign for SFO–NRT",
 		Status: types.StatusBacklog, Priority: types.PriorityMedium, Parent: epic1,
 		Tags: []string{"marketing"},
@@ -95,7 +95,7 @@ func SeedDemoData(root string) (int, error) {
 	created++
 
 	// epic 2: passenger experience upgrade
-	epic2, err := seedTask(root, types.TaskFrontmatter{
+	epic2, err := seedTask(board, types.TaskFrontmatter{
 		Type: types.TypeEpic, Title: "Upgrade Passenger Experience",
 		Status: types.StatusInProgress, Priority: types.PriorityHigh,
 		Tags: []string{"passenger", "experience"},
@@ -105,7 +105,7 @@ func SeedDemoData(root string) (int, error) {
 	}
 	created++
 
-	t3, err := seedTask(root, types.TaskFrontmatter{
+	t3, err := seedTask(board, types.TaskFrontmatter{
 		Type: types.TypeTask, Title: "Redesign business class seating",
 		Status: types.StatusDone, Priority: types.PriorityHigh, Parent: epic2,
 		Tags: []string{"cabin", "design"},
@@ -115,7 +115,7 @@ func SeedDemoData(root string) (int, error) {
 	}
 	created++
 
-	if _, err := seedTask(root, types.TaskFrontmatter{
+	if _, err := seedTask(board, types.TaskFrontmatter{
 		Type: types.TypeSubtask, Title: "Source lie-flat seat suppliers",
 		Status: types.StatusDone, Priority: types.PriorityHigh, Parent: t3,
 	}); err != nil {
@@ -123,7 +123,7 @@ func SeedDemoData(root string) (int, error) {
 	}
 	created++
 
-	if _, err := seedTask(root, types.TaskFrontmatter{
+	if _, err := seedTask(board, types.TaskFrontmatter{
 		Type: types.TypeSubtask, Title: "Conduct passenger comfort testing",
 		Status: types.StatusDone, Priority: types.PriorityMedium, Parent: t3,
 	}); err != nil {
@@ -131,7 +131,7 @@ func SeedDemoData(root string) (int, error) {
 	}
 	created++
 
-	t4, err := seedTask(root, types.TaskFrontmatter{
+	t4, err := seedTask(board, types.TaskFrontmatter{
 		Type: types.TypeTask, Title: "Roll out in-flight Wi-Fi on all A320s",
 		Status: types.StatusInProgress, Priority: types.PriorityHigh, Parent: epic2,
 		Tags: []string{"connectivity", "fleet"},
@@ -141,7 +141,7 @@ func SeedDemoData(root string) (int, error) {
 	}
 	created++
 
-	if _, err := seedTask(root, types.TaskFrontmatter{
+	if _, err := seedTask(board, types.TaskFrontmatter{
 		Type: types.TypeSubtask, Title: "Negotiate Starlink aviation contract",
 		Status: types.StatusDone, Priority: types.PriorityCritical, Parent: t4,
 	}); err != nil {
@@ -149,7 +149,7 @@ func SeedDemoData(root string) (int, error) {
 	}
 	created++
 
-	if _, err := seedTask(root, types.TaskFrontmatter{
+	if _, err := seedTask(board, types.TaskFrontmatter{
 		Type: types.TypeSubtask, Title: "Install antenna hardware on 12 aircraft",
 		Status: types.StatusInProgress, Priority: types.PriorityHigh, Parent: t4,
 	}); err != nil {
@@ -157,7 +157,7 @@ func SeedDemoData(root string) (int, error) {
 	}
 	created++
 
-	if _, err := seedTask(root, types.TaskFrontmatter{
+	if _, err := seedTask(board, types.TaskFrontmatter{
 		Type: types.TypeSubtask, Title: "Test bandwidth at cruising altitude",
 		Status: types.StatusTodo, Priority: types.PriorityMedium, Parent: t4,
 	}); err != nil {
@@ -165,7 +165,7 @@ func SeedDemoData(root string) (int, error) {
 	}
 	created++
 
-	if _, err := seedTask(root, types.TaskFrontmatter{
+	if _, err := seedTask(board, types.TaskFrontmatter{
 		Type: types.TypeTask, Title: "Introduce premium meal service with local chefs",
 		Status: types.StatusTodo, Priority: types.PriorityMedium, Parent: epic2,
 		Tags: []string{"catering", "passenger"},
@@ -174,7 +174,7 @@ func SeedDemoData(root string) (int, error) {
 	}
 	created++
 
-	if _, err := seedTask(root, types.TaskFrontmatter{
+	if _, err := seedTask(board, types.TaskFrontmatter{
 		Type: types.TypeTask, Title: "Refresh loyalty program tier benefits",
 		Status: types.StatusBacklog, Priority: types.PriorityLow, Parent: epic2,
 		Tags: []string{"loyalty", "passenger"},
@@ -184,7 +184,7 @@ func SeedDemoData(root string) (int, error) {
 	created++
 
 	// epic 3: fleet maintenance overhaul
-	epic3, err := seedTask(root, types.TaskFrontmatter{
+	epic3, err := seedTask(board, types.TaskFrontmatter{
 		Type: types.TypeEpic, Title: "Fleet Maintenance Overhaul Q3",
 		Status: types.StatusTodo, Priority: types.PriorityCritical,
 		Tags: []string{"maintenance", "safety"},
@@ -194,7 +194,7 @@ func SeedDemoData(root string) (int, error) {
 	}
 	created++
 
-	if _, err := seedTask(root, types.TaskFrontmatter{
+	if _, err := seedTask(board, types.TaskFrontmatter{
 		Type: types.TypeTask, Title: "Schedule D-check for N-471SK (A330)",
 		Status: types.StatusTodo, Priority: types.PriorityCritical, Parent: epic3,
 		Tags: []string{"maintenance", "heavy-check"},
@@ -203,7 +203,7 @@ func SeedDemoData(root string) (int, error) {
 	}
 	created++
 
-	if _, err := seedTask(root, types.TaskFrontmatter{
+	if _, err := seedTask(board, types.TaskFrontmatter{
 		Type: types.TypeTask, Title: "Replace landing gear on three 737-800s",
 		Status: types.StatusTodo, Priority: types.PriorityHigh, Parent: epic3,
 		Tags: []string{"maintenance", "safety"},
@@ -212,7 +212,7 @@ func SeedDemoData(root string) (int, error) {
 	}
 	created++
 
-	if _, err := seedTask(root, types.TaskFrontmatter{
+	if _, err := seedTask(board, types.TaskFrontmatter{
 		Type: types.TypeTask, Title: "Engine borescope inspection — fleet-wide",
 		Status: types.StatusBacklog, Priority: types.PriorityHigh, Parent: epic3,
 		Tags: []string{"maintenance", "engine"},
@@ -221,7 +221,7 @@ func SeedDemoData(root string) (int, error) {
 	}
 	created++
 
-	if _, err := seedTask(root, types.TaskFrontmatter{
+	if _, err := seedTask(board, types.TaskFrontmatter{
 		Type: types.TypeTask, Title: "Update avionics software to Nav DB cycle 2406",
 		Status: types.StatusCancelled, Priority: types.PriorityMedium, Parent: epic3,
 		Tags: []string{"avionics"},
@@ -231,7 +231,7 @@ func SeedDemoData(root string) (int, error) {
 	created++
 
 	// bugs and incidents
-	if _, err := seedTask(root, types.TaskFrontmatter{
+	if _, err := seedTask(board, types.TaskFrontmatter{
 		Type: types.TypeBug, Title: "Check-in kiosk freezes at bag-drop confirmation screen",
 		Status: types.StatusInProgress, Priority: types.PriorityCritical,
 		Tags: []string{"ground-ops", "kiosk"},
@@ -240,7 +240,7 @@ func SeedDemoData(root string) (int, error) {
 	}
 	created++
 
-	if _, err := seedTask(root, types.TaskFrontmatter{
+	if _, err := seedTask(board, types.TaskFrontmatter{
 		Type: types.TypeBug, Title: "Boarding passes not scanning at gate B14",
 		Status: types.StatusDone, Priority: types.PriorityCritical,
 		Tags: []string{"ground-ops", "gate"},
@@ -249,7 +249,7 @@ func SeedDemoData(root string) (int, error) {
 	}
 	created++
 
-	if _, err := seedTask(root, types.TaskFrontmatter{
+	if _, err := seedTask(board, types.TaskFrontmatter{
 		Type: types.TypeBug, Title: "IFE screens stuck on startup logo on rows 30–34",
 		Status: types.StatusTodo, Priority: types.PriorityHigh, Parent: epic2,
 		Tags: []string{"cabin", "ife"},
@@ -258,7 +258,7 @@ func SeedDemoData(root string) (int, error) {
 	}
 	created++
 
-	if _, err := seedTask(root, types.TaskFrontmatter{
+	if _, err := seedTask(board, types.TaskFrontmatter{
 		Type: types.TypeBug, Title: "Meal preference not saved when booking via mobile app",
 		Status: types.StatusBacklog, Priority: types.PriorityMedium,
 		Tags: []string{"passenger", "catering"},
@@ -271,16 +271,16 @@ func SeedDemoData(root string) (int, error) {
 }
 
 // seedTask allocates an id via the project counter and writes one demo task.
-func seedTask(root string, fm types.TaskFrontmatter) (string, error) {
+func seedTask(board string, fm types.TaskFrontmatter) (string, error) {
 	// allocate id from the counter
-	counter, err := id.NextCounter(root)
+	counter, err := store.NextCounter(board)
 	if err != nil {
 		return "", err
 	}
 	fm.ID = id.GenerateID(counter)
 	fm.Created = today()
 	fm.Updated = today()
-	if _, err := store.CreateTask(root, fm, ""); err != nil {
+	if _, err := store.CreateTask(board, fm, ""); err != nil {
 		return "", err
 	}
 	return fm.ID, nil
@@ -288,7 +288,7 @@ func seedTask(root string, fm types.TaskFrontmatter) (string, error) {
 
 // CreateTask creates a single task via the project counter and returns it.
 // Used by the POST /api/create endpoint.
-func CreateTask(root, title string, taskType types.TaskType, priority types.Priority, parent string) (*types.Task, error) {
+func CreateTask(board, title string, taskType types.TaskType, priority types.Priority, parent string) (*types.Task, error) {
 	// build the frontmatter, optionally setting the parent
 	fm := types.TaskFrontmatter{
 		Type:     taskType,
@@ -301,11 +301,11 @@ func CreateTask(root, title string, taskType types.TaskType, priority types.Prio
 	}
 
 	// create via the counter, then reload the full task
-	id, err := seedTask(root, fm)
+	id, err := seedTask(board, fm)
 	if err != nil {
 		return nil, err
 	}
-	summary, err := store.FindByID(root, id)
+	summary, err := store.FindByID(board, id)
 	if err != nil {
 		return nil, err
 	}

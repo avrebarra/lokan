@@ -26,3 +26,6 @@ bun.lockb
 *.swo
 
 # Test temp dirs are in OS tmpdir, nothing to ignore here
+
+# lokan transient lock files
+*.lock

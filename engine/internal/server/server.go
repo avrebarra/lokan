@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/avressatelier/lokan/internal/id"
 	"github.com/avressatelier/lokan/internal/store"
 	"github.com/avressatelier/lokan/internal/types"
 	"github.com/avressatelier/lokan/web"
@@ -16,12 +15,12 @@ import (
 
 // Server serves the lokan API for a single project root.
 type Server struct {
-	root string
+	board string
 }
 
-// New returns a Server rooted at the given project directory.
-func New(root string) *Server {
-	return &Server{root: root}
+// New returns a Server serving the given board file.
+func New(board string) *Server {
+	return &Server{board: board}
 }
 
 // Handler returns the HTTP handler implementing the frozen API contract.
@@ -71,7 +70,7 @@ func (s *Server) serveAssets(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleTasks(w http.ResponseWriter, r *http.Request) {
 	// load all summaries and the lane config, defaulting to empty lists
-	tasks, err := store.LoadAllSummaries(s.root)
+	tasks, err := store.LoadAllSummaries(s.board)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -79,7 +78,7 @@ func (s *Server) handleTasks(w http.ResponseWriter, r *http.Request) {
 	if tasks == nil {
 		tasks = []types.TaskSummary{}
 	}
-	cfg, err := id.ReadConfig(s.root)
+	cfg, err := store.ReadConfig(s.board)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -87,7 +86,7 @@ func (s *Server) handleTasks(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{
 		"tasks":    tasks,
 		"statuses": cfg.Statuses,
-		"root":     s.root,
+		"root":     s.board,
 	})
 }
 
@@ -98,7 +97,7 @@ func (s *Server) handleTask(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "Missing id")
 		return
 	}
-	summary, err := store.FindByID(s.root, id)
+	summary, err := store.FindByID(s.board, id)
 	if err != nil {
 		writeError(w, http.StatusNotFound, err.Error())
 		return
@@ -141,7 +140,7 @@ func (s *Server) handleCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// create and respond with the new task
-	task, err := CreateTask(s.root, req.Title, req.Type, req.Priority, req.Parent)
+	task, err := CreateTask(s.board, req.Title, req.Type, req.Priority, req.Parent)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -164,7 +163,7 @@ func (s *Server) handleUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// load the target task
-	summary, err := store.FindByID(s.root, req.ID)
+	summary, err := store.FindByID(s.board, req.ID)
 	if err != nil {
 		writeError(w, http.StatusNotFound, err.Error())
 		return
@@ -243,7 +242,7 @@ func (s *Server) handleMove(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, fmt.Sprintf("Invalid status: %s", req.Status))
 		return
 	}
-	summaries, err := store.LoadAllSummaries(s.root)
+	summaries, err := store.LoadAllSummaries(s.board)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -268,7 +267,7 @@ func (s *Server) handleMove(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// apply the move and respond
-	moved, err := store.MoveTask(s.root, req.ID, req.Status, req.BeforeID)
+	moved, err := store.MoveTask(s.board, req.ID, req.Status, req.BeforeID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -278,7 +277,7 @@ func (s *Server) handleMove(w http.ResponseWriter, r *http.Request) {
 
 // validStatus reports whether v is one of the configured lane ids.
 func (s *Server) validStatus(v types.Status) bool {
-	cfg, err := id.ReadConfig(s.root)
+	cfg, err := store.ReadConfig(s.board)
 	if err != nil {
 		return false
 	}
@@ -322,7 +321,7 @@ func (s *Server) handleConfigStatuses(w http.ResponseWriter, r *http.Request) {
 
 	// diff against the current lanes: positional renames first, then moves
 	// for removed lanes (tasks land in the leftmost remaining lane)
-	cfg, err := id.ReadConfig(s.root)
+	cfg, err := store.ReadConfig(s.board)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -341,35 +340,21 @@ func (s *Server) handleConfigStatuses(w http.ResponseWriter, r *http.Request) {
 		renames = append(renames, [2]types.Status{o, n})
 		renamedFrom[o] = true
 	}
-	moved := 0
-	for _, pair := range renames {
-		n, err := store.MoveLane(s.root, pair[0], pair[1])
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, err.Error())
-			return
-		}
-		moved += n
-	}
 	leftmost := req.Statuses[0].ID
 	for _, st := range cfg.Statuses {
 		if !seen[st.ID] && !renamedFrom[st.ID] {
-			n, err := store.MoveLane(s.root, st.ID, leftmost)
-			if err != nil {
-				writeError(w, http.StatusInternalServerError, err.Error())
-				return
-			}
-			moved += n
+			renames = append(renames, [2]types.Status{st.ID, leftmost})
 		}
 	}
 
-	// persist the new lane set and respond
-	cfg.Statuses = req.Statuses
-	if err := id.WriteConfig(s.root, cfg); err != nil {
+	// apply renames and persist the new lane set in one atomic rewrite
+	moved, err := store.UpdateLanes(s.board, renames, req.Statuses)
+	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
-		"statuses": cfg.Statuses,
+		"statuses": req.Statuses,
 		"moved":    moved,
 	})
 }
@@ -391,9 +376,9 @@ func (s *Server) handleClear(w http.ResponseWriter, r *http.Request) {
 	var err error
 	switch req.Scope {
 	case "archived":
-		deleted, err = store.ClearArchived(s.root)
+		deleted, err = store.ClearArchived(s.board)
 	case "all":
-		deleted, err = store.ClearAll(s.root)
+		deleted, err = store.ClearAll(s.board)
 	default:
 		writeError(w, http.StatusBadRequest, "Invalid scope: must be \"archived\" or \"all\"")
 		return
@@ -406,7 +391,7 @@ func (s *Server) handleClear(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleSeed(w http.ResponseWriter, r *http.Request) {
-	created, err := SeedDemoData(s.root)
+	created, err := SeedDemoData(s.board)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return

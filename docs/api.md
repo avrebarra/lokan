@@ -38,7 +38,7 @@ critical | high | medium | low
 | subtask | task, bug       |
 | bug     | epic, task      |
 
-## Task frontmatter (YAML blocks in `.lokan/board.md`)
+## Task frontmatter (YAML blocks in `docs/board.md`)
 
 | field    | type       | required | notes                       |
 | -------- | ---------- | -------- | --------------------------- |
@@ -59,8 +59,8 @@ critical | high | medium | low
 `TaskSummary` = frontmatter + `filePath` + `lineStart`/`lineEnd` (no body).
 
 > `filePath` is a **virtual path** — all tasks live in one file
-> (`.lokan/board.md`) as `<!-- lokan:<id> -->`-delimited blocks. The reported
-> path (`<root>/.lokan/tasks/<id>.md`) is stable per task and is how the
+> (`docs/board.md`) as `<!-- lokan:<id> -->`-delimited blocks. The reported
+> path (`<board>#<id>`) is stable per task and is how the
 > engine addresses a block; it is not a real file on disk.
 >
 > `lineStart`/`lineEnd` address the block's location in `.lokan/board.md`,
@@ -81,7 +81,7 @@ Static HTML app (embedded dist).
 {
   "tasks": [TaskSummary...],
   "statuses": [{ "id": Status, "archived": boolean }...],
-  "root": "/abs/path/to/project"
+  "root": "/abs/path/to/board.md"
 }
 ```
 
@@ -135,7 +135,7 @@ Request body: `{ "id": string, "status": Status, "beforeId"?: string }`
 
 Moves a task to another lane and/or position within a lane. The moved task
 lands directly **before** `beforeId`; omit or empty `beforeId` to append at
-the end of the lane. Backed by a physical block reorder of `board.md`
+the end of the lane. Backed by a physical block reorder of `docs/board.md`
 (preserves lane order, no position field).
 
 Validation:
@@ -157,7 +157,7 @@ the server diffs it against the current lanes:
 
 - **added** lanes (id not in current set) are appended
 - **renamed** lanes (same position, id in neither list) rewrite the stored
-  status of every task in that lane in `board.md`
+  status of every task in that lane in `docs/board.md`
 - **removed** lanes move their tasks to the leftmost remaining lane, then
   drop the lane
 
@@ -202,9 +202,11 @@ All error bodies: `{ "error": "<message>" }`
 The board and CLI are designed to be operated by AI agents. Two stable
 entry points, both frozen:
 
-- **Full state:** read `.lokan/board.md` directly — it is the complete board
-  (all fields, bodies, Active/Archive sections) as markdown.
-- **Lean board view:** `lokan list --md` prints a compact markdown summary —
+- **Full state:** read the board file directly (your `--board` target) — it
+  is the complete board (config, all fields, bodies, Active/Archive
+  sections) as markdown.
+- **Lean board view:** `lokan list --md --board <file>` prints a compact
+  markdown summary —
   a `# Board — <n> active, <n> archived` header, then one `## <status>`
   group per configured lane (in lane order) with one
   `- <id> [<priority>] <title>` line per task. The
@@ -217,27 +219,29 @@ Mutations use the regular CLI (stable commands): `lokan create "<title>"`
 Output discipline for agents:
 
 - stdout carries the result; stderr carries errors only
-- exit code 0 on success, 1 on any failure (missing project, not found, validation)
+- exit code 0 on success, 1 on any failure (missing --board, not found, validation)
 - human `list`/`get` output remains available and is agent-readable too
 
 ## Agent write contract
 
 The interface above is read/write-safe only when agents follow this contract:
 
-- **Read** the board by opening `.lokan/board.md` or running `lokan list --md`.
+- **Read** the board by opening your `--board` file or running
+  `lokan list --md --board <file>`.
   Both always reflect current state.
-- **Mutate only via CLI/API.** Never hand-rewrite `.lokan/board.md`. The engine
+- **Mutate only via CLI/API.** Never hand-rewrite the board file (your
+  `--board` target). The engine
   owns the file format — markers, block ordering, `## Archive` placement, and
-  the `updated` timestamp — and rewrites it atomically under `board.md.lock`.
+  the `updated` timestamp — and rewrites it atomically under `<board>.lock`.
 - **Treat these fields as engine-owned:** `id`, `created`, `updated`. Do not set
   or edit them; the engine assigns/refreshes them on every write.
 - **Surfaces to expect:**
   - success → exit code 0, result on stdout
-  - failure (missing project, task not found, validation) → exit code 1, message
+  - failure (missing board, task not found, validation) → exit code 1, message
     on stderr. Re-read state and retry; do not blindly re-issue.
 - **Concurrency:** the lock guards engine-vs-engine writes, not an external text
   editor. Use the CLI so the engine serializes; don't mutate concurrently with a
-  human hand-editing `board.md`.
+  human hand-editing the board file.
 
 ## Embedding
 
@@ -250,12 +254,17 @@ and embedded via `//go:embed all:dist` (package `engine/web`). `GET /` serves
 
 ```
 <project>/
-  .lokan/
-    config.json       { "counter": number, "version": string, "statuses": [{ "id", "archived" }...] }
-    board.md          single file: all task blocks
+  docs/
+    board.md          a board: config block + all task blocks
 ```
 
-`board.md` holds every task as a `<!-- lokan:<id> -->`-delimited block (YAML
+A board is a markdown file whose first block is the `<!-- lokan:config -->`
+marker (YAML: `counter`, `version`, `statuses`) followed by task blocks.
+Every command targets a board explicitly via `--board <file>` — there is no
+discovery and no default path. `lokan init --board <file>` creates a fresh
+board; any markdown file can become one.
+
+The board file holds every task as a `<!-- lokan:<id> -->`-delimited block (YAML
 frontmatter fields above + blank line + markdown body), grouped into two
 sections:
 
@@ -279,4 +288,4 @@ id: "1"
 `## Archive` holds tasks whose lane has `archived: true`; everything else
 renders under `## Active` (the default set archives `done` and `cancelled`).
 The engine rewrites the file atomically (temp + rename) under a
-`board.md.lock` guard on every mutation.
+`<board>.lock` guard on every mutation.

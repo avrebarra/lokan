@@ -11,8 +11,9 @@
 These decisions were identified during review and are baked into the current
 implementation. Treat them as contract:
 
-- **Atomic counter allocation.** `id.NextCounter` uses an exclusive lock file
-  around the read-modify-write of `config.json`. Concurrent `create`
+- **Atomic counter allocation.** `store.NextCounter` uses an exclusive lock
+  file around the read-modify-write of the board's config block. Concurrent
+  `create`
   invocations (CI, AI agents running in parallel) must never hand out
   duplicate counters — duplicate IDs mean silent file overwrite with no
   recovery path.
@@ -23,14 +24,14 @@ implementation. Treat them as contract:
 - **Cycle-safe tree building.** `buildTree` tracks ids on the current path, so
   a corrupt parent graph (A→B→A) cannot infinite-loop. Human/AI-edited
   frontmatter is an expected input.
-- **O(N) id lookup on the board document.** `FindByID` scans `.lokan/board.md`
+- **O(N) id lookup on the board document.** `FindByID` scans `docs/board.md`
   blocks (there are no per-task files). Keep the scan linear and cheap — no
   regex-over-filepath tricks; a full board scan is fine at kanban scale.
 - **ID immutable on title edits.** Title edits update the task block in
   place — the id always comes from frontmatter, never from a filename, so
   `task-NaN-title.md` corruption is impossible by construction.
 - **One board file, git-friendly.** Git-diffable and editor-editable is the
-  point. The single `.lokan/board.md` preserves that: `<!-- lokan:<id> -->`
+  point. The single `docs/board.md` preserves that: `<!-- lokan:<id> -->`
   blocks, deterministic Active/Archive grouping, atomic temp+rename rewrites.
   If storage is revisited, it must preserve git-friendliness.
 

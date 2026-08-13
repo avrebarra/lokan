@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 
-	"github.com/avressatelier/lokan/internal/id"
 	"github.com/avressatelier/lokan/internal/query"
 	"github.com/avressatelier/lokan/internal/store"
 	"github.com/avressatelier/lokan/internal/types"
@@ -16,6 +15,7 @@ func newListCmd() *cli.Command {
 		Usage:        "List tasks with optional filters",
 		OnUsageError: quietUsageError,
 		Flags: []cli.Flag{
+			boardFlag(),
 			&cli.StringFlag{Name: "type", Usage: "Filter by type: epic, task, subtask, bug"},
 			&cli.StringFlag{Name: "status", Usage: "Filter by status: todo, in-progress, backlog, done, cancelled"},
 			&cli.StringFlag{Name: "priority", Usage: "Filter by priority: critical, high, medium, low"},
@@ -26,22 +26,22 @@ func newListCmd() *cli.Command {
 			if err := requireArgs(c, 0); err != nil {
 				return err
 			}
-			root, err := requireProject(c)
+			board, err := requireBoard(c)
 			if err != nil {
 				return err
 			}
 
 			// validate the status filter against the configured lanes
-			if st := c.String("status"); st != "" && !contains(statusIDs(root), types.Status(st)) {
-				return cliErrorf("Invalid status %q. Must be one of: %s", st, joinStatuses(root))
+			if st := c.String("status"); st != "" && !contains(statusIDs(board), types.Status(st)) {
+				return cliErrorf("Invalid status %q. Must be one of: %s", st, joinStatuses(board))
 			}
-			cfg, err := id.ReadConfig(root)
+			cfg, err := store.ReadConfig(board)
 			if err != nil {
 				return err
 			}
 
 			// load, filter, sort the board
-			all, err := store.LoadAllSummaries(root)
+			all, err := store.LoadAllSummaries(board)
 			if err != nil {
 				return err
 			}

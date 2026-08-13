@@ -15,17 +15,18 @@ func newEditCmd() *cli.Command {
 		ArgsUsage:    "<id>",
 		OnUsageError: quietUsageError,
 		Flags: []cli.Flag{
+			boardFlag(),
 			&cli.StringFlag{Name: "status", Usage: "New status: todo, in-progress, backlog, done, cancelled"},
 			&cli.StringFlag{Name: "priority", Usage: "New priority: critical, high, medium, low"},
 			&cli.StringFlag{Name: "title", Usage: "New title"},
 			&cli.StringFlag{Name: "parent", Usage: "Set parent task ID (empty clears)"},
 		},
 		Action: func(c *cli.Context) error {
-			// validate the positional id, resolve the project
+			// validate the positional id, resolve the board
 			if err := requireArgs(c, 1); err != nil {
 				return err
 			}
-			root, err := requireProject(c)
+			board, err := requireBoard(c)
 			if err != nil {
 				return err
 			}
@@ -36,15 +37,15 @@ func newEditCmd() *cli.Command {
 			newParent := c.String("parent")
 
 			// validate flag enums before touching the store
-			if newStatus != "" && !contains(statusIDs(root), types.Status(newStatus)) {
-				return cliErrorf("Invalid status %q. Must be one of: %s", newStatus, joinStatuses(root))
+			if newStatus != "" && !contains(statusIDs(board), types.Status(newStatus)) {
+				return cliErrorf("Invalid status %q. Must be one of: %s", newStatus, joinStatuses(board))
 			}
 			if newPriority != "" && !contains(types.Priorities, types.Priority(newPriority)) {
 				return cliErrorf("Invalid priority %q. Must be one of: %s", newPriority, joinPriorities())
 			}
 
 			// load the target task
-			summary, err := store.FindByID(root, taskID)
+			summary, err := store.FindByID(board, taskID)
 			if err != nil {
 				return notFoundError(taskID, err)
 			}

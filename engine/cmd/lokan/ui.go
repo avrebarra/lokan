@@ -22,6 +22,7 @@ func newUICmd() *cli.Command {
 		Usage:        "Start the kanban web UI",
 		OnUsageError: quietUsageError,
 		Flags: []cli.Flag{
+			boardFlag(),
 			&cli.IntFlag{Name: "port", Aliases: []string{"p"}, Value: defaultPort, Usage: "port to listen on"},
 		},
 		Action: runUI,
@@ -30,7 +31,7 @@ func newUICmd() *cli.Command {
 
 func runUI(c *cli.Context) error {
 	port := c.Int("port")
-	root, err := requireProject(c)
+	board, err := requireBoard(c)
 	if err != nil {
 		return err
 	}
@@ -39,7 +40,7 @@ func runUI(c *cli.Context) error {
 	url := fmt.Sprintf("http://localhost:%d", port)
 	httpServer := &http.Server{
 		Addr:    fmt.Sprintf(":%d", port),
-		Handler: server.New(root).Handler(),
+		Handler: server.New(board).Handler(),
 	}
 
 	fmt.Printf("lokan ui — %s\n", url)

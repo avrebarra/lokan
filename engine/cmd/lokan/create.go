@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"path/filepath"
 	"time"
 
 	"github.com/avressatelier/lokan/internal/id"
@@ -18,6 +17,7 @@ func newCreateCmd() *cli.Command {
 		ArgsUsage:    "<title>",
 		OnUsageError: quietUsageError,
 		Flags: []cli.Flag{
+			boardFlag(),
 			&cli.StringFlag{Name: "type", Aliases: []string{"t"}, Value: string(types.TypeTask), Usage: "Task type: epic, task, subtask, bug"},
 			&cli.StringFlag{Name: "priority", Value: string(types.PriorityMedium), Usage: "Priority: critical, high, medium, low"},
 			&cli.StringFlag{Name: "parent", Usage: "Parent task ID"},
@@ -34,8 +34,8 @@ func newCreateCmd() *cli.Command {
 			parent := c.String("parent")
 			tags := c.StringSlice("tag")
 
-			// every command except init/help needs a project
-			root, err := requireProject(c)
+			// every command except init/help targets an explicit board
+			board, err := requireBoard(c)
 			if err != nil {
 				return err
 			}
@@ -52,7 +52,7 @@ func newCreateCmd() *cli.Command {
 
 			// resolve and validate the parent, if given
 			if parent != "" {
-				parentSummary, err := store.FindByID(root, parent)
+				parentSummary, err := store.FindByID(board, parent)
 				if err != nil {
 					return cliErrorf("Parent task not found: %s", parent)
 				}
@@ -62,18 +62,18 @@ func newCreateCmd() *cli.Command {
 			}
 
 			// allocate id/filename from the counter and write the task file
-			counter, err := id.NextCounter(root)
+			counter, err := store.NextCounter(board)
 			if err != nil {
 				return err
 			}
 			taskID := id.GenerateID(counter)
 			today := time.Now().UTC().Format("2006-01-02")
 
-			task, err := store.CreateTask(root, types.TaskFrontmatter{
+			task, err := store.CreateTask(board, types.TaskFrontmatter{
 				ID:       taskID,
 				Title:    title,
 				Type:     t,
-				Status:   defaultStatus(root),
+				Status:   defaultStatus(board),
 				Priority: p,
 				Created:  today,
 				Updated:  today,
@@ -83,12 +83,8 @@ func newCreateCmd() *cli.Command {
 			if err != nil {
 				return err
 			}
-			// print the created task with a project-relative path
-			rel, err := filepath.Rel(root, store.BoardPath(root))
-			if err != nil {
-				rel = store.BoardPath(root)
-			}
-			fmt.Fprintf(c.App.Writer, "Created %s → %s\n", task.ID, rel)
+			// print the created task with the targeted board path
+			fmt.Fprintf(c.App.Writer, "Created %s → %s\n", task.ID, c.String("board"))
 			if parent != "" {
 				fmt.Fprintf(c.App.Writer, "  Parent: %s\n", parent)
 			}

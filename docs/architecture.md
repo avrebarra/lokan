@@ -13,7 +13,9 @@
 ## What it is
 
 Lokan is a markdown task manager with a kanban-focused CLI and a web UI, all
-in one static binary. All tasks live in one git-friendly `.lokan/board.md`
+in one static binary. The whole project lives in one git-friendly markdown
+board file — a config block plus task blocks. No project directory, no config
+sidecar.
 (Active/Archive sections) — no database.
 
 ## Stack
@@ -53,28 +55,31 @@ lokan/
 
 ```
 <project>/
-  .lokan/
-    config.json           { "counter": N, "version": "...", "statuses": [{ "id", "archived" }...] }
-    board.md              single file: all task blocks (Active/Archive)
+  docs/
+    board.md              whole project: config block + all task blocks (Active/Archive)
 ```
 
 - **One board file, one block per task:** every task is a
   `<!-- lokan:<id> -->`-delimited block (YAML frontmatter — `id, title, type,
 status, priority, parent?, related?, docs?, tags?, created, updated` — plus
   markdown body), grouped into `## Active` and `## Archive` (done/cancelled).
-- **Configurable lanes:** the board's statuses live in `config.json` as an
-  ordered `statuses` array (`id` + `archived` flag). Unconfigured projects
+- **Configurable lanes:** the board's statuses live in the board's
+  `<!-- lokan:config -->` block as an ordered `statuses` array (`id` +
+  `archived` flag). Unconfigured projects
   use the built-in defaults (`backlog, todo, in-progress, done, cancelled`,
   last two archived). All status validation and the Active/Archive split are
   driven by this list, so custom lanes round-trip through parse and
-  serialize. Renaming a lane rewrites `board.md`; removing one moves its
+  serialize. Renaming a lane rewrites the board file; removing one moves its
   tasks to the leftmost remaining lane.
 - Mutations rewrite the document atomically (temp + rename) under a
-  `board.md.lock` guard, so concurrent writers cannot lose updates.
+  `<board>.lock` guard, so concurrent writers cannot lose updates.
 - IDs are **plain counter values** (`1`, `2`, `3`), shared across all types.
-  The counter lives in `config.json`.
-- **Explicit init only (DECIDED 2026-08-13):** no lazy auto-init. Every
-  command except `init`/`help` errors with `not a lokan project — run lokan init`.
+  The counter lives in the board's config block.
+- **Explicit board targeting (DECIDED 2026-08-13):** every command takes a
+  required `--board <file>`. There is no discovery and no default path — a
+  markdown file is a board only when its first block is the
+  `<!-- lokan:config -->` marker. `lokan init --board <file>` creates one;
+  every other command errors when the file is missing or lacks the marker.
 
 ## Build Chain & Embedding
 
