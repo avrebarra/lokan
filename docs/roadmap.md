@@ -45,5 +45,7 @@ Assessments to run; each item is a proposal, not a commitment.
       `.lokan/board.md` (Active/Archive sections, `<!-- lokan:<id> -->`
       blocks) parsed and rewritten atomically, with this app as editor/viewer
 - [ ] **Switch CLI framework** — from cobra to urfave/cli
-- [ ] **Tailwind CSS** — adopt Tailwind for the frontend as much as possible
+- [x] **Tailwind CSS** — DONE (2026-08-13): Tailwind v4 adopted — tokens
+      mapped into `@theme`, all components converted to utilities,
+      `styles.css` removed
 - [ ] **Protobuf** — assess Protobuf instead of HTTP RESTful for the API

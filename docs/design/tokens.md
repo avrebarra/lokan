@@ -15,6 +15,9 @@ Dials: VARIANCE 5 · MOTION 2 · DENSITY 5.
 
 ## 2. Color tokens
 
+Consumed via `web/src/tokens.css`; mapped into Tailwind utilities
+(`bg-bg`, `text-fg`, ...) through `@theme` in `web/src/index.css`.
+
 ### Light (default)
 
 | token            | value     | use                                    |

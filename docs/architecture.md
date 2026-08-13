@@ -18,16 +18,16 @@ in one static binary. All tasks live in one git-friendly `.lokan/board.md`
 
 ## Stack
 
-| Layer    | Technology                                  | Why                                           |
-| -------- | ------------------------------------------- | --------------------------------------------- |
-| Engine   | Go 1.26, stdlib `net/http`, cobra CLI       | Single static binary, trivial distribution    |
-| Storage  | Single markdown board file + YAML frontmatter (yaml.v3) | Git-diffable, editor-editable, human-readable |
-| Frontend | Vite + React 18 + TypeScript, plain CSS     | No framework deps, design tokens in CSS       |
-| Fonts    | Geist Sans + Geist Mono (Google Fonts)      | shiprank design system heritage               |
-| Build    | `runtask` (root) → `go:embed`               | One command produces the final binary         |
+| Layer    | Technology                                              | Why                                                          |
+| -------- | ------------------------------------------------------- | ------------------------------------------------------------ |
+| Engine   | Go 1.26, stdlib `net/http`, cobra CLI                   | Single static binary, trivial distribution                   |
+| Storage  | Single markdown board file + YAML frontmatter (yaml.v3) | Git-diffable, editor-editable, human-readable                |
+| Frontend | Vite + React 18 + TypeScript + Tailwind CSS             | Design tokens mapped into Tailwind `@theme`, utility styling |
+| Fonts    | Geist Sans + Geist Mono (Google Fonts)                  | shiprank design system heritage                              |
+| Build    | `runtask` (root) → `go:embed`                           | One command produces the final binary                        |
 
 Stack evolution is tracked in [`roadmap.md`](./roadmap.md) (urfave/cli,
-Tailwind, Protobuf are planned assessments).
+Protobuf are planned assessments).
 
 ## Repository Layout
 
@@ -46,7 +46,7 @@ lokan/
       server/             # HTTP handlers + seed data
     web/                  # embed package: dist/ (built frontend, committed placeholder)
   web/                    # Vite React frontend
-    src/                  # components, tokens.css, api client
+    src/                  # components, tokens.css, index.css (tailwind entry), api client
 ```
 
 ## Storage Model
@@ -60,7 +60,7 @@ lokan/
 
 - **One board file, one block per task:** every task is a
   `<!-- lokan:<id> -->`-delimited block (YAML frontmatter — `id, title, type,
-  status, priority, parent?, related?, docs?, tags?, created, updated` — plus
+status, priority, parent?, related?, docs?, tags?, created, updated` — plus
   markdown body), grouped into `## Active` and `## Archive` (done/cancelled).
 - Mutations rewrite the document atomically (temp + rename) under a
   `board.md.lock` guard, so concurrent writers cannot lose updates.
