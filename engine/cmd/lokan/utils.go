@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strings"
 
+	"github.com/avressatelier/lokan/internal/id"
 	"github.com/avressatelier/lokan/internal/store"
 	"github.com/avressatelier/lokan/internal/types"
 )
@@ -27,13 +28,53 @@ func joinTypes() string {
 	return strings.Join(parts, ", ")
 }
 
-// joinStatuses renders the allowed statuses as a comma-separated list.
-func joinStatuses() string {
-	parts := make([]string, len(types.Statuses))
-	for i, s := range types.Statuses {
-		parts[i] = string(s)
+// statusIDs resolves the configured lane ids for a project, falling back to
+// the built-in enum when the config is unreadable.
+func statusIDs(root string) []types.Status {
+	cfg, err := id.ReadConfig(root)
+	if err != nil {
+		return types.Statuses
+	}
+	ids := make([]types.Status, len(cfg.Statuses))
+	for i, s := range cfg.Statuses {
+		ids[i] = s.ID
+	}
+	return ids
+}
+
+// joinStatuses renders the configured lane ids as a comma-separated list.
+func joinStatuses(root string) string {
+	parts := make([]string, 0, len(types.Statuses))
+	for _, s := range statusIDs(root) {
+		parts = append(parts, string(s))
 	}
 	return strings.Join(parts, ", ")
+}
+
+// defaultStatus returns the first non-archived lane — the landing status for
+// new tasks. Falls back to the first lane when every lane is archived.
+func defaultStatus(root string) types.Status {
+	cfg, err := id.ReadConfig(root)
+	if err != nil {
+		return types.StatusTodo
+	}
+	for _, s := range cfg.Statuses {
+		if !s.Archived {
+			return s.ID
+		}
+	}
+	return cfg.Statuses[0].ID
+}
+
+// isArchivedStatus reports whether a status belongs in the Archive section,
+// per the configured lane set. Unknown statuses default to active.
+func isArchivedStatus(status types.Status, statuses []types.StatusDef) bool {
+	for _, s := range statuses {
+		if s.ID == status {
+			return s.Archived
+		}
+	}
+	return false
 }
 
 // joinPriorities renders the allowed priorities as a comma-separated list.

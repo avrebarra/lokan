@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 
+	"github.com/avressatelier/lokan/internal/id"
 	"github.com/avressatelier/lokan/internal/query"
 	"github.com/avressatelier/lokan/internal/store"
 	"github.com/avressatelier/lokan/internal/types"
@@ -30,6 +31,15 @@ func newListCmd() *cli.Command {
 				return err
 			}
 
+			// validate the status filter against the configured lanes
+			if st := c.String("status"); st != "" && !contains(statusIDs(root), types.Status(st)) {
+				return cliErrorf("Invalid status %q. Must be one of: %s", st, joinStatuses(root))
+			}
+			cfg, err := id.ReadConfig(root)
+			if err != nil {
+				return err
+			}
+
 			// load, filter, sort the board
 			all, err := store.LoadAllSummaries(root)
 			if err != nil {
@@ -44,7 +54,7 @@ func newListCmd() *cli.Command {
 
 			// render as markdown or the aligned table
 			if c.Bool("md") {
-				fmt.Fprintln(c.App.Writer, renderMarkdownBoard(sorted))
+				fmt.Fprintln(c.App.Writer, renderMarkdownBoard(sorted, cfg.Statuses))
 			} else {
 				fmt.Fprintln(c.App.Writer, renderTable(sorted))
 			}

@@ -98,6 +98,7 @@ func newApp() *cli.App {
 			newListCmd(),
 			newEditCmd(),
 			newSubtasksCmd(),
+			newClearCmd(),
 			newUICmd(),
 		},
 		OnUsageError: quietUsageError,
