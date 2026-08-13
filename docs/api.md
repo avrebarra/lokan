@@ -13,9 +13,15 @@ epic | task | subtask | bug
 
 ### Status
 
+Lanes are **configurable** — see [`POST /api/config/statuses`](#post-apiconfigstatuses).
+The default lane set (also what an unconfigured project reports):
+
 ```
-todo | in-progress | backlog | done | cancelled
+backlog | todo | in-progress | done | cancelled
 ```
+
+`done` and `cancelled` are archived by default. Status validation on every
+endpoint is against the project's **configured** lanes, not this default.
 
 ### Priority
 
@@ -67,8 +73,16 @@ Static HTML app (embedded dist).
 ### GET /api/tasks
 
 ```json
-{ "tasks": [TaskSummary...], "root": "/abs/path/to/project" }
+{
+  "tasks": [TaskSummary...],
+  "statuses": [{ "id": Status, "archived": boolean }...],
+  "root": "/abs/path/to/project"
+}
 ```
+
+`statuses` is the effective lane set in board order (defaults when the
+project has no configured lanes). The UI renders one column per lane in this
+order.
 
 ### GET /api/task/:id
 
@@ -88,7 +102,8 @@ Validation:
 - `type` not in TASK_TYPES → 400 `{ "error": "Invalid type: <v>" }`
 - `priority` not in PRIORITIES → 400 `{ "error": "Invalid priority: <v>" }`
 
-Success: `{ "task": Task }` (status set to `todo`, id from counter)
+Success: `{ "task": Task }` (status set to the first non-archived lane, id
+from counter)
 Failure: 500 `{ "error": "<message>" }`
 
 ### POST /api/update
@@ -97,7 +112,7 @@ Request body: `{ "id": string, "field": "status"|"priority"|"title"|"type"|"pare
 
 Validation:
 
-- `status` → must be in STATUSES, else 400 `{ "error": "Invalid status: <v>" }`
+- `status` → must be a configured lane, else 400 `{ "error": "Invalid status: <v>" }`
 - `priority` → must be in PRIORITIES, else 400 `{ "error": "Invalid priority: <v>" }`
 - `title` → free-form string
 - `type` → must be in TASK_TYPES, else 400 `{ "error": "Invalid type: <v>" }`
@@ -120,12 +135,47 @@ the end of the lane. Backed by a physical block reorder of `board.md`
 
 Validation:
 
-- `status` must be in STATUSES, else 400 `{ "error": "Invalid status: <v>" }`
+- `status` must be a configured lane, else 400 `{ "error": "Invalid status: <v>" }`
 - `id` must exist, else 404 `{ "error": "task not found: <id>" }`
 - `beforeId`, when given, must exist and already be in the target lane,
   else 400 `{ "error": "beforeId must be a task in the target lane" }`
 
 Success: `{ "task": Task }`
+Failure: 500 `{ "error": "<message>" }`
+
+### POST /api/config/statuses
+
+Request body: `{ "statuses": [{ "id": Status, "archived": boolean }...] }`
+
+Replaces the project's lane set. The payload is the full new ordered list;
+the server diffs it against the current lanes:
+
+- **added** lanes (id not in current set) are appended
+- **renamed** lanes (same position, id in neither list) rewrite the stored
+  status of every task in that lane in `board.md`
+- **removed** lanes move their tasks to the leftmost remaining lane, then
+  drop the lane
+
+Validation:
+
+- empty list → 400 `{ "error": "At least one status is required" }`
+- empty or duplicate id → 400 `{ "error": "<message>" }`
+
+Success: `{ "statuses": [...], "moved": <tasks relocated/rewritten> }`
+Failure: 500 `{ "error": "<message>" }`
+
+### POST /api/clear
+
+Request body: `{ "scope": "archived" | "all" }`
+
+Bulk delete. `archived` deletes every task in an archived lane; `all` deletes
+every task on the board.
+
+Validation:
+
+- other scope → 400 `{ "error": "Invalid scope: must be \"archived\" or \"all\"" }`
+
+Success: `{ "deleted": <number of tasks deleted> }`
 Failure: 500 `{ "error": "<message>" }`
 
 ### POST /api/seed
@@ -151,8 +201,9 @@ entry points, both frozen:
   (all fields, bodies, Active/Archive sections) as markdown.
 - **Lean board view:** `lokan list --md` prints a compact markdown summary —
   a `# Board — <n> active, <n> archived` header, then one `## <status>`
-  group per status with one `- <id> [<priority>] <title>` line per task.
-  The `--type/--status/--priority` filters apply as normal.
+  group per configured lane (in lane order) with one
+  `- <id> [<priority>] <title>` line per task. The
+  `--type/--status/--priority` filters apply as normal.
 
 Mutations use the regular CLI (stable commands): `lokan create "<title>"`
 (`--type/--priority/--parent/--tag`) and `lokan edit <id>`
@@ -176,7 +227,7 @@ and embedded via `//go:embed all:dist` (package `engine/web`). `GET /` serves
 ```
 <project>/
   .lokan/
-    config.json       { "counter": number, "version": string }
+    config.json       { "counter": number, "version": string, "statuses": [{ "id", "archived" }...] }
     board.md          single file: all task blocks
 ```
 
@@ -201,6 +252,7 @@ id: "1"
 ...
 ```
 
-`## Archive` holds tasks whose status is `done` or `cancelled`; everything
-else renders under `## Active`. The engine rewrites the file atomically
-(temp + rename) under a `board.md.lock` guard on every mutation.
+`## Archive` holds tasks whose lane has `archived: true`; everything else
+renders under `## Active` (the default set archives `done` and `cancelled`).
+The engine rewrites the file atomically (temp + rename) under a
+`board.md.lock` guard on every mutation.

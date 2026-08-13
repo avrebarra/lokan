@@ -40,11 +40,12 @@ IDs are plain counter values (`1`, `2`, `3`), shared across all types.
 `lokan ui` serves the embedded React app on `localhost:7777` and opens your
 browser. Brutalist-terminal aesthetic: monochrome, mono
 labels, rows with hairline separators, a single yellow accent on the
-in-progress column. Dark mode follows your system with an explicit toggle.
+in-progress column. Light is the default; dark is opt-in via the toggle.
 
-Board: TODO / IN-PROGRESS / DONE columns (narrow screens stack vertically).
-Click a row for detail (fields, notes, subtasks). `advance →` moves the task
-through the status cycle. `+ new task` creates directly from the UI.
+Board: one column per configured lane (narrow screens stack vertically).
+Click a row for detail (fields, notes, subtasks); drag rows between lanes.
+`+ new task` creates directly from the UI; `config` edits lanes (add/rename/
+remove, archived flag) and bulk-clears archived or all tasks.
 
 ## API
 
@@ -52,10 +53,13 @@ JSON API for the UI, contract frozen in `docs/api.md`:
 
 ```
 GET  /              embedded app
-GET  /api/tasks     { tasks: [TaskSummary], root }
+GET  /api/tasks     { tasks: [TaskSummary], statuses: [StatusDef], root }
 GET  /api/task/:id  { task: Task }
 POST /api/create    { title, type, priority, parent? } → { task }
 POST /api/update    { id, field, value } → { task }
+POST /api/move      { id, status, beforeId? } → { task }
+POST /api/config/statuses  { statuses: [{ id, archived }...] } → { statuses, moved }
+POST /api/clear     { scope: "archived"|"all" } → { deleted }
 POST /api/seed      { created }
 ```
 
