@@ -63,11 +63,11 @@ def cmd_preview
   Dir.mkdir(project) unless Dir.exist?(project)
 
   Dir.chdir(project) do
-    run "#{bin} init"
-    pid = Process.spawn(bin, "ui", "--port", port, out: $stdout, err: $stderr)
+    run "#{bin} init --board docs/board.md"
+    pid = Process.spawn(bin, "ui", "--port", port, "--board", "docs/board.md", out: $stdout, err: $stderr)
     begin
       sleep 1.5
-      board = File.read(".lokan/board.md") rescue ""
+      board = File.read("docs/board.md") rescue ""
       if !board.include?("<!-- lokan:")
         puts "  seeding demo data…"
         system "curl -s -X POST http://localhost:#{port}/api/seed"
@@ -119,13 +119,13 @@ def cmd_e2e
   Dir.mkdir(project)
 
   Dir.chdir(project) do
-    run "#{bin} init"
-    run "#{bin} create --type task --priority high \"E2E task one\""
-    run "#{bin} create --type task --priority low \"E2E task two\""
-    run "#{bin} list"
+    run "#{bin} init --board docs/board.md"
+    run "#{bin} create --board docs/board.md --type task --priority high \"E2E task one\""
+    run "#{bin} create --board docs/board.md --type task --priority low \"E2E task two\""
+    run "#{bin} list --board docs/board.md"
 
     port = 7999
-    pid = Process.spawn(bin, "ui", "--port", port.to_s, out: "/dev/null", err: "/dev/null")
+    pid = Process.spawn(bin, "ui", "--port", port.to_s, "--board", "docs/board.md", out: "/dev/null", err: "/dev/null")
     begin
       sleep 1.5
       body = `curl -s http://localhost:#{port}/api/tasks`

@@ -2,30 +2,31 @@
 
 Markdown task manager — kanban-focused. Go engine + React frontend in a single binary.
 
-All tasks live in one git-friendly `.lokan/board.md` (YAML frontmatter blocks
-grouped into Active/Archive sections). No database. Fork of `@onmyway133/nod`,
-rebuilt in Go.
+The whole project lives in one git-friendly markdown board file: a
+`<!-- lokan:config -->` block (counter, version, lanes) plus task blocks. Every
+command targets a board explicitly with `--board <file>` — no discovery, no
+default path. No database. Fork of `@onmyway133/nod`, rebuilt in Go.
 
 ## Quick start
 
 ```sh
 ./runtask build          # one command: vite build → embed → go build → dist/lokan
-./dist/lokan init        # create .lokan/ project (explicit — required first)
-./dist/lokan create -t task "Fix counter race"    # new task
-./dist/lokan list                                  # board summary
-./dist/lokan edit 1 --status in-progress    # update fields
-./dist/lokan subtasks 1                     # children of a task
-./dist/lokan ui                                   # open the web UI (embedded)
+./dist/lokan init --board docs/board.md   # create a board (explicit — required first)
+./dist/lokan create --board docs/board.md -t task "Fix counter race"   # new task
+./dist/lokan list --board docs/board.md                                # board summary
+./dist/lokan edit --board docs/board.md 1 --status in-progress  # update fields
+./dist/lokan subtasks --board docs/board.md 1                   # children of a task
+./dist/lokan ui --board docs/board.md                            # open the web UI
 ```
 
-All commands except `init`/`help` require an initialized project and error with
-`not a lokan project — run lokan init` otherwise.
+All commands except `init`/`help` take a required `--board <file>` and error
+when the file is missing or lacks the lokan config marker.
 
 ## Commands
 
 | command         | description                                                           |
 | --------------- | --------------------------------------------------------------------- |
-| `init`          | create `.lokan/` project (config + tasks dir)                         |
+| `init`          | create a board — `--board <file>` (required)                          |
 | `create`        | new task — `--type` (task/bug/epic/subtask), `--priority`, `--parent` |
 | `get <id>`      | full task (frontmatter + body)                                        |
 | `list`          | all tasks as a table, filterable by `--status/--type/--priority`      |
