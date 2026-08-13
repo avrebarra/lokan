@@ -121,6 +121,73 @@ func WriteTask(task types.Task) error {
 	})
 }
 
+// MoveTask relocates a task to another lane (status) and position: directly
+// before beforeID, or at the end of the lane when beforeID is empty. The
+// whole board is rewritten under one lock, so the move is atomic.
+func MoveTask(root, id string, status types.Status, beforeID string) (types.Task, error) {
+	var moved types.Task
+	err := withBoardLock(BoardPath(root), func() error {
+		tasks, err := readBoard(root)
+		if err != nil {
+			return err
+		}
+		// locate the task to move and pull it out of the board order
+		from := -1
+		for i, t := range tasks {
+			if t.ID == id {
+				from = i
+				moved = t
+				break
+			}
+		}
+		if from < 0 {
+			return fmt.Errorf("%w: %s", ErrNotFound, id)
+		}
+		tasks = append(tasks[:from], tasks[from+1:]...)
+
+		// apply the move: reinsert at the anchor, then write once
+		moved.Status = status
+		moved.Updated = time.Now().UTC().Format("2006-01-02")
+		to := insertIndexFor(tasks, status, beforeID)
+		tasks = append(tasks[:to], append([]types.Task{moved}, tasks[to:]...)...)
+		return writeBoard(root, tasks)
+	})
+	if err != nil {
+		return moved, err
+	}
+	return moved, nil
+}
+
+// insertIndexFor computes the board position for a task landing in the given
+// lane: before the anchor task, after the lane's last task, or at the end of
+// the active/archive section when the lane is empty.
+func insertIndexFor(tasks []types.Task, status types.Status, beforeID string) int {
+	if beforeID != "" {
+		for i, t := range tasks {
+			if t.ID == beforeID {
+				return i
+			}
+		}
+		return len(tasks)
+	}
+	// append after the lane's last task, keeping lane order stable
+	for i := len(tasks) - 1; i >= 0; i-- {
+		if tasks[i].Status == status {
+			return i + 1
+		}
+	}
+	// empty lane: append at the end of the matching section
+	if isArchived(status) {
+		return len(tasks)
+	}
+	for i, t := range tasks {
+		if isArchived(t.Status) {
+			return i
+		}
+	}
+	return len(tasks)
+}
+
 // CreateTask appends a new task block to the board and returns it.
 func CreateTask(root string, fm types.TaskFrontmatter, body string) (types.Task, error) {
 	var task types.Task

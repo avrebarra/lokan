@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"sync"
 	"testing"
@@ -404,6 +405,90 @@ func TestConcurrentCreateNoLostUpdates(t *testing.T) {
 	}
 	if len(summaries) != n {
 		t.Fatalf("got %d tasks, want %d (lost updates)", len(summaries), n)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// moveTask
+// ---------------------------------------------------------------------------
+
+func boardIDs(t *testing.T, root string) []string {
+	t.Helper()
+	summaries, err := LoadAllSummaries(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ids := make([]string, len(summaries))
+	for i, s := range summaries {
+		ids[i] = s.ID
+	}
+	return ids
+}
+
+func TestMoveTaskReordersWithinLane(t *testing.T) {
+	root := newTempRoot(t)
+	for _, id := range []string{"1", "2", "3"} {
+		mustCreate(t, root, makeFrontmatter(map[string]interface{}{"id": id}))
+	}
+	// move 1 before 3 → 2,1,3
+	if _, err := MoveTask(root, "1", types.StatusTodo, "3"); err != nil {
+		t.Fatal(err)
+	}
+	if got, want := boardIDs(t, root), []string{"2", "1", "3"}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("order = %v, want %v", got, want)
+	}
+}
+
+func TestMoveTaskToEndOfLane(t *testing.T) {
+	root := newTempRoot(t)
+	for _, id := range []string{"1", "2", "3"} {
+		mustCreate(t, root, makeFrontmatter(map[string]interface{}{"id": id}))
+	}
+	// empty anchor = append at the lane's end → 2,3,1
+	if _, err := MoveTask(root, "1", types.StatusTodo, ""); err != nil {
+		t.Fatal(err)
+	}
+	if got, want := boardIDs(t, root), []string{"2", "3", "1"}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("order = %v, want %v", got, want)
+	}
+}
+
+func TestMoveTaskAcrossLanesArchives(t *testing.T) {
+	root := newTempRoot(t)
+	for _, id := range []string{"1", "2"} {
+		mustCreate(t, root, makeFrontmatter(map[string]interface{}{"id": id}))
+	}
+	// move 1 into done → archived at the end, status applied
+	moved, err := MoveTask(root, "1", types.StatusDone, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if moved.Status != types.StatusDone {
+		t.Fatalf("status = %s, want done", moved.Status)
+	}
+	if got, want := boardIDs(t, root), []string{"2", "1"}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("order = %v, want %v", got, want)
+	}
+}
+
+func TestMoveTaskToEmptyActiveLane(t *testing.T) {
+	root := newTempRoot(t)
+	mustCreate(t, root, makeFrontmatter(map[string]interface{}{"id": "1"}))
+	mustCreate(t, root, makeFrontmatter(map[string]interface{}{"id": "2", "status": types.StatusDone}))
+	// backlog is empty: lands before the archive section, not after it
+	if _, err := MoveTask(root, "1", types.StatusBacklog, ""); err != nil {
+		t.Fatal(err)
+	}
+	if got, want := boardIDs(t, root), []string{"1", "2"}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("order = %v, want %v", got, want)
+	}
+}
+
+func TestMoveTaskNotFound(t *testing.T) {
+	root := newTempRoot(t)
+	mustCreate(t, root, makeFrontmatter(nil))
+	if _, err := MoveTask(root, "99", types.StatusTodo, ""); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("err = %v, want ErrNotFound", err)
 	}
 }
 
