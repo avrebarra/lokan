@@ -4,10 +4,9 @@ import App from './App'
 import './tokens.css'
 import './index.css'
 
-// resolve theme: stored preference, else system, before first render
+// resolve theme: stored preference, else light (dark is opt-in via the toggle)
 const stored = localStorage.getItem('lokan-theme')
-const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-document.documentElement.dataset.theme = stored ?? (prefersDark ? 'dark' : 'light')
+document.documentElement.dataset.theme = stored ?? 'light'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
