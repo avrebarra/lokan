@@ -5,6 +5,7 @@ interface Props {
   tasks: TaskSummary[]
   subtaskCount: Map<string, number>
   onSelect: (id: string) => void
+  onMove: (id: string, status: Status, beforeId?: string) => void
 }
 
 interface ColumnSpec {
@@ -22,7 +23,7 @@ const COLUMNS: ColumnSpec[] = [
   { label: 'cancelled', statuses: ['cancelled'] },
 ]
 
-export default function Board({ tasks, subtaskCount, onSelect }: Props) {
+export default function Board({ tasks, subtaskCount, onSelect, onMove }: Props) {
   // subtasks live under their parents, not as board rows
   const visible = tasks.filter((t) => t.type !== 'subtask')
   return (
@@ -32,9 +33,11 @@ export default function Board({ tasks, subtaskCount, onSelect }: Props) {
           key={col.label}
           label={col.label}
           modifier={col.modifier}
+          status={col.statuses[0]}
           rows={visible.filter((t) => col.statuses.includes(t.status))}
           subtaskCount={subtaskCount}
           onSelect={onSelect}
+          onMove={onMove}
         />
       ))}
     </main>

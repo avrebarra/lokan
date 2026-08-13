@@ -1,3 +1,4 @@
+import type { DragEvent } from 'react'
 import type { TaskSummary } from '../types'
 import { priorityTag } from '../format'
 
@@ -8,9 +9,17 @@ interface Props {
 }
 
 export default function TaskRow({ task, subtaskCount, onClick }: Props) {
+  // start a lane move: carry the task id to the drop target
+  const onDragStart = (e: DragEvent<HTMLButtonElement>) => {
+    e.dataTransfer.setData('text/x-lokan-task', task.id)
+    e.dataTransfer.effectAllowed = 'move'
+  }
+
   return (
     <button
-      className="group block w-full border-b border-border bg-bg py-[11px] text-left text-fg transition-colors duration-[120ms] hover:bg-zebra"
+      draggable
+      onDragStart={onDragStart}
+      className="group block w-full select-none border-b border-border bg-bg py-[11px] text-left text-fg transition-colors duration-[120ms] hover:bg-zebra"
       onClick={onClick}
     >
       <div className="flex items-baseline justify-between gap-4">
