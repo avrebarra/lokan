@@ -2,7 +2,7 @@
 
 > Source of truth for the frontend build (G4). Derived from shiprank
 > (brutalist-terminal aesthetic) + lokan's kanban data model. Mockup:
-> `web/design/mockup.html`. Approved by user on 2026-08-13.
+> `docs/design/mockup.html`. Approved by user on 2026-08-13.
 
 ## 1. Design read
 
@@ -170,5 +170,5 @@ Mono uppercase `--muted`: `no tasks — create one with lokan create`.
 
 ## 9. Grid of elements to copy into G4
 
-`web/design/mockup.html` is the visual contract — G4 must reproduce it with
+`docs/design/mockup.html` is the visual contract — G4 must reproduce it with
 React components, same tokens, same structure. Deviations need approval.
