@@ -28,7 +28,13 @@ export default function TaskRow({ task, subtaskCount, onClick }: Props) {
     >
       <div className="flex items-baseline justify-between gap-4">
         <div className="flex flex-wrap items-baseline gap-2">
-          <span className={isSubtask ? 'text-[10px] uppercase text-muted' : 'text-[11px] uppercase text-muted'}>{task.id}</span>
+          <span
+            className={
+              isSubtask ? 'text-[10px] uppercase text-muted' : 'text-[11px] uppercase text-muted'
+            }
+          >
+            {task.id}
+          </span>
           <span
             className={
               !isSubtask && task.priority === 'critical'

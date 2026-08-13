@@ -94,8 +94,9 @@ func rowLine(t types.TaskSummary) string {
 }
 
 // renderMarkdownBoard renders tasks grouped by status as compact markdown,
-// one line per task — the agent-friendly list mode.
-func renderMarkdownBoard(tasks []types.TaskSummary) string {
+// one line per task — the agent-friendly list mode. Groups follow the
+// configured lane order.
+func renderMarkdownBoard(tasks []types.TaskSummary, statuses []types.StatusDef) string {
 	if len(tasks) == 0 {
 		return "No tasks found."
 	}
@@ -106,25 +107,25 @@ func renderMarkdownBoard(tasks []types.TaskSummary) string {
 		byStatus[t.Status] = append(byStatus[t.Status], t)
 	}
 
-	// count active vs archived (done/cancelled)
+	// count active vs archived per the configured lane set
 	active, archived := 0, 0
 	for _, t := range tasks {
-		if t.Status == types.StatusDone || t.Status == types.StatusCancelled {
+		if isArchivedStatus(t.Status, statuses) {
 			archived++
 		} else {
 			active++
 		}
 	}
 
-	// render status groups in contract order
+	// render status groups in configured lane order
 	var b strings.Builder
 	fmt.Fprintf(&b, "# Board — %d active, %d archived\n", active, archived)
-	for _, status := range types.Statuses {
-		group, ok := byStatus[status]
+	for _, status := range statuses {
+		group, ok := byStatus[status.ID]
 		if !ok {
 			continue
 		}
-		b.WriteString("\n## " + string(status) + "\n")
+		b.WriteString("\n## " + string(status.ID) + "\n")
 		for _, t := range group {
 			fmt.Fprintf(&b, "- %s [%s] %s\n", t.ID, t.Priority, t.Title)
 		}

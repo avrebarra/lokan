@@ -1,28 +1,39 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { createTask, fetchTask, fetchTasks, moveTask, updateTask } from './api'
+import {
+  clearTasks,
+  createTask,
+  fetchTask,
+  fetchTasks,
+  moveTask,
+  updateStatuses,
+  updateTask,
+} from './api'
 import type { CreateTaskInput } from './api'
-import type { Status, Task, TaskSummary, TaskType } from './types'
-import { nextStatus } from './format'
+import type { Status, StatusDef, Task, TaskSummary, TaskType } from './types'
 import Topline from './components/Topline'
 import Board from './components/Board'
 import DetailModal from './components/DetailModal'
 import type { TaskFieldChange } from './components/DetailModal'
 import CreateModal from './components/CreateModal'
+import ConfigModal from './components/ConfigModal'
 
 export default function App() {
-  // board state: tasks, selection, modals, theme
+  // board state: tasks, lanes, selection, modals, theme
   const [tasks, setTasks] = useState<TaskSummary[]>([])
+  const [statuses, setStatuses] = useState<StatusDef[]>([])
   const [selected, setSelected] = useState<Task | null>(null)
   const [creating, setCreating] = useState<{ parent?: string; type?: TaskType } | null>(null)
+  const [configOpen, setConfigOpen] = useState(false)
   const [theme, setTheme] = useState<'light' | 'dark'>(() =>
     document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light',
   )
   const [updatedAt, setUpdatedAt] = useState<Date>(new Date())
 
-  // reload board from the api and stamp the refresh time
+  // reload board and lanes from the api and stamp the refresh time
   const refresh = useCallback(async () => {
-    const { tasks } = await fetchTasks()
+    const { tasks, statuses } = await fetchTasks()
     setTasks(tasks)
+    setStatuses(statuses)
     setUpdatedAt(new Date())
   }, [])
 
@@ -36,8 +47,6 @@ export default function App() {
     document.documentElement.dataset.theme = theme
     localStorage.setItem('lokan-theme', theme)
   }, [theme])
-
-  const toggleTheme = () => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))
 
   // fetch full detail for the modal
   const openTask = async (id: string) => {
@@ -62,14 +71,6 @@ export default function App() {
     await refresh()
   }
 
-  // advance selected task's status, close the modal, reload
-  const handleAdvance = async () => {
-    if (!selected) return
-    await updateTask(selected.id, 'status', nextStatus(selected.status))
-    setSelected(null)
-    await refresh()
-  }
-
   // apply edited fields one at a time, close the modal, reload
   const handleSaveChanges = async (changes: TaskFieldChange[]) => {
     if (!selected) return
@@ -87,11 +88,38 @@ export default function App() {
     await refresh()
   }
 
+  // replace the lane set, close the modal, reload (moves + renames handled server-side)
+  const handleSaveStatuses = async (next: StatusDef[]) => {
+    await updateStatuses(next)
+    setConfigOpen(false)
+    await refresh()
+  }
+
+  // bulk delete: clear archived lanes or the whole board
+  const handleClearArchived = async () => {
+    await clearTasks('archived')
+    await refresh()
+  }
+
+  const handleClearAll = async () => {
+    await clearTasks('all')
+    await refresh()
+  }
+
   // count children per parent for the row badges
   const subtaskCount = useMemo(() => {
     const counts = new Map<string, number>()
     for (const t of tasks) {
       if (t.parent) counts.set(t.parent, (counts.get(t.parent) ?? 0) + 1)
+    }
+    return counts
+  }, [tasks])
+
+  // per-lane task counts for the config modal's delete confirmations
+  const laneCounts = useMemo(() => {
+    const counts: Record<string, number> = {}
+    for (const t of tasks) {
+      counts[t.status] = (counts[t.status] ?? 0) + 1
     }
     return counts
   }, [tasks])
@@ -107,17 +135,22 @@ export default function App() {
       <Topline
         taskCount={tasks.filter((t) => t.type !== 'subtask').length}
         updatedAt={updatedAt}
-        theme={theme}
-        onToggleTheme={toggleTheme}
         onCreate={() => setCreating({})}
+        onOpenConfig={() => setConfigOpen(true)}
       />
-      <Board tasks={tasks} subtaskCount={subtaskCount} onSelect={openTask} onMove={handleMove} />
+      <Board
+        statuses={statuses}
+        tasks={tasks}
+        subtaskCount={subtaskCount}
+        onSelect={openTask}
+        onMove={handleMove}
+      />
       {selected && (
         <DetailModal
           task={selected}
           subtasks={selectedSubtasks}
+          statuses={statuses}
           onClose={closeDetail}
-          onAdvance={handleAdvance}
           onSave={handleSaveChanges}
           onAddSubtask={() => setCreating({ parent: selected.id, type: 'subtask' })}
         />
@@ -128,6 +161,18 @@ export default function App() {
           onCreate={handleCreate}
           initialParent={creating.parent}
           initialType={creating.type}
+        />
+      )}
+      {configOpen && (
+        <ConfigModal
+          statuses={statuses}
+          laneCounts={laneCounts}
+          theme={theme}
+          onSetTheme={setTheme}
+          onClose={() => setConfigOpen(false)}
+          onSave={handleSaveStatuses}
+          onClearArchived={handleClearArchived}
+          onClearAll={handleClearAll}
         />
       )}
     </div>

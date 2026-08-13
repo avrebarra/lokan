@@ -73,7 +73,7 @@ func newCreateCmd() *cli.Command {
 				ID:       taskID,
 				Title:    title,
 				Type:     t,
-				Status:   types.StatusTodo,
+				Status:   defaultStatus(root),
 				Priority: p,
 				Created:  today,
 				Updated:  today,

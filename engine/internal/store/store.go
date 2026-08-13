@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/avressatelier/lokan/internal/id"
 	"github.com/avressatelier/lokan/internal/types"
 )
 
@@ -47,6 +48,16 @@ func boardPath(virtualPath string) string {
 // rootFromVirtual resolves the project root from a virtual task path.
 func rootFromVirtual(virtualPath string) string {
 	return filepath.Dir(filepath.Dir(filepath.Dir(virtualPath)))
+}
+
+// statusDefs resolves the effective lane definitions for a project, falling
+// back to the built-in defaults when the config is unreadable.
+func statusDefs(root string) []types.StatusDef {
+	cfg, err := id.ReadConfig(root)
+	if err != nil {
+		return types.DefaultStatusDefs()
+	}
+	return cfg.Statuses
 }
 
 // LoadAllSummaries reads every task block in the board file, skipping blocks
@@ -148,7 +159,7 @@ func MoveTask(root, id string, status types.Status, beforeID string) (types.Task
 		// apply the move: reinsert at the anchor, then write once
 		moved.Status = status
 		moved.Updated = time.Now().UTC().Format("2006-01-02")
-		to := insertIndexFor(tasks, status, beforeID)
+		to := insertIndexFor(tasks, status, beforeID, statusDefs(root))
 		tasks = append(tasks[:to], append([]types.Task{moved}, tasks[to:]...)...)
 		return writeBoard(root, tasks)
 	})
@@ -161,7 +172,7 @@ func MoveTask(root, id string, status types.Status, beforeID string) (types.Task
 // insertIndexFor computes the board position for a task landing in the given
 // lane: before the anchor task, after the lane's last task, or at the end of
 // the active/archive section when the lane is empty.
-func insertIndexFor(tasks []types.Task, status types.Status, beforeID string) int {
+func insertIndexFor(tasks []types.Task, status types.Status, beforeID string, statuses []types.StatusDef) int {
 	if beforeID != "" {
 		for i, t := range tasks {
 			if t.ID == beforeID {
@@ -177,11 +188,11 @@ func insertIndexFor(tasks []types.Task, status types.Status, beforeID string) in
 		}
 	}
 	// empty lane: append at the end of the matching section
-	if isArchived(status) {
+	if isArchived(status, statuses) {
 		return len(tasks)
 	}
 	for i, t := range tasks {
-		if isArchived(t.Status) {
+		if isArchived(t.Status, statuses) {
 			return i
 		}
 	}
@@ -213,6 +224,61 @@ func CreateTask(root string, fm types.TaskFrontmatter, body string) (types.Task,
 	return task, nil
 }
 
+// MoveLane rewrites the stored status of every task in the from lane to the
+// to lane — one atomic board rewrite. Used for lane renames and for moving
+// a removed lane's tasks into another lane. Returns how many tasks moved.
+func MoveLane(root string, from, to types.Status) (int, error) {
+	moved := 0
+	err := withBoardLock(BoardPath(root), func() error {
+		tasks, err := readBoard(root)
+		if err != nil {
+			return err
+		}
+		for i := range tasks {
+			if tasks[i].Status == from {
+				tasks[i].Status = to
+				moved++
+			}
+		}
+		return writeBoard(root, tasks)
+	})
+	return moved, err
+}
+
+// ClearArchived deletes every task whose lane is marked archived, returning
+// how many were removed.
+func ClearArchived(root string) (int, error) {
+	return clearTasks(root, func(t types.Task) bool {
+		return isArchived(t.Status, statusDefs(root))
+	})
+}
+
+// ClearAll deletes every task on the board, returning how many were removed.
+func ClearAll(root string) (int, error) {
+	return clearTasks(root, func(types.Task) bool { return true })
+}
+
+// clearTasks drops the tasks matching drop and rewrites the board atomically.
+func clearTasks(root string, drop func(types.Task) bool) (int, error) {
+	deleted := 0
+	err := withBoardLock(BoardPath(root), func() error {
+		tasks, err := readBoard(root)
+		if err != nil {
+			return err
+		}
+		kept := tasks[:0]
+		for _, t := range tasks {
+			if drop(t) {
+				deleted++
+				continue
+			}
+			kept = append(kept, t)
+		}
+		return writeBoard(root, kept)
+	})
+	return deleted, err
+}
+
 // readBoard loads all task blocks from the board file. A missing board file
 // is treated as an empty board.
 func readBoard(root string) ([]types.Task, error) {
@@ -223,12 +289,12 @@ func readBoard(root string) ([]types.Task, error) {
 		}
 		return nil, err
 	}
-	return parseBoard(string(raw)), nil
+	return parseBoard(string(raw), statusDefs(root)), nil
 }
 
 // writeBoard atomically persists the full board document.
 func writeBoard(root string, tasks []types.Task) error {
-	raw, err := serializeBoard(tasks)
+	raw, err := serializeBoard(tasks, statusDefs(root))
 	if err != nil {
 		return err
 	}

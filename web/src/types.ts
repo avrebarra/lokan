@@ -1,6 +1,12 @@
 export type TaskType = 'epic' | 'task' | 'subtask' | 'bug'
 
-export type Status = 'todo' | 'in-progress' | 'backlog' | 'done' | 'cancelled'
+// statuses are configurable lanes resolved from the server at runtime
+export type Status = string
+
+export interface StatusDef {
+  id: string
+  archived: boolean
+}
 
 export type Priority = 'critical' | 'high' | 'medium' | 'low'
 
@@ -25,8 +31,6 @@ export interface TaskSummary extends TaskFrontmatter {
 export interface Task extends TaskSummary {
   body: string
 }
-
-export const STATUSES: Status[] = ['todo', 'in-progress', 'backlog', 'done', 'cancelled']
 
 export const PRIORITIES: Priority[] = ['critical', 'high', 'medium', 'low']
 

@@ -39,9 +39,8 @@ Consumed via `web/src/tokens.css`; mapped into Tailwind utilities
 | `--muted`  | `#777`    |
 | `--accent` | `#ffc800` |
 
-Toggle: `data-theme="dark"` on `<html>`; respect `prefers-color-scheme`
-as default, explicit toggle overrides. (No theme switcher in mockup — ships
-in G4; default light + auto dark.)
+Toggle: `data-theme="dark"` on `<html>`; default light, explicit toggle opts
+into dark. (Stored preference wins when present.)
 
 ## 3. Typography
 
@@ -121,13 +120,14 @@ Clicking a row opens a centered modal (share-layer pattern):
   right-aligned 12px, `border-bottom` hairlines.
 - `notes` subhead (border-top `--fg` section-head) → body prose 13px.
 - `subtasks` subhead → list rows: title + `--muted` mono id, hairline-separated.
-- Footer actions: `advance → <next status>`, `edit`, `+ subtask` (buttons).
+- Footer actions: `edit`, `+ subtask` (buttons). Lane moves are drag-and-drop
+  on the board; the edit form has a status select.
 
-### Status cycle (interaction contract for G4)
-Click advances: `todo → in-progress → done` (+ `backlog`, `cancelled` per
-contract — board shows 3 core columns: TODO / IN-PROGRESS / DONE;
-backlog/cancelled tasks render in TODO column with tag, or filtered —
-**G4 decision, mockup shows core 3**).
+### Status cycle (interaction contract)
+Lane moves are drag-and-drop (also editable via the status select in the
+detail modal). Lanes are configurable in the config modal — the board renders
+one column per configured lane in order, archived lanes feed the Archive
+section and bulk clear.
 
 ### Buttons
 - `.button`: `1px solid var(--fg)`, radius 0, mono 11px uppercase,

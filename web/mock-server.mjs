@@ -13,6 +13,15 @@ const PORT = Number(process.env.MOCK_API_PORT ?? 8787)
 let nextCounter = 100
 const tasks = new Map()
 
+// configurable lanes, mirroring the real config.json defaults
+let statuses = [
+  { id: 'backlog', archived: false },
+  { id: 'todo', archived: false },
+  { id: 'in-progress', archived: false },
+  { id: 'done', archived: true },
+  { id: 'cancelled', archived: true },
+]
+
 function seed(partials) {
   for (const p of partials) {
     const id = `task-${nextCounter++}`
@@ -143,7 +152,7 @@ const server = http.createServer(async (req, res) => {
     // tasks list
     if (req.method === 'GET' && path === '/api/tasks') {
       const all = [...tasks.values()]
-      respond(res, 200, { tasks: all.map(summary), root: '/mock' })
+      respond(res, 200, { tasks: all.map(summary), statuses, root: '/mock' })
       return
     }
 
@@ -192,6 +201,44 @@ const server = http.createServer(async (req, res) => {
       task[body.field] = body.value
       task.updated = '2026-08-13'
       respond(res, 200, { task })
+      return
+    }
+
+    // replace the lane set (mock: renames/removals move tasks to first lane)
+    if (req.method === 'POST' && path === '/api/config/statuses') {
+      const body = await readBody(req)
+      const next = body.statuses ?? []
+      if (next.length === 0) return respond(res, 400, { error: 'At least one status is required' })
+      const ids = new Set(next.map((s) => s.id))
+      if (ids.size !== next.length || [...ids].some((id) => !id)) {
+        return respond(res, 400, { error: 'Statuses must be non-empty and unique' })
+      }
+      let moved = 0
+      const known = new Set(statuses.map((s) => s.id))
+      for (const t of tasks.values()) {
+        if (!known.has(t.status)) continue
+        if (!ids.has(t.status)) {
+          t.status = next[0].id
+          moved++
+        }
+      }
+      statuses = next
+      respond(res, 200, { statuses, moved })
+      return
+    }
+
+    // bulk delete: archived lanes or the whole board
+    if (req.method === 'POST' && path === '/api/clear') {
+      const body = await readBody(req)
+      const archivedIds = new Set(statuses.filter((s) => s.archived).map((s) => s.id))
+      let deleted = 0
+      for (const [id, t] of tasks) {
+        if (body.scope === 'all' || (body.scope === 'archived' && archivedIds.has(t.status))) {
+          tasks.delete(id)
+          deleted++
+        }
+      }
+      respond(res, 200, { deleted })
       return
     }
 

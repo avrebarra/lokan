@@ -7,6 +7,7 @@
   --color-border: var(--border);
   --color-muted: var(--muted);
   --color-accent: var(--accent);
+  --color-danger: var(--danger);
   --color-zebra: var(--zebra);
 
   --font-sans: 'Geist', Helvetica, Arial, sans-serif;

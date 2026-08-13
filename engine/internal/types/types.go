@@ -75,10 +75,31 @@ type TaskSummary struct {
 	FilePath string `json:"filePath"`
 }
 
+// StatusDef defines a configurable lane on the board: its id (stored in
+// task frontmatter and rendered as the column header) and whether the lane
+// counts as archived (drives the Active/Archive board split and clear ops).
+type StatusDef struct {
+	ID       Status `json:"id"`
+	Archived bool   `json:"archived"`
+}
+
+// DefaultStatusDefs returns the built-in lane set, used when a project has
+// no configured lanes. Order is the contract order.
+func DefaultStatusDefs() []StatusDef {
+	return []StatusDef{
+		{ID: StatusBacklog},
+		{ID: StatusTodo},
+		{ID: StatusInProgress},
+		{ID: StatusDone, Archived: true},
+		{ID: StatusCancelled, Archived: true},
+	}
+}
+
 // LokanConfig is the .lokan/config.json shape.
 type LokanConfig struct {
-	Counter int    `json:"counter"`
-	Version string `json:"version"`
+	Counter  int         `json:"counter"`
+	Version  string      `json:"version"`
+	Statuses []StatusDef `json:"statuses,omitempty"`
 }
 
 // QueryOptions filters tasks by the given dimensions. Zero values are ignored.

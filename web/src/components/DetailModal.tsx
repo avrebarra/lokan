@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import type { UpdateTaskInput } from '../api'
-import type { Task, TaskSummary, Status, Priority, TaskType } from '../types'
-import { STATUSES, PRIORITIES, TASK_TYPES } from '../types'
-import { nextStatus, priorityTag } from '../format'
+import type { StatusDef, Task, TaskSummary, Status, Priority, TaskType } from '../types'
+import { PRIORITIES, TASK_TYPES } from '../types'
+import { priorityTag } from '../format'
 
 export interface TaskFieldChange {
   field: UpdateTaskInput['field']
@@ -12,8 +12,8 @@ export interface TaskFieldChange {
 interface Props {
   task: Task
   subtasks: TaskSummary[]
+  statuses: StatusDef[]
   onClose: () => void
-  onAdvance: () => void
   onSave: (changes: TaskFieldChange[]) => void
   onAddSubtask?: () => void
 }
@@ -35,7 +35,14 @@ interface Draft {
   body: string
 }
 
-export default function DetailModal({ task, subtasks, onClose, onAdvance, onSave, onAddSubtask }: Props) {
+export default function DetailModal({
+  task,
+  subtasks,
+  statuses,
+  onClose,
+  onSave,
+  onAddSubtask,
+}: Props) {
   // edit mode + draft form state
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState<Draft | null>(null)
@@ -49,9 +56,8 @@ export default function DetailModal({ task, subtasks, onClose, onAdvance, onSave
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
 
-  // derived display values for the header + advance button
+  // derived display values for the header
   const crit = task.priority === 'critical'
-  const next = nextStatus(task.status)
 
   // enter edit mode, seeding the draft from the current task
   const startEdit = () => {
@@ -144,9 +150,9 @@ export default function DetailModal({ task, subtasks, onClose, onAdvance, onSave
                     aria-label="edit status"
                     className={fieldClass}
                   >
-                    {STATUSES.map((s) => (
-                      <option key={s} value={s}>
-                        {s}
+                    {statuses.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.id}
                       </option>
                     ))}
                   </select>
@@ -309,9 +315,6 @@ export default function DetailModal({ task, subtasks, onClose, onAdvance, onSave
             </>
           ) : (
             <>
-              <button className={buttonClass} onClick={onAdvance}>
-                advance → {next}
-              </button>
               <button className={buttonClass} onClick={startEdit}>
                 edit
               </button>

@@ -1,4 +1,4 @@
-import type { Status, Task, TaskSummary, Priority, TaskType } from './types'
+import type { Status, StatusDef, Task, TaskSummary, Priority, TaskType } from './types'
 
 // fetch wrapper: json in/out, error body extracted as Error
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
@@ -16,6 +16,7 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
 
 export interface FetchTasksResult {
   tasks: TaskSummary[]
+  statuses: StatusDef[]
   root: string
 }
 
@@ -76,5 +77,31 @@ export async function createTask(input: CreateTaskInput): Promise<UpdateTaskResu
   return req<UpdateTaskResult>('/api/create', {
     method: 'POST',
     body: JSON.stringify(input),
+  })
+}
+
+export interface UpdateStatusesResult {
+  statuses: StatusDef[]
+  moved: number
+}
+
+// replace the lane set: additions append, removals move their tasks to the
+// leftmost lane, renamed ids rewrite the stored status of every task in them
+export async function updateStatuses(statuses: StatusDef[]): Promise<UpdateStatusesResult> {
+  return req<UpdateStatusesResult>('/api/config/statuses', {
+    method: 'POST',
+    body: JSON.stringify({ statuses }),
+  })
+}
+
+export interface ClearTasksResult {
+  deleted: number
+}
+
+// delete tasks in bulk: archived lanes only, or the whole board
+export async function clearTasks(scope: 'archived' | 'all'): Promise<ClearTasksResult> {
+  return req<ClearTasksResult>('/api/clear', {
+    method: 'POST',
+    body: JSON.stringify({ scope }),
   })
 }

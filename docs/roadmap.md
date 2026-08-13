@@ -35,10 +35,16 @@ The board is read + status-advance only. Natural next steps.
       between lanes; status click stays as the interaction contract, drag is
       the gesture on top
 - [x] Subtask creation from the UI — DONE (2026-08-13)
-- [ ] **Config page** — customize the available lanes (add/rename/remove
-      statuses) and bulk operations: clear archived, clear all tickets
-- [ ] Default to light mode — currently dark-first/follows system; flip the
-      default to light with dark as opt-in
+- [x] **Config page** — customize the available lanes (add/rename/remove
+      statuses) and bulk operations: clear archived, clear all tickets —
+      DONE (2026-08-13): lanes live in `config.json` as an ordered
+      `statuses` list (id + archived flag); config modal in the UI
+      (add/rename/remove + archived toggle); renames rewrite `board.md`,
+      removed lanes move tasks to the leftmost lane; `POST /api/clear` +
+      `lokan clear --archived/--all` for bulk deletes
+- [x] Default to light mode — DONE (2026-08-13): new sessions resolve to
+      light regardless of system preference; dark is opt-in via the
+      theme toggle (stored preference wins when present)
 
 ## Phase 4 — Storage & stack evolution
 

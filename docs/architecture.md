@@ -37,7 +37,7 @@ lokan/
   dist/                   # built binary: dist/lokan (gitignored)
   docs/                   # architecture, API contract, roadmap, design
   engine/                 # Go module github.com/avressatelier/lokan
-    cmd/lokan/            # urfave/cli: init create get list edit subtasks ui
+    cmd/lokan/            # urfave/cli: init create get list edit subtasks clear ui
     internal/
       types/              # enums, Task/TaskSummary/TaskFrontmatter, ALLOWED_PARENTS
       id/                 # config read/write, atomic NextCounter (lock file)
@@ -54,7 +54,7 @@ lokan/
 ```
 <project>/
   .lokan/
-    config.json           { "counter": N, "version": "..." }
+    config.json           { "counter": N, "version": "...", "statuses": [{ "id", "archived" }...] }
     board.md              single file: all task blocks (Active/Archive)
 ```
 
@@ -62,6 +62,13 @@ lokan/
   `<!-- lokan:<id> -->`-delimited block (YAML frontmatter — `id, title, type,
 status, priority, parent?, related?, docs?, tags?, created, updated` — plus
   markdown body), grouped into `## Active` and `## Archive` (done/cancelled).
+- **Configurable lanes:** the board's statuses live in `config.json` as an
+  ordered `statuses` array (`id` + `archived` flag). Unconfigured projects
+  use the built-in defaults (`backlog, todo, in-progress, done, cancelled`,
+  last two archived). All status validation and the Active/Archive split are
+  driven by this list, so custom lanes round-trip through parse and
+  serialize. Renaming a lane rewrites `board.md`; removing one moves its
+  tasks to the leftmost remaining lane.
 - Mutations rewrite the document atomically (temp + rename) under a
   `board.md.lock` guard, so concurrent writers cannot lose updates.
 - IDs are **plain counter values** (`1`, `2`, `3`), shared across all types.
@@ -92,11 +99,13 @@ Frozen contract in [`api.md`](./api.md):
 ```
 GET  /              embedded app (dist/index.html)
 GET  /assets/*      bundled JS/CSS
-GET  /api/tasks     { tasks: [TaskSummary], root }
+GET  /api/tasks     { tasks: [TaskSummary], statuses: [StatusDef], root }
 GET  /api/task/:id  { task: Task }
 POST /api/create    { title, type, priority, parent? } → { task }
 POST /api/update    { id, field, value } → { task }
 POST /api/move      { id, status, beforeId? } → { task }
+POST /api/config/statuses  { statuses: [{ id, archived }...] } → { statuses, moved }
+POST /api/clear     { scope: "archived"|"all" } → { deleted }
 POST /api/seed      { created }
 ```
 

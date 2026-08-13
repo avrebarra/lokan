@@ -616,3 +616,199 @@ func TestAssetsServed(t *testing.T) {
 		}
 	}
 }
+
+// ---------------------------------------------------------------------------
+// GET /api/tasks — lane set
+// ---------------------------------------------------------------------------
+
+func TestTasksIncludesConfiguredStatuses(t *testing.T) {
+	root := newTestProject(t)
+	rec := doRequest(t, New(root).Handler(), "GET", "/api/tasks", nil)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", rec.Code)
+	}
+	var resp struct {
+		Statuses []types.StatusDef `json:"statuses"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatal(err)
+	}
+	// unconfigured projects report the built-in defaults, backlog first
+	if len(resp.Statuses) != 5 || resp.Statuses[0].ID != types.StatusBacklog {
+		t.Fatalf("statuses = %+v", resp.Statuses)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// POST /api/config/statuses
+// ---------------------------------------------------------------------------
+
+func TestConfigStatusesRenameRewritesBoard(t *testing.T) {
+	root := newTestProject(t)
+	createTestTask(t, root, "1", "one", types.StatusTodo, types.PriorityMedium)
+
+	// rename todo -> doing at the same position
+	lanes := []types.StatusDef{
+		{ID: "backlog"},
+		{ID: "doing"},
+		{ID: "in-progress"},
+		{ID: "done", Archived: true},
+		{ID: "cancelled", Archived: true},
+	}
+	rec := doRequest(t, New(root).Handler(), "POST", "/api/config/statuses", map[string]any{"statuses": lanes})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+	var resp struct {
+		Statuses []types.StatusDef `json:"statuses"`
+		Moved    int               `json:"moved"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatal(err)
+	}
+	if resp.Moved != 1 {
+		t.Fatalf("moved = %d, want 1", resp.Moved)
+	}
+	task, err := store.FindByID(root, "1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if task.Status != "doing" {
+		t.Fatalf("status = %q, want doing", task.Status)
+	}
+	// config persisted for subsequent reads
+	cfg, err := id.ReadConfig(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(cfg.Statuses) != 5 || cfg.Statuses[1].ID != "doing" {
+		t.Fatalf("cfg statuses = %+v", cfg.Statuses)
+	}
+}
+
+func TestConfigStatusesRemoveMovesTasksToLeftmost(t *testing.T) {
+	root := newTestProject(t)
+	createTestTask(t, root, "1", "one", types.StatusTodo, types.PriorityMedium)
+	createTestTask(t, root, "2", "two", types.StatusDone, types.PriorityMedium)
+
+	// drop the done lane entirely
+	lanes := []types.StatusDef{
+		{ID: "backlog"},
+		{ID: "todo"},
+		{ID: "in-progress"},
+		{ID: "cancelled", Archived: true},
+	}
+	rec := doRequest(t, New(root).Handler(), "POST", "/api/config/statuses", map[string]any{"statuses": lanes})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+	task, err := store.FindByID(root, "2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// tasks land in the leftmost remaining lane
+	if task.Status != "backlog" {
+		t.Fatalf("status = %q, want backlog", task.Status)
+	}
+	task1, err := store.FindByID(root, "1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if task1.Status != types.StatusTodo {
+		t.Fatalf("status = %q, want todo", task1.Status)
+	}
+}
+
+func TestConfigStatusesValidation(t *testing.T) {
+	root := newTestProject(t)
+	h := New(root).Handler()
+
+	rec := doRequest(t, h, "POST", "/api/config/statuses", map[string]any{"statuses": []types.StatusDef{}})
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("empty lanes status = %d, want 400", rec.Code)
+	}
+
+	rec = doRequest(t, h, "POST", "/api/config/statuses", map[string]any{
+		"statuses": []types.StatusDef{{ID: "todo"}, {ID: "todo"}},
+	})
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("duplicate lanes status = %d, want 400", rec.Code)
+	}
+
+	rec = doRequest(t, h, "POST", "/api/config/statuses", map[string]any{
+		"statuses": []types.StatusDef{{ID: ""}},
+	})
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("empty id status = %d, want 400", rec.Code)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// POST /api/clear
+// ---------------------------------------------------------------------------
+
+func TestClearArchivedViaAPI(t *testing.T) {
+	root := newTestProject(t)
+	createTestTask(t, root, "1", "one", types.StatusTodo, types.PriorityMedium)
+	createTestTask(t, root, "2", "two", types.StatusDone, types.PriorityMedium)
+
+	rec := doRequest(t, New(root).Handler(), "POST", "/api/clear", map[string]any{"scope": "archived"})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+	var resp struct {
+		Deleted int `json:"deleted"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatal(err)
+	}
+	if resp.Deleted != 1 {
+		t.Fatalf("deleted = %d, want 1", resp.Deleted)
+	}
+	if _, err := store.FindByID(root, "1"); err != nil {
+		t.Fatalf("active task should remain: %v", err)
+	}
+	if _, err := store.FindByID(root, "2"); err == nil {
+		t.Fatalf("archived task should be gone")
+	}
+}
+
+func TestClearAllViaAPI(t *testing.T) {
+	root := newTestProject(t)
+	createTestTask(t, root, "1", "one", types.StatusTodo, types.PriorityMedium)
+	createTestTask(t, root, "2", "two", types.StatusDone, types.PriorityMedium)
+
+	rec := doRequest(t, New(root).Handler(), "POST", "/api/clear", map[string]any{"scope": "all"})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+	var resp struct {
+		Deleted int `json:"deleted"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatal(err)
+	}
+	if resp.Deleted != 2 {
+		t.Fatalf("deleted = %d, want 2", resp.Deleted)
+	}
+}
+
+func TestClearInvalidScope(t *testing.T) {
+	root := newTestProject(t)
+	rec := doRequest(t, New(root).Handler(), "POST", "/api/clear", map[string]any{"scope": "sometimes"})
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want 400", rec.Code)
+	}
+}
+
+func TestUpdateRejectsUnknownLane(t *testing.T) {
+	// status validation follows the configured lanes, not the built-in enum
+	root := newTestProject(t)
+	createTestTask(t, root, "1", "one", types.StatusTodo, types.PriorityMedium)
+	rec := doRequest(t, New(root).Handler(), "POST", "/api/update", map[string]any{
+		"id": "1", "field": "status", "value": "nope",
+	})
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want 400", rec.Code)
+	}
+}

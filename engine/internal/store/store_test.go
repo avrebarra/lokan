@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/avressatelier/lokan/internal/id"
 	"github.com/avressatelier/lokan/internal/types"
 )
 
@@ -514,7 +515,7 @@ func TestRejectsInvalidFrontmatterFiles(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			raw := "---\n" + tc.front + "---\n# Body\n"
-			_, err := parseFile(raw, "/tmp/x.md")
+			_, err := parseFile(raw, "/tmp/x.md", types.DefaultStatusDefs())
 			if err == nil {
 				t.Fatalf("expected invalid frontmatter to be rejected:\n%s", tc.front)
 			}
@@ -528,11 +529,148 @@ func TestAcceptsValidFrontmatterWithOptionalFields(t *testing.T) {
 		"parent: \"2\"\nrelated: [a, b]\ndocs: [d1]\ntags: [t1]\n" +
 		"created: \"2024-01-01\"\nupdated: \"2024-01-01\"\n" +
 		"---\n# Body\n"
-	summary, err := parseFile(raw, "/tmp/x.md")
+	summary, err := parseFile(raw, "/tmp/x.md", types.DefaultStatusDefs())
 	if err != nil {
 		t.Fatal(err)
 	}
 	if summary.Parent != "2" || len(summary.Related) != 2 || len(summary.Docs) != 1 || len(summary.Tags) != 1 {
 		t.Fatalf("summary = %+v", summary)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// configurable lanes
+// ---------------------------------------------------------------------------
+
+// writeLanes persists a custom lane set into the project config, creating
+// the config first when the root is fresh.
+func writeLanes(t *testing.T, root string, lanes []types.StatusDef) {
+	t.Helper()
+	cfg, err := id.ReadConfig(root)
+	if err != nil {
+		cfg = types.LokanConfig{Counter: 0, Version: "1"}
+	}
+	cfg.Statuses = lanes
+	if err := id.WriteConfig(root, cfg); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestParseAcceptsConfiguredStatus(t *testing.T) {
+	// a custom lane parses only when the parser is given its lane set
+	custom := []types.StatusDef{{ID: "doing"}, {ID: "done", Archived: true}}
+	raw := "---\nid: \"1\"\ntitle: X\ntype: task\nstatus: doing\npriority: medium\ncreated: \"2024-01-01\"\nupdated: \"2024-01-01\"\n---\n# Body\n"
+	if _, err := parseFile(raw, "/tmp/x.md", custom); err != nil {
+		t.Fatalf("custom status should parse with matching lanes: %v", err)
+	}
+	if _, err := parseFile(raw, "/tmp/x.md", types.DefaultStatusDefs()); err == nil {
+		t.Fatalf("custom status should be rejected by default lanes")
+	}
+}
+
+func TestBoardRoundTripsConfiguredStatuses(t *testing.T) {
+	// a board holding a custom status loads fully only when the project
+	// config knows the lane — never silently dropped
+	root := newTempRoot(t)
+	writeLanes(t, root, []types.StatusDef{{ID: "doing"}, {ID: "done", Archived: true}})
+	fm := makeFrontmatter(nil)
+	fm.Status = "doing"
+	mustCreate(t, root, fm)
+
+	summaries, err := LoadAllSummaries(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(summaries) != 1 || summaries[0].Status != "doing" {
+		t.Fatalf("summaries = %+v", summaries)
+	}
+}
+
+func TestMoveLaneRewritesTaskStatuses(t *testing.T) {
+	root := newTempRoot(t)
+	// the target lane must be configured or the rewritten board won't parse
+	writeLanes(t, root, []types.StatusDef{{ID: "todo"}, {ID: "doing"}, {ID: "done", Archived: true}})
+	mustCreate(t, root, makeFrontmatter(nil))
+	mustCreate(t, root, makeFrontmatter(map[string]interface{}{"id": "2", "status": types.StatusDone}))
+
+	moved, err := MoveLane(root, types.StatusTodo, "doing")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if moved != 1 {
+		t.Fatalf("moved = %d, want 1", moved)
+	}
+	task, err := FindByID(root, "1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if task.Status != "doing" {
+		t.Fatalf("status = %q, want doing", task.Status)
+	}
+	// untouched lanes keep their status
+	task2, err := FindByID(root, "2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if task2.Status != types.StatusDone {
+		t.Fatalf("status = %q, want done", task2.Status)
+	}
+}
+
+func TestClearArchivedDeletesOnlyArchivedLanes(t *testing.T) {
+	root := newTempRoot(t)
+	mustCreate(t, root, makeFrontmatter(nil))
+	mustCreate(t, root, makeFrontmatter(map[string]interface{}{"id": "2", "status": types.StatusDone}))
+	mustCreate(t, root, makeFrontmatter(map[string]interface{}{"id": "3", "status": types.StatusCancelled}))
+
+	deleted, err := ClearArchived(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if deleted != 2 {
+		t.Fatalf("deleted = %d, want 2", deleted)
+	}
+	remaining, err := LoadAllSummaries(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(remaining) != 1 || remaining[0].ID != "1" {
+		t.Fatalf("remaining = %+v", remaining)
+	}
+}
+
+func TestClearAllDeletesEveryTask(t *testing.T) {
+	root := newTempRoot(t)
+	mustCreate(t, root, makeFrontmatter(nil))
+	mustCreate(t, root, makeFrontmatter(map[string]interface{}{"id": "2", "status": types.StatusDone}))
+
+	deleted, err := ClearAll(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if deleted != 2 {
+		t.Fatalf("deleted = %d, want 2", deleted)
+	}
+	remaining, err := LoadAllSummaries(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(remaining) != 0 {
+		t.Fatalf("remaining = %+v, want empty", remaining)
+	}
+}
+
+func TestClearArchivedUsesConfiguredArchivedFlag(t *testing.T) {
+	// a custom lane marked archived counts for clear-archived
+	root := newTempRoot(t)
+	writeLanes(t, root, []types.StatusDef{{ID: "doing"}, {ID: "shipped", Archived: true}})
+	mustCreate(t, root, makeFrontmatter(map[string]interface{}{"status": types.Status("shipped")}))
+
+	deleted, err := ClearArchived(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if deleted != 1 {
+		t.Fatalf("deleted = %d, want 1", deleted)
 	}
 }
