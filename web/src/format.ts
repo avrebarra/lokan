@@ -1,4 +1,4 @@
-import type { Priority, Status } from './types'
+import type { Priority } from './types'
 
 const TAG: Record<Priority, string> = {
   critical: 'crit',
@@ -9,15 +9,4 @@ const TAG: Record<Priority, string> = {
 
 export function priorityTag(p: Priority): string {
   return TAG[p]
-}
-
-export function nextStatus(s: Status): Status {
-  switch (s) {
-    case 'todo':
-      return 'in-progress'
-    case 'in-progress':
-      return 'done'
-    default:
-      return 'todo'
-  }
 }
