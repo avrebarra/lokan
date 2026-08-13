@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   clearTasks,
   createTask,
@@ -28,6 +28,8 @@ export default function App() {
     document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light',
   )
   const [updatedAt, setUpdatedAt] = useState<Date>(new Date())
+  const [movedId, setMovedId] = useState<string | null>(null)
+  const movedTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // reload board and lanes from the api and stamp the refresh time
   const refresh = useCallback(async () => {
@@ -56,6 +58,13 @@ export default function App() {
 
   const closeDetail = () => setSelected(null)
 
+  // flash the left edge of a task after a successful lane move
+  const flashMoved = (id: string) => {
+    setMovedId(id)
+    if (movedTimer.current) clearTimeout(movedTimer.current)
+    movedTimer.current = setTimeout(() => setMovedId(null), 1000)
+  }
+
   // move a task to a lane and/or position: dropping back into its own slot
   // (before itself, after itself, or at its own end) is a no-op
   const handleMove = async (id: string, status: Status, beforeId?: string) => {
@@ -69,6 +78,7 @@ export default function App() {
     }
     await moveTask(id, status, beforeId ?? '')
     await refresh()
+    flashMoved(id)
   }
 
   // apply edited fields one at a time, close the modal, reload
@@ -142,6 +152,7 @@ export default function App() {
         statuses={statuses}
         tasks={tasks}
         subtaskCount={subtaskCount}
+        movedId={movedId}
         onSelect={openTask}
         onMove={handleMove}
       />

@@ -65,14 +65,18 @@ type TaskFrontmatter struct {
 // Task is a full task: frontmatter plus raw markdown body and its on-disk path.
 type Task struct {
 	TaskFrontmatter
-	Body     string `json:"body"`
-	FilePath string `json:"filePath"`
+	Body      string `json:"body"`
+	FilePath  string `json:"filePath"`
+	LineStart int    `json:"lineStart"`
+	LineEnd   int    `json:"lineEnd"`
 }
 
 // TaskSummary is frontmatter plus path, without the body.
 type TaskSummary struct {
 	TaskFrontmatter
-	FilePath string `json:"filePath"`
+	FilePath  string `json:"filePath"`
+	LineStart int    `json:"lineStart"`
+	LineEnd   int    `json:"lineEnd"`
 }
 
 // StatusDef defines a configurable lane on the board: its id (stored in

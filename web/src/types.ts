@@ -26,6 +26,8 @@ export interface TaskFrontmatter {
 
 export interface TaskSummary extends TaskFrontmatter {
   filePath: string
+  lineStart: number
+  lineEnd: number
 }
 
 export interface Task extends TaskSummary {

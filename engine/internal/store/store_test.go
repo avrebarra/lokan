@@ -674,3 +674,49 @@ func TestClearArchivedUsesConfiguredArchivedFlag(t *testing.T) {
 		t.Fatalf("deleted = %d, want 1", deleted)
 	}
 }
+
+// ---------------------------------------------------------------------------
+// line tracking
+// ---------------------------------------------------------------------------
+
+func TestBoardTracksBlockLineNumbers(t *testing.T) {
+	root := newTempRoot(t)
+	mustCreate(t, root, makeFrontmatter(nil))
+	mustCreate(t, root, makeFrontmatter(map[string]interface{}{"id": "2", "title": "Second"}))
+
+	raw, err := os.ReadFile(BoardPath(root))
+	if err != nil {
+		t.Fatal(err)
+	}
+	lines := strings.Split(string(raw), "\n")
+	markerOf := func(id string) int {
+		for i, l := range lines {
+			if strings.TrimSpace(l) == "<!-- lokan:"+id+" -->" {
+				return i + 1
+			}
+		}
+		t.Fatalf("marker for %s not found", id)
+		return 0
+	}
+
+	summaries, err := LoadAllSummaries(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(summaries) != 2 {
+		t.Fatalf("len = %d, want 2", len(summaries))
+	}
+	for _, s := range summaries {
+		if s.LineStart != markerOf(s.ID) {
+			t.Errorf("task %s LineStart = %d, want %d", s.ID, s.LineStart, markerOf(s.ID))
+		}
+		if s.LineEnd < s.LineStart {
+			t.Errorf("task %s LineEnd = %d, want >= LineStart %d", s.ID, s.LineEnd, s.LineStart)
+		}
+	}
+	// block extents are ordered like the board: one block ends before the next begins
+	if summaries[0].LineEnd >= summaries[1].LineStart {
+		t.Errorf("block ranges overlap: task %s ends at %d, task %s starts at %d",
+			summaries[0].ID, summaries[0].LineEnd, summaries[1].ID, summaries[1].LineStart)
+	}
+}

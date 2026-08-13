@@ -6,9 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"os/exec"
 	"os/signal"
-	"runtime"
 	"syscall"
 	"time"
 
@@ -46,7 +44,6 @@ func runUI(c *cli.Context) error {
 
 	fmt.Printf("lokan ui — %s\n", url)
 	fmt.Println("Press Ctrl+C to stop.")
-	openBrowser(url)
 
 	// serve until SIGINT/SIGTERM or the listener fails
 	errCh := make(chan error, 1)
@@ -70,20 +67,4 @@ func runUI(c *cli.Context) error {
 		}
 		return err
 	}
-}
-
-// openBrowser launches the default browser on the current platform.
-func openBrowser(url string) {
-	var cmd *exec.Cmd
-	switch runtime.GOOS {
-	case "darwin":
-		cmd = exec.Command("open", url)
-	case "linux":
-		cmd = exec.Command("xdg-open", url)
-	case "windows":
-		cmd = exec.Command("cmd", "/c", "start", url)
-	default:
-		return
-	}
-	_ = cmd.Start()
 }

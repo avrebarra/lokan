@@ -45,3 +45,17 @@
     transition: none !important;
   }
 }
+
+/* moved-card cue: flash the left edge so the eye lands on a recent drop */
+@keyframes left-flash {
+  0% {
+    box-shadow: inset 3px 0 0 var(--accent);
+  }
+  100% {
+    box-shadow: inset 3px 0 0 transparent;
+  }
+}
+
+.animate-left-flash {
+  animation: left-flash 1s ease-out;
+}

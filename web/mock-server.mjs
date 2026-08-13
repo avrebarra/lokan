@@ -23,6 +23,8 @@ let statuses = [
 ]
 
 function seed(partials) {
+  // mock board line ranges: one block every 10 lines, starting after the header
+  let line = 5
   for (const p of partials) {
     const id = `task-${nextCounter++}`
     tasks.set(id, {
@@ -39,7 +41,10 @@ function seed(partials) {
       updated: p.updated ?? '2026-08-13',
       body: p.body ?? '',
       filePath: `/mock/tasks/${id}.md`,
+      lineStart: line,
+      lineEnd: line + 8,
     })
+    line += 10
   }
 }
 
@@ -184,6 +189,8 @@ const server = http.createServer(async (req, res) => {
         updated: '2026-08-13',
         body: `# ${body.title}\n\n## Notes\n\n\n## Work Log\n\n`,
         filePath: `/mock/tasks/${id}.md`,
+        lineStart: 1,
+        lineEnd: 9,
       }
       tasks.set(id, task)
       respond(res, 200, { task })

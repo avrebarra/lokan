@@ -5,13 +5,14 @@ interface Props {
   statuses: StatusDef[]
   tasks: TaskSummary[]
   subtaskCount: Map<string, number>
+  movedId: string | null
   onSelect: (id: string) => void
   onMove: (id: string, status: Status, beforeId?: string) => void
 }
 
 // one column per configured lane, in config order; the in-progress lane keeps
 // the accent top bar
-export default function Board({ statuses, tasks, subtaskCount, onSelect, onMove }: Props) {
+export default function Board({ statuses, tasks, subtaskCount, movedId, onSelect, onMove }: Props) {
   // subtasks live under their parents, not as board rows
   const visible = tasks.filter((t) => t.type !== 'subtask')
   return (
@@ -27,6 +28,7 @@ export default function Board({ statuses, tasks, subtaskCount, onSelect, onMove 
           status={col.id}
           rows={visible.filter((t) => t.status === col.id)}
           subtaskCount={subtaskCount}
+          movedId={movedId}
           onSelect={onSelect}
           onMove={onMove}
         />
