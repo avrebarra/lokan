@@ -10,7 +10,7 @@ export default function Topline({ taskCount, updatedAt, theme, onToggleTheme, on
   const time = updatedAt.toTimeString().slice(0, 5)
   const target = theme === 'dark' ? 'light' : 'dark'
   return (
-    <header className="mb-8 flex items-center justify-between gap-4 border-b border-fg pb-3.5 max-[900px]:flex-wrap">
+    <header className="mb-4 flex items-center justify-between gap-4 max-[900px]:flex-wrap">
       <div className="font-sans text-[22px] font-bold tracking-[-0.01em]">lokan</div>
       <div className="flex flex-wrap items-center gap-3">
         <span className="text-[11px] uppercase text-muted max-[900px]:hidden">
