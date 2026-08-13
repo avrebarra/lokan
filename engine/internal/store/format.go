@@ -82,10 +82,12 @@ func buildInitialBody(title string, body string) string {
 // board document layout: one file holding every task block, grouped into
 // Active (open statuses) and Archive (done/cancelled) sections.
 const (
-	boardHeader    = "# Kanlo Board"
-	sectionActive  = "## Active"
-	sectionArchive = "## Archive"
-	markerPrefix   = "<!-- lokan:"
+	boardHeader      = "# Kanlo Board"
+	sectionActive    = "## Active"
+	sectionArchive   = "## Archive"
+	markerPrefix     = "<!-- lokan:"
+	configMarkerID   = "config"
+	configMarkerLine = markerPrefix + configMarkerID + " -->"
 )
 
 // isArchived reports whether a task belongs in the Archive section, per the
@@ -145,6 +147,9 @@ func parseBoard(raw string, statuses []types.StatusDef) []types.Task {
 	for _, line := range strings.Split(raw, "\n") {
 		if id, ok := markerID(line); ok {
 			flush()
+			if id == configMarkerID {
+				continue
+			}
 			blockID = id
 			continue
 		}
@@ -156,12 +161,13 @@ func parseBoard(raw string, statuses []types.StatusDef) []types.Task {
 	return tasks
 }
 
-// serializeBoard renders tasks back to a single board document, grouping
-// active tasks under "## Active" and finished ones under "## Archive".
-func serializeBoard(tasks []types.Task, statuses []types.StatusDef) (string, error) {
+// serializeBoard renders tasks back to a single board document: the config
+// block first, then active tasks under "## Active" and finished ones under
+// "## Archive".
+func serializeBoard(tasks []types.Task, cfg types.LokanConfig) (string, error) {
 	var active, archived []types.Task
 	for _, t := range tasks {
-		if isArchived(t.Status, statuses) {
+		if isArchived(t.Status, cfg.Statuses) {
 			archived = append(archived, t)
 		} else {
 			active = append(active, t)
@@ -169,7 +175,13 @@ func serializeBoard(tasks []types.Task, statuses []types.StatusDef) (string, err
 	}
 
 	var b strings.Builder
-	b.WriteString(boardHeader + "\n\n")
+	cfgRaw, err := yaml.Marshal(cfg)
+	if err != nil {
+		return "", fmt.Errorf("serialize config block: %w", err)
+	}
+	b.WriteString(configMarkerLine + "\n")
+	b.Write(cfgRaw)
+	b.WriteString("\n" + boardHeader + "\n\n")
 	writeSection := func(title string, section []types.Task) error {
 		b.WriteString(title + "\n")
 		if len(section) == 0 {
@@ -320,3 +332,35 @@ var (
 	errNoFrontmatter      = errors.New("no yaml frontmatter")
 	errInvalidFrontmatter = errors.New("invalid task frontmatter")
 )
+
+// parseConfigBlock extracts the lokan config from the board's config block
+// (the first "<!-- lokan:config -->" block, ending at the board header). A
+// missing or unparseable block yields the defaults.
+func parseConfigBlock(raw string) types.LokanConfig {
+	var cfg types.LokanConfig
+	lines := strings.Split(raw, "\n")
+	for i, line := range lines {
+		if strings.TrimSpace(line) != configMarkerLine {
+			continue
+		}
+		var yamlLines []string
+		for _, l := range lines[i+1:] {
+			if strings.HasPrefix(l, boardHeader) {
+				break
+			}
+			yamlLines = append(yamlLines, l)
+		}
+		_ = yaml.Unmarshal([]byte(strings.Join(yamlLines, "\n")), &cfg)
+		break
+	}
+	if len(cfg.Statuses) == 0 {
+		cfg.Statuses = types.DefaultStatusDefs()
+	}
+	return cfg
+}
+
+// InitialBoard renders a fresh board document: config block plus empty
+// Active/Archive sections. Used by lokan init to scaffold a new project.
+func InitialBoard(cfg types.LokanConfig) (string, error) {
+	return serializeBoard(nil, cfg)
+}

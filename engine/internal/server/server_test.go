@@ -5,25 +5,33 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
 
-	"github.com/avressatelier/lokan/internal/id"
 	"github.com/avressatelier/lokan/internal/store"
 	"github.com/avressatelier/lokan/internal/types"
 )
 
 func newTestProject(t *testing.T) string {
 	t.Helper()
-	root := t.TempDir()
-	if err := id.WriteConfig(root, types.LokanConfig{Counter: 0, Version: "1"}); err != nil {
+	board := filepath.Join(t.TempDir(), "board.md")
+	if err := os.MkdirAll(filepath.Dir(board), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	return root
+	raw, err := store.InitialBoard(types.LokanConfig{Counter: 0, Version: "1"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(board, []byte(raw), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	return board
 }
 
-func createTestTask(t *testing.T, root string, id, title string, status types.Status, priority types.Priority) {
+func createTestTask(t *testing.T, board string, id, title string, status types.Status, priority types.Priority) {
 	t.Helper()
 	fm := types.TaskFrontmatter{
 		ID:       id,
@@ -34,7 +42,7 @@ func createTestTask(t *testing.T, root string, id, title string, status types.St
 		Created:  "2024-01-01",
 		Updated:  "2024-01-01",
 	}
-	if _, err := store.CreateTask(root, fm, ""); err != nil {
+	if _, err := store.CreateTask(board, fm, ""); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -60,8 +68,8 @@ func doRequest(t *testing.T, h http.Handler, method, path string, body any) *htt
 // ---------------------------------------------------------------------------
 
 func TestTasksEmpty(t *testing.T) {
-	root := newTestProject(t)
-	rec := doRequest(t, New(root).Handler(), "GET", "/api/tasks", nil)
+	board := newTestProject(t)
+	rec := doRequest(t, New(board).Handler(), "GET", "/api/tasks", nil)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want 200", rec.Code)
 	}
@@ -78,17 +86,17 @@ func TestTasksEmpty(t *testing.T) {
 	if resp.Tasks == nil || len(resp.Tasks) != 0 {
 		t.Fatalf("tasks = %#v, want empty non-nil slice", resp.Tasks)
 	}
-	if resp.Root != root {
-		t.Fatalf("root = %q, want %q", resp.Root, root)
+	if resp.Root != board {
+		t.Fatalf("board = %q, want %q", resp.Root, board)
 	}
 }
 
 func TestTasksSeeded(t *testing.T) {
-	root := newTestProject(t)
-	createTestTask(t, root, "1", "Alpha", types.StatusTodo, types.PriorityMedium)
-	createTestTask(t, root, "2", "Beta", types.StatusDone, types.PriorityHigh)
+	board := newTestProject(t)
+	createTestTask(t, board, "1", "Alpha", types.StatusTodo, types.PriorityMedium)
+	createTestTask(t, board, "2", "Beta", types.StatusDone, types.PriorityHigh)
 
-	rec := doRequest(t, New(root).Handler(), "GET", "/api/tasks", nil)
+	rec := doRequest(t, New(board).Handler(), "GET", "/api/tasks", nil)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want 200", rec.Code)
 	}
@@ -111,10 +119,10 @@ func TestTasksSeeded(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestTaskFound(t *testing.T) {
-	root := newTestProject(t)
-	createTestTask(t, root, "1", "Alpha", types.StatusTodo, types.PriorityMedium)
+	board := newTestProject(t)
+	createTestTask(t, board, "1", "Alpha", types.StatusTodo, types.PriorityMedium)
 
-	rec := doRequest(t, New(root).Handler(), "GET", "/api/task/1", nil)
+	rec := doRequest(t, New(board).Handler(), "GET", "/api/task/1", nil)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want 200", rec.Code)
 	}
@@ -139,8 +147,8 @@ func TestTaskFound(t *testing.T) {
 }
 
 func TestTaskNotFound(t *testing.T) {
-	root := newTestProject(t)
-	rec := doRequest(t, New(root).Handler(), "GET", "/api/task/nope", nil)
+	board := newTestProject(t)
+	rec := doRequest(t, New(board).Handler(), "GET", "/api/task/nope", nil)
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("status = %d, want 404", rec.Code)
 	}
@@ -160,10 +168,10 @@ func TestTaskNotFound(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestUpdateStatus(t *testing.T) {
-	root := newTestProject(t)
-	createTestTask(t, root, "1", "Alpha", types.StatusTodo, types.PriorityMedium)
+	board := newTestProject(t)
+	createTestTask(t, board, "1", "Alpha", types.StatusTodo, types.PriorityMedium)
 
-	rec := doRequest(t, New(root).Handler(), "POST", "/api/update", map[string]string{
+	rec := doRequest(t, New(board).Handler(), "POST", "/api/update", map[string]string{
 		"id": "1", "field": "status", "value": "done",
 	})
 	if rec.Code != http.StatusOK {
@@ -178,7 +186,7 @@ func TestUpdateStatus(t *testing.T) {
 	if resp.Task.Status != types.StatusDone {
 		t.Fatalf("task status = %q, want done", resp.Task.Status)
 	}
-	assertStoredField(t, root, "1", func(t types.Task) bool { return t.Status == types.StatusDone })
+	assertStoredField(t, board, "1", func(t types.Task) bool { return t.Status == types.StatusDone })
 }
 
 // ---------------------------------------------------------------------------
@@ -205,11 +213,11 @@ func taskIDs(t *testing.T, h http.Handler) []string {
 }
 
 func TestMoveReordersWithinLane(t *testing.T) {
-	root := newTestProject(t)
-	h := New(root).Handler()
-	createTestTask(t, root, "1", "Alpha", types.StatusTodo, types.PriorityMedium)
-	createTestTask(t, root, "2", "Beta", types.StatusTodo, types.PriorityMedium)
-	createTestTask(t, root, "3", "Gamma", types.StatusTodo, types.PriorityMedium)
+	board := newTestProject(t)
+	h := New(board).Handler()
+	createTestTask(t, board, "1", "Alpha", types.StatusTodo, types.PriorityMedium)
+	createTestTask(t, board, "2", "Beta", types.StatusTodo, types.PriorityMedium)
+	createTestTask(t, board, "3", "Gamma", types.StatusTodo, types.PriorityMedium)
 
 	rec := doRequest(t, h, "POST", "/api/move", map[string]string{"id": "1", "status": "todo", "beforeId": "3"})
 	if rec.Code != http.StatusOK {
@@ -221,10 +229,10 @@ func TestMoveReordersWithinLane(t *testing.T) {
 }
 
 func TestMoveAcrossLanes(t *testing.T) {
-	root := newTestProject(t)
-	h := New(root).Handler()
-	createTestTask(t, root, "1", "Alpha", types.StatusTodo, types.PriorityMedium)
-	createTestTask(t, root, "2", "Beta", types.StatusTodo, types.PriorityMedium)
+	board := newTestProject(t)
+	h := New(board).Handler()
+	createTestTask(t, board, "1", "Alpha", types.StatusTodo, types.PriorityMedium)
+	createTestTask(t, board, "2", "Beta", types.StatusTodo, types.PriorityMedium)
 
 	rec := doRequest(t, h, "POST", "/api/move", map[string]string{"id": "1", "status": "done", "beforeId": ""})
 	if rec.Code != http.StatusOK {
@@ -245,10 +253,10 @@ func TestMoveAcrossLanes(t *testing.T) {
 }
 
 func TestMoveInvalidStatus(t *testing.T) {
-	root := newTestProject(t)
-	createTestTask(t, root, "1", "Alpha", types.StatusTodo, types.PriorityMedium)
+	board := newTestProject(t)
+	createTestTask(t, board, "1", "Alpha", types.StatusTodo, types.PriorityMedium)
 
-	rec := doRequest(t, New(root).Handler(), "POST", "/api/move", map[string]string{"id": "1", "status": "bogus"})
+	rec := doRequest(t, New(board).Handler(), "POST", "/api/move", map[string]string{"id": "1", "status": "bogus"})
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d, want 400", rec.Code)
 	}
@@ -256,10 +264,10 @@ func TestMoveInvalidStatus(t *testing.T) {
 }
 
 func TestMoveUnknownTask(t *testing.T) {
-	root := newTestProject(t)
-	createTestTask(t, root, "1", "Alpha", types.StatusTodo, types.PriorityMedium)
+	board := newTestProject(t)
+	createTestTask(t, board, "1", "Alpha", types.StatusTodo, types.PriorityMedium)
 
-	rec := doRequest(t, New(root).Handler(), "POST", "/api/move", map[string]string{"id": "99", "status": "todo"})
+	rec := doRequest(t, New(board).Handler(), "POST", "/api/move", map[string]string{"id": "99", "status": "todo"})
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("status = %d, want 404", rec.Code)
 	}
@@ -267,10 +275,10 @@ func TestMoveUnknownTask(t *testing.T) {
 }
 
 func TestMoveAnchorMustBeInTargetLane(t *testing.T) {
-	root := newTestProject(t)
-	createTestTask(t, root, "1", "Alpha", types.StatusTodo, types.PriorityMedium)
+	board := newTestProject(t)
+	createTestTask(t, board, "1", "Alpha", types.StatusTodo, types.PriorityMedium)
 
-	rec := doRequest(t, New(root).Handler(), "POST", "/api/move", map[string]string{"id": "1", "status": "done", "beforeId": "1"})
+	rec := doRequest(t, New(board).Handler(), "POST", "/api/move", map[string]string{"id": "1", "status": "done", "beforeId": "1"})
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d, want 400", rec.Code)
 	}
@@ -278,10 +286,10 @@ func TestMoveAnchorMustBeInTargetLane(t *testing.T) {
 }
 
 func TestUpdateInvalidStatus(t *testing.T) {
-	root := newTestProject(t)
-	createTestTask(t, root, "1", "Alpha", types.StatusTodo, types.PriorityMedium)
+	board := newTestProject(t)
+	createTestTask(t, board, "1", "Alpha", types.StatusTodo, types.PriorityMedium)
 
-	rec := doRequest(t, New(root).Handler(), "POST", "/api/update", map[string]string{
+	rec := doRequest(t, New(board).Handler(), "POST", "/api/update", map[string]string{
 		"id": "1", "field": "status", "value": "bogus",
 	})
 	if rec.Code != http.StatusBadRequest {
@@ -291,10 +299,10 @@ func TestUpdateInvalidStatus(t *testing.T) {
 }
 
 func TestUpdateInvalidPriority(t *testing.T) {
-	root := newTestProject(t)
-	createTestTask(t, root, "1", "Alpha", types.StatusTodo, types.PriorityMedium)
+	board := newTestProject(t)
+	createTestTask(t, board, "1", "Alpha", types.StatusTodo, types.PriorityMedium)
 
-	rec := doRequest(t, New(root).Handler(), "POST", "/api/update", map[string]string{
+	rec := doRequest(t, New(board).Handler(), "POST", "/api/update", map[string]string{
 		"id": "1", "field": "priority", "value": "bogus",
 	})
 	if rec.Code != http.StatusBadRequest {
@@ -304,10 +312,10 @@ func TestUpdateInvalidPriority(t *testing.T) {
 }
 
 func TestUpdateUnknownField(t *testing.T) {
-	root := newTestProject(t)
-	createTestTask(t, root, "1", "Alpha", types.StatusTodo, types.PriorityMedium)
+	board := newTestProject(t)
+	createTestTask(t, board, "1", "Alpha", types.StatusTodo, types.PriorityMedium)
 
-	rec := doRequest(t, New(root).Handler(), "POST", "/api/update", map[string]string{
+	rec := doRequest(t, New(board).Handler(), "POST", "/api/update", map[string]string{
 		"id": "1", "field": "wat", "value": "x",
 	})
 	if rec.Code != http.StatusBadRequest {
@@ -317,10 +325,10 @@ func TestUpdateUnknownField(t *testing.T) {
 }
 
 func TestUpdateTitle(t *testing.T) {
-	root := newTestProject(t)
-	createTestTask(t, root, "1", "Alpha", types.StatusTodo, types.PriorityMedium)
+	board := newTestProject(t)
+	createTestTask(t, board, "1", "Alpha", types.StatusTodo, types.PriorityMedium)
 
-	rec := doRequest(t, New(root).Handler(), "POST", "/api/update", map[string]string{
+	rec := doRequest(t, New(board).Handler(), "POST", "/api/update", map[string]string{
 		"id": "1", "field": "title", "value": "Renamed Alpha",
 	})
 	if rec.Code != http.StatusOK {
@@ -335,14 +343,14 @@ func TestUpdateTitle(t *testing.T) {
 	if resp.Task.Title != "Renamed Alpha" {
 		t.Fatalf("task title = %q, want Renamed Alpha", resp.Task.Title)
 	}
-	assertStoredField(t, root, "1", func(t types.Task) bool { return t.Title == "Renamed Alpha" })
+	assertStoredField(t, board, "1", func(t types.Task) bool { return t.Title == "Renamed Alpha" })
 }
 
 func TestUpdateType(t *testing.T) {
-	root := newTestProject(t)
-	createTestTask(t, root, "1", "Alpha", types.StatusTodo, types.PriorityMedium)
+	board := newTestProject(t)
+	createTestTask(t, board, "1", "Alpha", types.StatusTodo, types.PriorityMedium)
 
-	rec := doRequest(t, New(root).Handler(), "POST", "/api/update", map[string]string{
+	rec := doRequest(t, New(board).Handler(), "POST", "/api/update", map[string]string{
 		"id": "1", "field": "type", "value": "bug",
 	})
 	if rec.Code != http.StatusOK {
@@ -360,14 +368,14 @@ func TestUpdateType(t *testing.T) {
 	if resp.Task.ID != "1" {
 		t.Fatalf("task id changed to %q, want 1", resp.Task.ID)
 	}
-	assertStoredField(t, root, "1", func(t types.Task) bool { return t.Type == types.TypeBug })
+	assertStoredField(t, board, "1", func(t types.Task) bool { return t.Type == types.TypeBug })
 }
 
 func TestUpdateInvalidType(t *testing.T) {
-	root := newTestProject(t)
-	createTestTask(t, root, "1", "Alpha", types.StatusTodo, types.PriorityMedium)
+	board := newTestProject(t)
+	createTestTask(t, board, "1", "Alpha", types.StatusTodo, types.PriorityMedium)
 
-	rec := doRequest(t, New(root).Handler(), "POST", "/api/update", map[string]string{
+	rec := doRequest(t, New(board).Handler(), "POST", "/api/update", map[string]string{
 		"id": "1", "field": "type", "value": "bogus",
 	})
 	if rec.Code != http.StatusBadRequest {
@@ -377,47 +385,47 @@ func TestUpdateInvalidType(t *testing.T) {
 }
 
 func TestUpdateParent(t *testing.T) {
-	root := newTestProject(t)
-	createTestTask(t, root, "1", "Alpha", types.StatusTodo, types.PriorityMedium)
+	board := newTestProject(t)
+	createTestTask(t, board, "1", "Alpha", types.StatusTodo, types.PriorityMedium)
 
-	rec := doRequest(t, New(root).Handler(), "POST", "/api/update", map[string]string{
+	rec := doRequest(t, New(board).Handler(), "POST", "/api/update", map[string]string{
 		"id": "1", "field": "parent", "value": "2",
 	})
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want 200", rec.Code)
 	}
-	assertStoredField(t, root, "1", func(t types.Task) bool { return t.Parent == "2" })
+	assertStoredField(t, board, "1", func(t types.Task) bool { return t.Parent == "2" })
 
-	rec = doRequest(t, New(root).Handler(), "POST", "/api/update", map[string]string{
+	rec = doRequest(t, New(board).Handler(), "POST", "/api/update", map[string]string{
 		"id": "1", "field": "parent", "value": "",
 	})
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want 200", rec.Code)
 	}
-	assertStoredField(t, root, "1", func(t types.Task) bool { return t.Parent == "" })
+	assertStoredField(t, board, "1", func(t types.Task) bool { return t.Parent == "" })
 }
 
 func TestUpdateTags(t *testing.T) {
-	root := newTestProject(t)
-	createTestTask(t, root, "1", "Alpha", types.StatusTodo, types.PriorityMedium)
+	board := newTestProject(t)
+	createTestTask(t, board, "1", "Alpha", types.StatusTodo, types.PriorityMedium)
 
-	rec := doRequest(t, New(root).Handler(), "POST", "/api/update", map[string]string{
+	rec := doRequest(t, New(board).Handler(), "POST", "/api/update", map[string]string{
 		"id": "1", "field": "tags", "value": " alpha, beta ,, gamma ",
 	})
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want 200", rec.Code)
 	}
 	want := []string{"alpha", "beta", "gamma"}
-	assertStoredField(t, root, "1", func(t types.Task) bool {
+	assertStoredField(t, board, "1", func(t types.Task) bool {
 		return slices.Equal(t.Tags, want)
 	})
 }
 
 func TestUpdateBody(t *testing.T) {
-	root := newTestProject(t)
-	createTestTask(t, root, "1", "Alpha", types.StatusTodo, types.PriorityMedium)
+	board := newTestProject(t)
+	createTestTask(t, board, "1", "Alpha", types.StatusTodo, types.PriorityMedium)
 
-	rec := doRequest(t, New(root).Handler(), "POST", "/api/update", map[string]string{
+	rec := doRequest(t, New(board).Handler(), "POST", "/api/update", map[string]string{
 		"id": "1", "field": "body", "value": "Round trip notes\nwith a second line",
 	})
 	if rec.Code != http.StatusOK {
@@ -432,7 +440,7 @@ func TestUpdateBody(t *testing.T) {
 	if resp.Task.Body != "Round trip notes\nwith a second line\n" {
 		t.Fatalf("task body = %q, want the round-tripped notes with a trailing newline", resp.Task.Body)
 	}
-	assertStoredField(t, root, "1", func(t types.Task) bool {
+	assertStoredField(t, board, "1", func(t types.Task) bool {
 		return t.Body == "Round trip notes\nwith a second line"
 	})
 }
@@ -442,8 +450,8 @@ func TestUpdateBody(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestSeedCreatesDemoTasks(t *testing.T) {
-	root := newTestProject(t)
-	h := New(root).Handler()
+	board := newTestProject(t)
+	h := New(board).Handler()
 
 	rec := doRequest(t, h, "POST", "/api/seed", nil)
 	if rec.Code != http.StatusOK {
@@ -476,8 +484,8 @@ func TestSeedCreatesDemoTasks(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestIndexServesEmbed(t *testing.T) {
-	root := newTestProject(t)
-	rec := doRequest(t, New(root).Handler(), "GET", "/", nil)
+	board := newTestProject(t)
+	rec := doRequest(t, New(board).Handler(), "GET", "/", nil)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want 200", rec.Code)
 	}
@@ -490,8 +498,8 @@ func TestIndexServesEmbed(t *testing.T) {
 }
 
 func TestUnknownRoute(t *testing.T) {
-	root := newTestProject(t)
-	h := New(root).Handler()
+	board := newTestProject(t)
+	h := New(board).Handler()
 	for _, path := range []string{"/api/nope", "/somewhere"} {
 		rec := doRequest(t, h, "GET", path, nil)
 		if rec.Code != http.StatusNotFound {
@@ -501,8 +509,8 @@ func TestUnknownRoute(t *testing.T) {
 }
 
 func TestTaskMissingID(t *testing.T) {
-	root := newTestProject(t)
-	rec := doRequest(t, New(root).Handler(), "GET", "/api/task/", nil)
+	board := newTestProject(t)
+	rec := doRequest(t, New(board).Handler(), "GET", "/api/task/", nil)
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d, want 400", rec.Code)
 	}
@@ -526,9 +534,9 @@ func assertError(t *testing.T, rec *httptest.ResponseRecorder, want string) {
 	}
 }
 
-func assertStoredField(t *testing.T, root, id string, check func(types.Task) bool) {
+func assertStoredField(t *testing.T, board, id string, check func(types.Task) bool) {
 	t.Helper()
-	summary, err := store.FindByID(root, id)
+	summary, err := store.FindByID(board, id)
 	if err != nil {
 		t.Fatalf("FindByID: %v", err)
 	}
@@ -546,8 +554,8 @@ func assertStoredField(t *testing.T, root, id string, check func(types.Task) boo
 // ---------------------------------------------------------------------------
 
 func TestCreateTaskEndpoint(t *testing.T) {
-	root := newTestProject(t)
-	h := New(root).Handler()
+	board := newTestProject(t)
+	h := New(board).Handler()
 
 	rec := doRequest(t, h, "POST", "/api/create", map[string]any{
 		"title":    "Hello from API",
@@ -567,14 +575,14 @@ func TestCreateTaskEndpoint(t *testing.T) {
 		t.Fatalf("unexpected task: %+v", resp.Task)
 	}
 	// persisted to disk
-	assertStoredField(t, root, resp.Task.ID, func(task types.Task) bool {
+	assertStoredField(t, board, resp.Task.ID, func(task types.Task) bool {
 		return task.Title == "Hello from API" && task.Priority == types.PriorityHigh
 	})
 }
 
 func TestCreateTaskValidation(t *testing.T) {
-	root := newTestProject(t)
-	h := New(root).Handler()
+	board := newTestProject(t)
+	h := New(board).Handler()
 
 	cases := []struct {
 		name string
@@ -597,8 +605,8 @@ func TestCreateTaskValidation(t *testing.T) {
 }
 
 func TestUpdateTaskNotFound(t *testing.T) {
-	root := newTestProject(t)
-	rec := doRequest(t, New(root).Handler(), "POST", "/api/update", map[string]any{
+	board := newTestProject(t)
+	rec := doRequest(t, New(board).Handler(), "POST", "/api/update", map[string]any{
 		"id": "999", "field": "status", "value": "done",
 	})
 	if rec.Code != http.StatusNotFound {
@@ -607,8 +615,8 @@ func TestUpdateTaskNotFound(t *testing.T) {
 }
 
 func TestAssetsServed(t *testing.T) {
-	root := newTestProject(t)
-	h := New(root).Handler()
+	board := newTestProject(t)
+	h := New(board).Handler()
 	for _, path := range []string{"/assets/nonexistent.js", "/assets/nonexistent.css"} {
 		rec := doRequest(t, h, "GET", path, nil)
 		if rec.Code != http.StatusNotFound {
@@ -622,8 +630,8 @@ func TestAssetsServed(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestTasksIncludesConfiguredStatuses(t *testing.T) {
-	root := newTestProject(t)
-	rec := doRequest(t, New(root).Handler(), "GET", "/api/tasks", nil)
+	board := newTestProject(t)
+	rec := doRequest(t, New(board).Handler(), "GET", "/api/tasks", nil)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want 200", rec.Code)
 	}
@@ -644,8 +652,8 @@ func TestTasksIncludesConfiguredStatuses(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestConfigStatusesRenameRewritesBoard(t *testing.T) {
-	root := newTestProject(t)
-	createTestTask(t, root, "1", "one", types.StatusTodo, types.PriorityMedium)
+	board := newTestProject(t)
+	createTestTask(t, board, "1", "one", types.StatusTodo, types.PriorityMedium)
 
 	// rename todo -> doing at the same position
 	lanes := []types.StatusDef{
@@ -655,7 +663,7 @@ func TestConfigStatusesRenameRewritesBoard(t *testing.T) {
 		{ID: "done", Archived: true},
 		{ID: "cancelled", Archived: true},
 	}
-	rec := doRequest(t, New(root).Handler(), "POST", "/api/config/statuses", map[string]any{"statuses": lanes})
+	rec := doRequest(t, New(board).Handler(), "POST", "/api/config/statuses", map[string]any{"statuses": lanes})
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
 	}
@@ -669,7 +677,7 @@ func TestConfigStatusesRenameRewritesBoard(t *testing.T) {
 	if resp.Moved != 1 {
 		t.Fatalf("moved = %d, want 1", resp.Moved)
 	}
-	task, err := store.FindByID(root, "1")
+	task, err := store.FindByID(board, "1")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -677,7 +685,7 @@ func TestConfigStatusesRenameRewritesBoard(t *testing.T) {
 		t.Fatalf("status = %q, want doing", task.Status)
 	}
 	// config persisted for subsequent reads
-	cfg, err := id.ReadConfig(root)
+	cfg, err := store.ReadConfig(board)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -687,9 +695,9 @@ func TestConfigStatusesRenameRewritesBoard(t *testing.T) {
 }
 
 func TestConfigStatusesRemoveMovesTasksToLeftmost(t *testing.T) {
-	root := newTestProject(t)
-	createTestTask(t, root, "1", "one", types.StatusTodo, types.PriorityMedium)
-	createTestTask(t, root, "2", "two", types.StatusDone, types.PriorityMedium)
+	board := newTestProject(t)
+	createTestTask(t, board, "1", "one", types.StatusTodo, types.PriorityMedium)
+	createTestTask(t, board, "2", "two", types.StatusDone, types.PriorityMedium)
 
 	// drop the done lane entirely
 	lanes := []types.StatusDef{
@@ -698,11 +706,11 @@ func TestConfigStatusesRemoveMovesTasksToLeftmost(t *testing.T) {
 		{ID: "in-progress"},
 		{ID: "cancelled", Archived: true},
 	}
-	rec := doRequest(t, New(root).Handler(), "POST", "/api/config/statuses", map[string]any{"statuses": lanes})
+	rec := doRequest(t, New(board).Handler(), "POST", "/api/config/statuses", map[string]any{"statuses": lanes})
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
 	}
-	task, err := store.FindByID(root, "2")
+	task, err := store.FindByID(board, "2")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -710,7 +718,7 @@ func TestConfigStatusesRemoveMovesTasksToLeftmost(t *testing.T) {
 	if task.Status != "backlog" {
 		t.Fatalf("status = %q, want backlog", task.Status)
 	}
-	task1, err := store.FindByID(root, "1")
+	task1, err := store.FindByID(board, "1")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -720,8 +728,8 @@ func TestConfigStatusesRemoveMovesTasksToLeftmost(t *testing.T) {
 }
 
 func TestConfigStatusesValidation(t *testing.T) {
-	root := newTestProject(t)
-	h := New(root).Handler()
+	board := newTestProject(t)
+	h := New(board).Handler()
 
 	rec := doRequest(t, h, "POST", "/api/config/statuses", map[string]any{"statuses": []types.StatusDef{}})
 	if rec.Code != http.StatusBadRequest {
@@ -748,11 +756,11 @@ func TestConfigStatusesValidation(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestClearArchivedViaAPI(t *testing.T) {
-	root := newTestProject(t)
-	createTestTask(t, root, "1", "one", types.StatusTodo, types.PriorityMedium)
-	createTestTask(t, root, "2", "two", types.StatusDone, types.PriorityMedium)
+	board := newTestProject(t)
+	createTestTask(t, board, "1", "one", types.StatusTodo, types.PriorityMedium)
+	createTestTask(t, board, "2", "two", types.StatusDone, types.PriorityMedium)
 
-	rec := doRequest(t, New(root).Handler(), "POST", "/api/clear", map[string]any{"scope": "archived"})
+	rec := doRequest(t, New(board).Handler(), "POST", "/api/clear", map[string]any{"scope": "archived"})
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
 	}
@@ -765,20 +773,20 @@ func TestClearArchivedViaAPI(t *testing.T) {
 	if resp.Deleted != 1 {
 		t.Fatalf("deleted = %d, want 1", resp.Deleted)
 	}
-	if _, err := store.FindByID(root, "1"); err != nil {
+	if _, err := store.FindByID(board, "1"); err != nil {
 		t.Fatalf("active task should remain: %v", err)
 	}
-	if _, err := store.FindByID(root, "2"); err == nil {
+	if _, err := store.FindByID(board, "2"); err == nil {
 		t.Fatalf("archived task should be gone")
 	}
 }
 
 func TestClearAllViaAPI(t *testing.T) {
-	root := newTestProject(t)
-	createTestTask(t, root, "1", "one", types.StatusTodo, types.PriorityMedium)
-	createTestTask(t, root, "2", "two", types.StatusDone, types.PriorityMedium)
+	board := newTestProject(t)
+	createTestTask(t, board, "1", "one", types.StatusTodo, types.PriorityMedium)
+	createTestTask(t, board, "2", "two", types.StatusDone, types.PriorityMedium)
 
-	rec := doRequest(t, New(root).Handler(), "POST", "/api/clear", map[string]any{"scope": "all"})
+	rec := doRequest(t, New(board).Handler(), "POST", "/api/clear", map[string]any{"scope": "all"})
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
 	}
@@ -794,8 +802,8 @@ func TestClearAllViaAPI(t *testing.T) {
 }
 
 func TestClearInvalidScope(t *testing.T) {
-	root := newTestProject(t)
-	rec := doRequest(t, New(root).Handler(), "POST", "/api/clear", map[string]any{"scope": "sometimes"})
+	board := newTestProject(t)
+	rec := doRequest(t, New(board).Handler(), "POST", "/api/clear", map[string]any{"scope": "sometimes"})
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d, want 400", rec.Code)
 	}
@@ -803,9 +811,9 @@ func TestClearInvalidScope(t *testing.T) {
 
 func TestUpdateRejectsUnknownLane(t *testing.T) {
 	// status validation follows the configured lanes, not the built-in enum
-	root := newTestProject(t)
-	createTestTask(t, root, "1", "one", types.StatusTodo, types.PriorityMedium)
-	rec := doRequest(t, New(root).Handler(), "POST", "/api/update", map[string]any{
+	board := newTestProject(t)
+	createTestTask(t, board, "1", "one", types.StatusTodo, types.PriorityMedium)
+	rec := doRequest(t, New(board).Handler(), "POST", "/api/update", map[string]any{
 		"id": "1", "field": "status", "value": "nope",
 	})
 	if rec.Code != http.StatusBadRequest {

@@ -79,8 +79,8 @@ type TaskSummary struct {
 // task frontmatter and rendered as the column header) and whether the lane
 // counts as archived (drives the Active/Archive board split and clear ops).
 type StatusDef struct {
-	ID       Status `json:"id"`
-	Archived bool   `json:"archived"`
+	ID       Status `json:"id" yaml:"id"`
+	Archived bool   `json:"archived" yaml:"archived,omitempty"`
 }
 
 // DefaultStatusDefs returns the built-in lane set, used when a project has
@@ -95,11 +95,11 @@ func DefaultStatusDefs() []StatusDef {
 	}
 }
 
-// LokanConfig is the .lokan/config.json shape.
+// LokanConfig is the config block stored in the board file.
 type LokanConfig struct {
-	Counter  int         `json:"counter"`
-	Version  string      `json:"version"`
-	Statuses []StatusDef `json:"statuses,omitempty"`
+	Counter  int         `json:"counter" yaml:"counter"`
+	Version  string      `json:"version" yaml:"version"`
+	Statuses []StatusDef `json:"statuses,omitempty" yaml:"statuses,omitempty"`
 }
 
 // QueryOptions filters tasks by the given dimensions. Zero values are ignored.

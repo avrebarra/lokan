@@ -1,36 +1,33 @@
 package main
 
 import (
-	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/avressatelier/lokan/internal/store"
 	"github.com/urfave/cli/v2"
 )
 
-// findRoot walks up from dir looking for a directory with .lokan/config.json.
-func findRoot(dir string) (string, error) {
-	// walk up until the project config is found or the fs root is hit
-	for {
-		if _, err := os.Stat(filepath.Join(dir, ".lokan", "config.json")); err == nil {
-			return dir, nil
-		}
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			return "", ErrNotInProject
-		}
-		dir = parent
-	}
+// boardFlag is the explicit board file flag shared by every command.
+func boardFlag() cli.Flag {
+	return &cli.StringFlag{Name: "board", Usage: "Board file (markdown with a lokan config block); required"}
 }
 
-// requireProject resolves the project root from cwd; every command except
-// init and help needs a lokan project.
-func requireProject(c *cli.Context) (string, error) {
-	cwd, err := os.Getwd()
+// requireBoard resolves and validates the explicit --board file. Every
+// command except init and help needs a board.
+func requireBoard(c *cli.Context) (string, error) {
+	board := c.String("board")
+	if board == "" {
+		return "", cliErrorf("missing required flag: --board <file>")
+	}
+	abs, err := filepath.Abs(board)
 	if err != nil {
 		return "", err
 	}
-	return findRoot(cwd)
+	if !store.IsBoard(abs) {
+		return "", cliErrorf("not a lokan board: %s (run lokan init --board <file>)", abs)
+	}
+	return abs, nil
 }
 
 // requireArgs validates that the command got exactly n positional args.

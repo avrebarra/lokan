@@ -4,7 +4,6 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/avressatelier/lokan/internal/id"
 	"github.com/avressatelier/lokan/internal/store"
 	"github.com/avressatelier/lokan/internal/types"
 )
@@ -28,10 +27,10 @@ func joinTypes() string {
 	return strings.Join(parts, ", ")
 }
 
-// statusIDs resolves the configured lane ids for a project, falling back to
+// statusIDs resolves the configured lane ids for a board, falling back to
 // the built-in enum when the config is unreadable.
-func statusIDs(root string) []types.Status {
-	cfg, err := id.ReadConfig(root)
+func statusIDs(board string) []types.Status {
+	cfg, err := store.ReadConfig(board)
 	if err != nil {
 		return types.Statuses
 	}
@@ -43,9 +42,9 @@ func statusIDs(root string) []types.Status {
 }
 
 // joinStatuses renders the configured lane ids as a comma-separated list.
-func joinStatuses(root string) string {
+func joinStatuses(board string) string {
 	parts := make([]string, 0, len(types.Statuses))
-	for _, s := range statusIDs(root) {
+	for _, s := range statusIDs(board) {
 		parts = append(parts, string(s))
 	}
 	return strings.Join(parts, ", ")
@@ -53,8 +52,8 @@ func joinStatuses(root string) string {
 
 // defaultStatus returns the first non-archived lane — the landing status for
 // new tasks. Falls back to the first lane when every lane is archived.
-func defaultStatus(root string) types.Status {
-	cfg, err := id.ReadConfig(root)
+func defaultStatus(board string) types.Status {
+	cfg, err := store.ReadConfig(board)
 	if err != nil {
 		return types.StatusTodo
 	}

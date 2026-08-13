@@ -7,7 +7,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/avressatelier/lokan/internal/id"
 	"github.com/avressatelier/lokan/internal/store"
 	"github.com/avressatelier/lokan/internal/types"
 )
@@ -25,15 +24,28 @@ func runCLI(t *testing.T, dir string, args ...string) (int, string, string) {
 func initProject(t *testing.T) string {
 	t.Helper()
 	root := t.TempDir()
-	if code, _, stderr := runCLI(t, root, "init"); code != 0 {
+	if code, _, stderr := runBoard(t, root, "init", "--board", bp(root)); code != 0 {
 		t.Fatalf("init failed: %s", stderr)
 	}
 	return root
 }
 
+// bp returns the board path for a test project dir.
+func bp(dir string) string {
+	return filepath.Join(dir, "docs", "board.md")
+}
+
+// runBoard runs the CLI from dir, injecting the project's --board flag after
+// the command name.
+func runBoard(t *testing.T, dir string, args ...string) (int, string, string) {
+	t.Helper()
+	full := append([]string{args[0], "--board", bp(dir)}, args[1:]...)
+	return runCLI(t, dir, full...)
+}
+
 func mustCreate(t *testing.T, dir string, args ...string) string {
 	t.Helper()
-	args = append([]string{"create"}, args...)
+	args = append([]string{"create", "--board", bp(dir)}, args...)
 	if code, _, stderr := runCLI(t, dir, args...); code != 0 {
 		t.Fatalf("create %v failed: %s", args, stderr)
 	}
@@ -42,7 +54,7 @@ func mustCreate(t *testing.T, dir string, args ...string) string {
 
 func taskIDs(t *testing.T, dir string) []string {
 	t.Helper()
-	all, err := store.LoadAllSummaries(dir)
+	all, err := store.LoadAllSummaries(bp(dir))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -59,50 +71,76 @@ func taskIDs(t *testing.T, dir string) []string {
 
 func TestInitCreatesConfig(t *testing.T) {
 	root := t.TempDir()
-	code, stdout, stderr := runCLI(t, root, "init")
+	code, stdout, stderr := runBoard(t, root, "init")
 	if code != 0 {
 		t.Fatalf("init failed: %s", stderr)
 	}
 	if !strings.Contains(stdout, "Initialized lokan project.") {
 		t.Fatalf("stdout = %q", stdout)
 	}
-	cfg, err := id.ReadConfig(root)
+	cfg, err := store.ReadConfig(bp(root))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if cfg.Counter != 0 || cfg.Version != "1" {
 		t.Fatalf("cfg = %+v", cfg)
 	}
-	if _, err := os.Stat(store.BoardPath(root)); err != nil {
+	if _, err := os.Stat(bp(root)); err != nil {
 		t.Fatalf("board file missing: %v", err)
 	}
 }
 
 func TestInitIdempotent(t *testing.T) {
 	root := t.TempDir()
-	if code, _, stderr := runCLI(t, root, "init"); code != 0 {
+	if code, _, stderr := runBoard(t, root, "init"); code != 0 {
 		t.Fatalf("first init failed: %s", stderr)
 	}
-	code, stdout, _ := runCLI(t, root, "init")
+	code, stdout, _ := runBoard(t, root, "init")
 	if code != 0 {
 		t.Fatalf("second init should exit 0")
 	}
-	if !strings.Contains(stdout, "Already a lokan project.") {
+	if !strings.Contains(stdout, "Already a lokan board") {
 		t.Fatalf("stdout = %q", stdout)
 	}
 }
 
+func TestInitWithCustomBoard(t *testing.T) {
+	root := t.TempDir()
+	board := filepath.Join(root, "docs", "roadmap.md")
+	code, stdout, stderr := runCLI(t, root, "init", "--board", board)
+	if code != 0 {
+		t.Fatalf("init failed: %s", stderr)
+	}
+	if !strings.Contains(stdout, "Initialized lokan project.") {
+		t.Fatalf("stdout = %q", stdout)
+	}
+	if _, err := os.Stat(board); err != nil {
+		t.Fatalf("custom board missing: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(root, "docs", "board.md")); !os.IsNotExist(err) {
+		t.Fatalf("default board should not exist, err = %v", err)
+	}
+	// the config lives inside the custom board
+	cfg, err := store.ReadConfig(board)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Counter != 0 || cfg.Version != "1" {
+		t.Fatalf("cfg = %+v", cfg)
+	}
+}
+
 // ---------------------------------------------------------------------------
-// explicit-init rule
+// explicit --board rule
 // ---------------------------------------------------------------------------
 
-func TestExplicitInitRequired(t *testing.T) {
+func TestMissingBoardFlag(t *testing.T) {
 	root := t.TempDir()
 	code, _, stderr := runCLI(t, root, "list")
 	if code == 0 {
-		t.Fatalf("list should fail without init")
+		t.Fatalf("list should fail without --board")
 	}
-	if !strings.Contains(stderr, "not a lokan project — run lokan init") {
+	if !strings.Contains(stderr, "missing required flag: --board <file>") {
 		t.Fatalf("stderr = %q", stderr)
 	}
 	if !strings.HasPrefix(stderr, "error: ") {
@@ -110,19 +148,20 @@ func TestExplicitInitRequired(t *testing.T) {
 	}
 }
 
-func TestExplicitInitRequiredForAllCommands(t *testing.T) {
+func TestNotABoardError(t *testing.T) {
 	root := t.TempDir()
 	for _, args := range [][]string{
+		{"list"},
 		{"create", "hello"},
 		{"get", "1"},
 		{"edit", "1", "--status", "done"},
 		{"subtasks", "1"},
 	} {
-		code, _, stderr := runCLI(t, root, args...)
+		code, _, stderr := runBoard(t, root, args...)
 		if code == 0 {
-			t.Fatalf("%v should fail without init", args)
+			t.Fatalf("%v should fail without a board", args)
 		}
-		if !strings.Contains(stderr, "not a lokan project — run lokan init") {
+		if !strings.Contains(stderr, "not a lokan board") {
 			t.Fatalf("%v stderr = %q", args, stderr)
 		}
 	}
@@ -134,14 +173,14 @@ func TestExplicitInitRequiredForAllCommands(t *testing.T) {
 
 func TestCreateValid(t *testing.T) {
 	root := initProject(t)
-	code, stdout, stderr := runCLI(t, root, "create", "hello")
+	code, stdout, stderr := runBoard(t, root, "create", "hello")
 	if code != 0 {
 		t.Fatalf("create failed: %s", stderr)
 	}
 	if !strings.Contains(stdout, "Created 1") {
 		t.Fatalf("stdout = %q", stdout)
 	}
-	summary, err := store.FindByID(root, "1")
+	summary, err := store.FindByID(bp(root), "1")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -155,11 +194,11 @@ func TestCreateValid(t *testing.T) {
 
 func TestCreateWithTypePriorityAndTags(t *testing.T) {
 	root := initProject(t)
-	code, _, stderr := runCLI(t, root, "create", "--type", "bug", "--priority", "high", "--tag", "a", "--tag", "b", "broken thing")
+	code, _, stderr := runBoard(t, root, "create", "--type", "bug", "--priority", "high", "--tag", "a", "--tag", "b", "broken thing")
 	if code != 0 {
 		t.Fatalf("create failed: %s", stderr)
 	}
-	summary, err := store.FindByID(root, "1")
+	summary, err := store.FindByID(bp(root), "1")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -173,7 +212,7 @@ func TestCreateWithTypePriorityAndTags(t *testing.T) {
 
 func TestCreateInvalidType(t *testing.T) {
 	root := initProject(t)
-	code, _, stderr := runCLI(t, root, "create", "--type", "banana", "hello")
+	code, _, stderr := runBoard(t, root, "create", "--type", "banana", "hello")
 	if code == 0 {
 		t.Fatalf("invalid type should fail")
 	}
@@ -184,7 +223,7 @@ func TestCreateInvalidType(t *testing.T) {
 
 func TestCreateInvalidPriority(t *testing.T) {
 	root := initProject(t)
-	code, _, stderr := runCLI(t, root, "create", "--priority", "urgent", "hello")
+	code, _, stderr := runBoard(t, root, "create", "--priority", "urgent", "hello")
 	if code == 0 {
 		t.Fatalf("invalid priority should fail")
 	}
@@ -195,7 +234,7 @@ func TestCreateInvalidPriority(t *testing.T) {
 
 func TestCreateParentNotFound(t *testing.T) {
 	root := initProject(t)
-	code, _, stderr := runCLI(t, root, "create", "--parent", "99", "hello")
+	code, _, stderr := runBoard(t, root, "create", "--parent", "99", "hello")
 	if code == 0 {
 		t.Fatalf("missing parent should fail")
 	}
@@ -207,14 +246,14 @@ func TestCreateParentNotFound(t *testing.T) {
 func TestCreateParentTypeNotAllowed(t *testing.T) {
 	root := initProject(t)
 	// 1 can hold task
-	if code, _, stderr := runCLI(t, root, "create", "--type", "epic", "e"); code != 0 {
+	if code, _, stderr := runBoard(t, root, "create", "--type", "epic", "e"); code != 0 {
 		t.Fatalf("create epic failed: %s", stderr)
 	}
-	if code, _, stderr := runCLI(t, root, "create", "--parent", "1", "t"); code != 0 {
+	if code, _, stderr := runBoard(t, root, "create", "--parent", "1", "t"); code != 0 {
 		t.Fatalf("create task under epic failed: %s", stderr)
 	}
 	// task cannot be created under a task
-	if code, _, stderr := runCLI(t, root, "create", "--parent", "2", "sub"); code == 0 {
+	if code, _, stderr := runBoard(t, root, "create", "--parent", "2", "sub"); code == 0 {
 		t.Fatalf("task under task should fail")
 	} else if !strings.Contains(stderr, "Allowed parents: epic") {
 		t.Fatalf("stderr = %q", stderr)
@@ -224,7 +263,7 @@ func TestCreateParentTypeNotAllowed(t *testing.T) {
 func TestCreateEpicNoParent(t *testing.T) {
 	root := initProject(t)
 	mustCreate(t, root, "parent task")
-	if code, _, stderr := runCLI(t, root, "create", "--type", "epic", "--parent", "1", "e"); code == 0 {
+	if code, _, stderr := runBoard(t, root, "create", "--type", "epic", "--parent", "1", "e"); code == 0 {
 		t.Fatalf("epic with parent should fail")
 	} else if !strings.Contains(stderr, "Allowed parents: none") {
 		t.Fatalf("stderr = %q", stderr)
@@ -238,7 +277,7 @@ func TestCreateEpicNoParent(t *testing.T) {
 func TestGet(t *testing.T) {
 	root := initProject(t)
 	mustCreate(t, root, "hello")
-	code, stdout, stderr := runCLI(t, root, "get", "1")
+	code, stdout, stderr := runBoard(t, root, "get", "1")
 	if code != 0 {
 		t.Fatalf("get failed: %s", stderr)
 	}
@@ -255,7 +294,7 @@ func TestGet(t *testing.T) {
 
 func TestGetNotFound(t *testing.T) {
 	root := initProject(t)
-	code, _, stderr := runCLI(t, root, "get", "99")
+	code, _, stderr := runBoard(t, root, "get", "99")
 	if code == 0 {
 		t.Fatalf("get missing should fail")
 	}
@@ -271,14 +310,14 @@ func TestGetNotFound(t *testing.T) {
 func TestEditStatus(t *testing.T) {
 	root := initProject(t)
 	mustCreate(t, root, "hello")
-	code, stdout, stderr := runCLI(t, root, "edit", "1", "--status", "done")
+	code, stdout, stderr := runBoard(t, root, "edit", "1", "--status", "done")
 	if code != 0 {
 		t.Fatalf("edit failed: %s", stderr)
 	}
 	if !strings.Contains(stdout, "Updated 1") {
 		t.Fatalf("stdout = %q", stdout)
 	}
-	summary, err := store.FindByID(root, "1")
+	summary, err := store.FindByID(bp(root), "1")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -290,7 +329,7 @@ func TestEditStatus(t *testing.T) {
 func TestEditInvalidStatus(t *testing.T) {
 	root := initProject(t)
 	mustCreate(t, root, "hello")
-	code, _, stderr := runCLI(t, root, "edit", "1", "--status", "whenever")
+	code, _, stderr := runBoard(t, root, "edit", "1", "--status", "whenever")
 	if code == 0 {
 		t.Fatalf("invalid status should fail")
 	}
@@ -302,7 +341,7 @@ func TestEditInvalidStatus(t *testing.T) {
 func TestEditInvalidPriority(t *testing.T) {
 	root := initProject(t)
 	mustCreate(t, root, "hello")
-	code, _, stderr := runCLI(t, root, "edit", "1", "--priority", "urgent")
+	code, _, stderr := runBoard(t, root, "edit", "1", "--priority", "urgent")
 	if code == 0 {
 		t.Fatalf("invalid priority should fail")
 	}
@@ -316,22 +355,19 @@ func TestEditInvalidPriority(t *testing.T) {
 func TestEditTitleUpdatesInPlace(t *testing.T) {
 	root := initProject(t)
 	mustCreate(t, root, "hello")
-	code, _, stderr := runCLI(t, root, "edit", "1", "--title", "hello world")
+	code, _, stderr := runBoard(t, root, "edit", "1", "--title", "hello world")
 	if code != 0 {
 		t.Fatalf("edit title failed: %s", stderr)
 	}
-	if _, err := os.Stat(filepath.Join(store.TasksDir(root), "1-hello.md")); !os.IsNotExist(err) {
-		t.Fatalf("no per-task files should exist: %v", err)
-	}
-	summary, err := store.FindByID(root, "1")
+	summary, err := store.FindByID(bp(root), "1")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if summary.Title != "hello world" {
 		t.Fatalf("title = %q", summary.Title)
 	}
-	if summary.FilePath != store.VirtualPath(root, "1") {
-		t.Fatalf("filePath = %q, want %q", summary.FilePath, store.VirtualPath(root, "1"))
+	if summary.FilePath != store.VirtualPath(bp(root), "1") {
+		t.Fatalf("filePath = %q, want %q", summary.FilePath, store.VirtualPath(bp(root), "1"))
 	}
 }
 
@@ -339,13 +375,13 @@ func TestEditTitleUpdatesInPlace(t *testing.T) {
 func TestEditTitleTwiceKeepsID(t *testing.T) {
 	root := initProject(t)
 	mustCreate(t, root, "hello")
-	if code, _, stderr := runCLI(t, root, "edit", "1", "--title", "second"); code != 0 {
+	if code, _, stderr := runBoard(t, root, "edit", "1", "--title", "second"); code != 0 {
 		t.Fatalf("first title edit failed: %s", stderr)
 	}
-	if code, _, stderr := runCLI(t, root, "edit", "1", "--title", "third"); code != 0 {
+	if code, _, stderr := runBoard(t, root, "edit", "1", "--title", "third"); code != 0 {
 		t.Fatalf("second title edit failed: %s", stderr)
 	}
-	if code, _, stderr := runCLI(t, root, "get", "1"); code != 0 {
+	if code, _, stderr := runBoard(t, root, "get", "1"); code != 0 {
 		t.Fatalf("get after title edits failed: %s", stderr)
 	}
 	if len(taskIDs(t, root)) != 1 {
@@ -357,11 +393,11 @@ func TestEditParentClear(t *testing.T) {
 	root := initProject(t)
 	mustCreate(t, root, "--type", "epic", "e")
 	mustCreate(t, root, "--parent", "1", "child")
-	code, _, stderr := runCLI(t, root, "edit", "2", "--parent", "")
+	code, _, stderr := runBoard(t, root, "edit", "2", "--parent", "")
 	if code != 0 {
 		t.Fatalf("parent clear failed: %s", stderr)
 	}
-	summary, err := store.FindByID(root, "2")
+	summary, err := store.FindByID(bp(root), "2")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -374,11 +410,11 @@ func TestEditParentSet(t *testing.T) {
 	root := initProject(t)
 	mustCreate(t, root, "--type", "epic", "e")
 	mustCreate(t, root, "child")
-	code, _, stderr := runCLI(t, root, "edit", "2", "--parent", "1")
+	code, _, stderr := runBoard(t, root, "edit", "2", "--parent", "1")
 	if code != 0 {
 		t.Fatalf("parent set failed: %s", stderr)
 	}
-	summary, err := store.FindByID(root, "2")
+	summary, err := store.FindByID(bp(root), "2")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -390,7 +426,7 @@ func TestEditParentSet(t *testing.T) {
 func TestEditNoChanges(t *testing.T) {
 	root := initProject(t)
 	mustCreate(t, root, "hello")
-	code, stdout, stderr := runCLI(t, root, "edit", "1", "--status", "backlog")
+	code, stdout, stderr := runBoard(t, root, "edit", "1", "--status", "backlog")
 	if code != 0 {
 		t.Fatalf("edit failed: %s", stderr)
 	}
@@ -407,7 +443,7 @@ func TestListAll(t *testing.T) {
 	root := initProject(t)
 	mustCreate(t, root, "alpha")
 	mustCreate(t, root, "beta")
-	code, stdout, stderr := runCLI(t, root, "list")
+	code, stdout, stderr := runBoard(t, root, "list")
 	if code != 0 {
 		t.Fatalf("list failed: %s", stderr)
 	}
@@ -423,14 +459,14 @@ func TestListFilters(t *testing.T) {
 	root := initProject(t)
 	mustCreate(t, root, "a")
 	mustCreate(t, root, "b")
-	if code, _, stderr := runCLI(t, root, "edit", "1", "--status", "done"); code != 0 {
+	if code, _, stderr := runBoard(t, root, "edit", "1", "--status", "done"); code != 0 {
 		t.Fatalf("edit failed: %s", stderr)
 	}
-	if code, _, stderr := runCLI(t, root, "edit", "2", "--priority", "high"); code != 0 {
+	if code, _, stderr := runBoard(t, root, "edit", "2", "--priority", "high"); code != 0 {
 		t.Fatalf("edit failed: %s", stderr)
 	}
 
-	code, stdout, stderr := runCLI(t, root, "list", "--status", "done")
+	code, stdout, stderr := runBoard(t, root, "list", "--status", "done")
 	if code != 0 {
 		t.Fatalf("list failed: %s", stderr)
 	}
@@ -438,7 +474,7 @@ func TestListFilters(t *testing.T) {
 		t.Fatalf("stdout = %q", stdout)
 	}
 
-	code, stdout, _ = runCLI(t, root, "list", "--priority", "high")
+	code, stdout, _ = runBoard(t, root, "list", "--priority", "high")
 	if code != 0 {
 		t.Fatalf("list failed")
 	}
@@ -446,7 +482,7 @@ func TestListFilters(t *testing.T) {
 		t.Fatalf("stdout = %q", stdout)
 	}
 
-	code, stdout, _ = runCLI(t, root, "list", "--type", "epic")
+	code, stdout, _ = runBoard(t, root, "list", "--type", "epic")
 	if code != 0 {
 		t.Fatalf("list failed")
 	}
@@ -457,7 +493,7 @@ func TestListFilters(t *testing.T) {
 
 func TestListEmpty(t *testing.T) {
 	root := initProject(t)
-	code, stdout, stderr := runCLI(t, root, "list")
+	code, stdout, stderr := runBoard(t, root, "list")
 	if code != 0 {
 		t.Fatalf("list failed: %s", stderr)
 	}
@@ -470,10 +506,10 @@ func TestListMarkdown(t *testing.T) {
 	root := initProject(t)
 	mustCreate(t, root, "alpha")
 	mustCreate(t, root, "beta")
-	if code, _, stderr := runCLI(t, root, "edit", "2", "--status", "done"); code != 0 {
+	if code, _, stderr := runBoard(t, root, "edit", "2", "--status", "done"); code != 0 {
 		t.Fatalf("edit failed: %s", stderr)
 	}
-	code, stdout, stderr := runCLI(t, root, "list", "--md")
+	code, stdout, stderr := runBoard(t, root, "list", "--md")
 	if code != 0 {
 		t.Fatalf("list --md failed: %s", stderr)
 	}
@@ -497,7 +533,7 @@ func TestSubtasks(t *testing.T) {
 	mustCreate(t, root, "--type", "epic", "e")
 	mustCreate(t, root, "--parent", "1", "one")
 	mustCreate(t, root, "--parent", "1", "two")
-	code, stdout, stderr := runCLI(t, root, "subtasks", "1")
+	code, stdout, stderr := runBoard(t, root, "subtasks", "1")
 	if code != 0 {
 		t.Fatalf("subtasks failed: %s", stderr)
 	}
@@ -515,7 +551,7 @@ func TestSubtasks(t *testing.T) {
 func TestSubtasksNone(t *testing.T) {
 	root := initProject(t)
 	mustCreate(t, root, "only")
-	code, stdout, stderr := runCLI(t, root, "subtasks", "1")
+	code, stdout, stderr := runBoard(t, root, "subtasks", "1")
 	if code != 0 {
 		t.Fatalf("subtasks failed: %s", stderr)
 	}
@@ -526,7 +562,7 @@ func TestSubtasksNone(t *testing.T) {
 
 func TestSubtasksNotFound(t *testing.T) {
 	root := initProject(t)
-	code, _, stderr := runCLI(t, root, "subtasks", "99")
+	code, _, stderr := runBoard(t, root, "subtasks", "99")
 	if code == 0 {
 		t.Fatalf("missing task should fail")
 	}

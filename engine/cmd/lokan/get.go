@@ -13,19 +13,22 @@ func newGetCmd() *cli.Command {
 		Usage:        "Show a task by ID",
 		ArgsUsage:    "<id>",
 		OnUsageError: quietUsageError,
+		Flags: []cli.Flag{
+			boardFlag(),
+		},
 		Action: func(c *cli.Context) error {
-			// validate the positional id, resolve the project
+			// validate the positional id, resolve the board
 			if err := requireArgs(c, 1); err != nil {
 				return err
 			}
-			root, err := requireProject(c)
+			board, err := requireBoard(c)
 			if err != nil {
 				return err
 			}
 			id := c.Args().First()
 
 			// resolve the task then print its full detail
-			summary, err := store.FindByID(root, id)
+			summary, err := store.FindByID(board, id)
 			if err != nil {
 				return notFoundError(id, err)
 			}

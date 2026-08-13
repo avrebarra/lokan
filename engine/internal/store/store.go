@@ -1,6 +1,7 @@
 package store
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"os"
@@ -8,13 +9,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/avressatelier/lokan/internal/id"
 	"github.com/avressatelier/lokan/internal/types"
 )
 
 const (
-	tasksDirName   = ".lokan"
-	boardFileName  = "board.md"
 	lockTimeout    = 5 * time.Second
 	lockRetryDelay = 10 * time.Millisecond
 )
@@ -22,38 +20,86 @@ const (
 // ErrNotFound is returned when no task block matches a requested id.
 var ErrNotFound = errors.New("task not found")
 
-// TasksDir returns the virtual tasks directory under root. Tasks no longer
-// live as separate files; the path only backs the filePath values reported
-// through the API.
-func TasksDir(root string) string {
-	return filepath.Join(root, tasksDirName, "tasks")
+// IsBoard reports whether path exists and its first non-blank line is the
+// lokan config marker — the only thing that makes a file a board.
+func IsBoard(path string) bool {
+	f, err := os.Open(path)
+	if err != nil {
+		return false
+	}
+	defer f.Close()
+	sc := bufio.NewScanner(f)
+	for sc.Scan() {
+		if line := strings.TrimSpace(sc.Text()); line != "" {
+			return line == configMarkerLine
+		}
+	}
+	return false
 }
 
-// BoardPath returns the absolute path of the single board file under root.
-func BoardPath(root string) string {
-	return filepath.Join(root, tasksDirName, boardFileName)
+// VirtualPath returns the stable virtual task path reported through the API,
+// e.g. "<board>#1". It addresses a block inside the board file and is not a
+// real file on disk.
+func VirtualPath(board, id string) string {
+	return board + "#" + id
 }
 
-// VirtualPath returns the virtual per-task path reported through the API,
-// e.g. "<root>/.lokan/tasks/task-1.md". It resolves to a block in board.md.
-func VirtualPath(root, id string) string {
-	return filepath.Join(TasksDir(root), id+".md")
+// boardFromVirtual extracts the board file path from a virtual task path.
+func boardFromVirtual(virtualPath string) string {
+	board, _, _ := strings.Cut(virtualPath, "#")
+	return board
 }
 
-// boardPath resolves the board file path from a virtual task path.
-func boardPath(virtualPath string) string {
-	return filepath.Join(filepath.Dir(filepath.Dir(virtualPath)), boardFileName)
+// ReadConfig loads the board's config block; a board with no config block
+// yields the defaults.
+func ReadConfig(board string) (types.LokanConfig, error) {
+	raw, err := os.ReadFile(board)
+	if err != nil {
+		return types.LokanConfig{}, err
+	}
+	return parseConfigBlock(string(raw)), nil
 }
 
-// rootFromVirtual resolves the project root from a virtual task path.
-func rootFromVirtual(virtualPath string) string {
-	return filepath.Dir(filepath.Dir(filepath.Dir(virtualPath)))
+// defaultConfig is the config a fresh board starts with.
+func defaultConfig() types.LokanConfig {
+	return types.LokanConfig{Counter: 0, Version: "1", Statuses: types.DefaultStatusDefs()}
 }
 
-// statusDefs resolves the effective lane definitions for a project, falling
-// back to the built-in defaults when the config is unreadable.
-func statusDefs(root string) []types.StatusDef {
-	cfg, err := id.ReadConfig(root)
+// WriteConfig rewrites the board's config block, preserving all tasks.
+func WriteConfig(board string, cfg types.LokanConfig) error {
+	return withBoardLock(board, func() error {
+		tasks, _, err := readBoard(board)
+		if err != nil {
+			return err
+		}
+		return writeBoard(board, tasks, cfg)
+	})
+}
+
+// NextCounter increments the counter in the board's config block and returns
+// the new value, guarded by the board lock so concurrent callers never hand
+// out duplicate ids.
+func NextCounter(board string) (int, error) {
+	var next int
+	err := withBoardLock(board, func() error {
+		tasks, cfg, err := readBoard(board)
+		if err != nil {
+			return err
+		}
+		cfg.Counter++
+		next = cfg.Counter
+		return writeBoard(board, tasks, cfg)
+	})
+	if err != nil {
+		return 0, err
+	}
+	return next, nil
+}
+
+// statusDefs resolves the effective lane definitions for a board, falling
+// back to the built-in defaults when the board carries none.
+func statusDefs(board string) []types.StatusDef {
+	cfg, err := ReadConfig(board)
 	if err != nil {
 		return types.DefaultStatusDefs()
 	}
@@ -62,28 +108,28 @@ func statusDefs(root string) []types.StatusDef {
 
 // LoadAllSummaries reads every task block in the board file, skipping blocks
 // that fail to parse (with a warning).
-func LoadAllSummaries(root string) ([]types.TaskSummary, error) {
-	tasks, err := readBoard(root)
+func LoadAllSummaries(board string) ([]types.TaskSummary, error) {
+	tasks, _, err := readBoard(board)
 	if err != nil {
 		return nil, err
 	}
 	summaries := make([]types.TaskSummary, len(tasks))
 	for i, t := range tasks {
-		summaries[i] = types.TaskSummary{TaskFrontmatter: t.TaskFrontmatter, FilePath: VirtualPath(root, t.ID)}
+		summaries[i] = types.TaskSummary{TaskFrontmatter: t.TaskFrontmatter, FilePath: VirtualPath(board, t.ID)}
 	}
 	return summaries, nil
 }
 
 // FindByID scans the board for the task block matching id.
-func FindByID(root string, id string) (types.TaskSummary, error) {
+func FindByID(board string, id string) (types.TaskSummary, error) {
 	var summary types.TaskSummary
-	tasks, err := readBoard(root)
+	tasks, _, err := readBoard(board)
 	if err != nil {
 		return summary, err
 	}
 	for _, t := range tasks {
 		if t.ID == id {
-			return types.TaskSummary{TaskFrontmatter: t.TaskFrontmatter, FilePath: VirtualPath(root, t.ID)}, nil
+			return types.TaskSummary{TaskFrontmatter: t.TaskFrontmatter, FilePath: VirtualPath(board, t.ID)}, nil
 		}
 	}
 	return summary, fmt.Errorf("%w: %s", ErrNotFound, id)
@@ -92,8 +138,8 @@ func FindByID(root string, id string) (types.TaskSummary, error) {
 // LoadTask reads and fully parses the task block addressed by a virtual path.
 func LoadTask(virtualPath string) (types.Task, error) {
 	var task types.Task
-	id := strings.TrimSuffix(filepath.Base(virtualPath), ".md")
-	tasks, err := readBoard(rootFromVirtual(virtualPath))
+	board, id, _ := strings.Cut(virtualPath, "#")
+	tasks, _, err := readBoard(board)
 	if err != nil {
 		return task, err
 	}
@@ -111,9 +157,9 @@ func LoadTask(virtualPath string) (types.Task, error) {
 // atomically via temp-file-then-rename.
 func WriteTask(task types.Task) error {
 	task.Updated = time.Now().UTC().Format("2006-01-02")
-	return withBoardLock(boardPath(task.FilePath), func() error {
-		root := rootFromVirtual(task.FilePath)
-		tasks, err := readBoard(root)
+	board := boardFromVirtual(task.FilePath)
+	return withBoardLock(board, func() error {
+		tasks, cfg, err := readBoard(board)
 		if err != nil {
 			return err
 		}
@@ -128,17 +174,17 @@ func WriteTask(task types.Task) error {
 		if !replaced {
 			tasks = append(tasks, task)
 		}
-		return writeBoard(root, tasks)
+		return writeBoard(board, tasks, cfg)
 	})
 }
 
 // MoveTask relocates a task to another lane (status) and position: directly
 // before beforeID, or at the end of the lane when beforeID is empty. The
 // whole board is rewritten under one lock, so the move is atomic.
-func MoveTask(root, id string, status types.Status, beforeID string) (types.Task, error) {
+func MoveTask(board string, id string, status types.Status, beforeID string) (types.Task, error) {
 	var moved types.Task
-	err := withBoardLock(BoardPath(root), func() error {
-		tasks, err := readBoard(root)
+	err := withBoardLock(board, func() error {
+		tasks, cfg, err := readBoard(board)
 		if err != nil {
 			return err
 		}
@@ -159,9 +205,9 @@ func MoveTask(root, id string, status types.Status, beforeID string) (types.Task
 		// apply the move: reinsert at the anchor, then write once
 		moved.Status = status
 		moved.Updated = time.Now().UTC().Format("2006-01-02")
-		to := insertIndexFor(tasks, status, beforeID, statusDefs(root))
+		to := insertIndexFor(tasks, status, beforeID, cfg.Statuses)
 		tasks = append(tasks[:to], append([]types.Task{moved}, tasks[to:]...)...)
-		return writeBoard(root, tasks)
+		return writeBoard(board, tasks, cfg)
 	})
 	if err != nil {
 		return moved, err
@@ -200,23 +246,19 @@ func insertIndexFor(tasks []types.Task, status types.Status, beforeID string, st
 }
 
 // CreateTask appends a new task block to the board and returns it.
-func CreateTask(root string, fm types.TaskFrontmatter, body string) (types.Task, error) {
-	var task types.Task
-	if err := os.MkdirAll(filepath.Dir(BoardPath(root)), 0o755); err != nil {
-		return task, err
-	}
-	task = types.Task{
+func CreateTask(board string, fm types.TaskFrontmatter, body string) (types.Task, error) {
+	task := types.Task{
 		TaskFrontmatter: fm,
 		Body:            buildInitialBody(fm.Title, body),
-		FilePath:        VirtualPath(root, fm.ID),
+		FilePath:        VirtualPath(board, fm.ID),
 	}
-	err := withBoardLock(BoardPath(root), func() error {
-		tasks, err := readBoard(root)
+	err := withBoardLock(board, func() error {
+		tasks, cfg, err := readBoard(board)
 		if err != nil {
 			return err
 		}
 		tasks = append(tasks, task)
-		return writeBoard(root, tasks)
+		return writeBoard(board, tasks, cfg)
 	})
 	if err != nil {
 		return task, err
@@ -224,13 +266,36 @@ func CreateTask(root string, fm types.TaskFrontmatter, body string) (types.Task,
 	return task, nil
 }
 
-// MoveLane rewrites the stored status of every task in the from lane to the
-// to lane — one atomic board rewrite. Used for lane renames and for moving
-// a removed lane's tasks into another lane. Returns how many tasks moved.
-func MoveLane(root string, from, to types.Status) (int, error) {
+// UpdateLanes atomically applies lane renames and persists the new lane set
+// in one board rewrite, so task statuses and the config block stay
+// consistent (a board can never hold a task whose lane is not configured).
+func UpdateLanes(board string, renames [][2]types.Status, statuses []types.StatusDef) (int, error) {
 	moved := 0
-	err := withBoardLock(BoardPath(root), func() error {
-		tasks, err := readBoard(root)
+	err := withBoardLock(board, func() error {
+		tasks, cfg, err := readBoard(board)
+		if err != nil {
+			return err
+		}
+		for _, pair := range renames {
+			for i := range tasks {
+				if tasks[i].Status == pair[0] {
+					tasks[i].Status = pair[1]
+					moved++
+				}
+			}
+		}
+		cfg.Statuses = statuses
+		return writeBoard(board, tasks, cfg)
+	})
+	return moved, err
+}
+
+// MoveLane rewrites the stored status of every task in the from lane to the
+// to lane — one atomic board rewrite. Returns how many tasks moved.
+func MoveLane(board string, from, to types.Status) (int, error) {
+	moved := 0
+	err := withBoardLock(board, func() error {
+		tasks, cfg, err := readBoard(board)
 		if err != nil {
 			return err
 		}
@@ -240,29 +305,29 @@ func MoveLane(root string, from, to types.Status) (int, error) {
 				moved++
 			}
 		}
-		return writeBoard(root, tasks)
+		return writeBoard(board, tasks, cfg)
 	})
 	return moved, err
 }
 
 // ClearArchived deletes every task whose lane is marked archived, returning
 // how many were removed.
-func ClearArchived(root string) (int, error) {
-	return clearTasks(root, func(t types.Task) bool {
-		return isArchived(t.Status, statusDefs(root))
+func ClearArchived(board string) (int, error) {
+	return clearTasks(board, func(t types.Task) bool {
+		return isArchived(t.Status, statusDefs(board))
 	})
 }
 
 // ClearAll deletes every task on the board, returning how many were removed.
-func ClearAll(root string) (int, error) {
-	return clearTasks(root, func(types.Task) bool { return true })
+func ClearAll(board string) (int, error) {
+	return clearTasks(board, func(types.Task) bool { return true })
 }
 
 // clearTasks drops the tasks matching drop and rewrites the board atomically.
-func clearTasks(root string, drop func(types.Task) bool) (int, error) {
+func clearTasks(board string, drop func(types.Task) bool) (int, error) {
 	deleted := 0
-	err := withBoardLock(BoardPath(root), func() error {
-		tasks, err := readBoard(root)
+	err := withBoardLock(board, func() error {
+		tasks, cfg, err := readBoard(board)
 		if err != nil {
 			return err
 		}
@@ -274,31 +339,28 @@ func clearTasks(root string, drop func(types.Task) bool) (int, error) {
 			}
 			kept = append(kept, t)
 		}
-		return writeBoard(root, kept)
+		return writeBoard(board, kept, cfg)
 	})
 	return deleted, err
 }
 
-// readBoard loads all task blocks from the board file. A missing board file
-// is treated as an empty board.
-func readBoard(root string) ([]types.Task, error) {
-	raw, err := os.ReadFile(BoardPath(root))
+// readBoard loads the board file, returning its task blocks and config block.
+func readBoard(board string) ([]types.Task, types.LokanConfig, error) {
+	raw, err := os.ReadFile(board)
 	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return nil, nil
-		}
-		return nil, err
+		return nil, types.LokanConfig{}, err
 	}
-	return parseBoard(string(raw), statusDefs(root)), nil
+	cfg := parseConfigBlock(string(raw))
+	return parseBoard(string(raw), cfg.Statuses), cfg, nil
 }
 
-// writeBoard atomically persists the full board document.
-func writeBoard(root string, tasks []types.Task) error {
-	raw, err := serializeBoard(tasks, statusDefs(root))
+// writeBoard atomically persists the full board document: config block first,
+// then tasks grouped into Active/Archive sections.
+func writeBoard(board string, tasks []types.Task, cfg types.LokanConfig) error {
+	raw, err := serializeBoard(tasks, cfg)
 	if err != nil {
 		return err
 	}
-	board := BoardPath(root)
 	tmp, err := os.CreateTemp(filepath.Dir(board), ".board-*.tmp")
 	if err != nil {
 		return err

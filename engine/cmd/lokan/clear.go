@@ -13,6 +13,7 @@ func newClearCmd() *cli.Command {
 		Usage:        "Delete tasks in bulk",
 		OnUsageError: quietUsageError,
 		Flags: []cli.Flag{
+			boardFlag(),
 			&cli.BoolFlag{Name: "archived", Usage: "Delete all tasks in archived lanes"},
 			&cli.BoolFlag{Name: "all", Usage: "Delete every task on the board"},
 		},
@@ -21,7 +22,7 @@ func newClearCmd() *cli.Command {
 			if err := requireArgs(c, 0); err != nil {
 				return err
 			}
-			root, err := requireProject(c)
+			board, err := requireBoard(c)
 			if err != nil {
 				return err
 			}
@@ -35,9 +36,9 @@ func newClearCmd() *cli.Command {
 			// run the requested scope and report the count
 			var deleted int
 			if archived {
-				deleted, err = store.ClearArchived(root)
+				deleted, err = store.ClearArchived(board)
 			} else {
-				deleted, err = store.ClearAll(root)
+				deleted, err = store.ClearAll(board)
 			}
 			if err != nil {
 				return err
