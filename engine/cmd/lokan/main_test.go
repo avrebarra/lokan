@@ -470,7 +470,7 @@ func TestListMarkdown(t *testing.T) {
 	root := initProject(t)
 	mustCreate(t, root, "alpha")
 	mustCreate(t, root, "beta")
-	if code, _, stderr := runCLI(t, root, "edit", "task-2", "--status", "done"); code != 0 {
+	if code, _, stderr := runCLI(t, root, "edit", "2", "--status", "done"); code != 0 {
 		t.Fatalf("edit failed: %s", stderr)
 	}
 	code, stdout, stderr := runCLI(t, root, "list", "--md")
@@ -483,7 +483,7 @@ func TestListMarkdown(t *testing.T) {
 	if !strings.Contains(stdout, "## todo") || !strings.Contains(stdout, "## done") {
 		t.Fatalf("missing status groups: %q", stdout)
 	}
-	if !strings.Contains(stdout, "- task-1 [medium] alpha") || !strings.Contains(stdout, "- task-2 [medium] beta") {
+	if !strings.Contains(stdout, "- 1 [medium] alpha") || !strings.Contains(stdout, "- 2 [medium] beta") {
 		t.Fatalf("missing task lines: %q", stdout)
 	}
 }
