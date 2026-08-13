@@ -20,6 +20,7 @@ COMMANDS = {
   %w[build]     => c("Build the full lokan binary (web + engine)") { cmd_build },
   %w[test]      => c("Run engine Go tests") { run "cd #{SCRIPT_DIR}/engine && go test ./..." },
   %w[e2e]       => c("End-to-end smoke: init, create, list, ui, API") { cmd_e2e },
+  %w[preview]   => c("Build artifacts, run app on scratch project with demo data (no install)") { cmd_preview },
   %w[web dev]   => c("Start Vite dev server + mock API (interactive UI)") { cmd_web_dev },
   %w[web mock]  => c("Run the mock API server only (port 8787)") { cmd_web_mock },
   %w[web build] => c("Build the web frontend only") { run "cd #{SCRIPT_DIR}/web && npm run build" },
@@ -48,6 +49,46 @@ def cmd_build
   run "mkdir -p #{SCRIPT_DIR}/dist"
   run "cd #{SCRIPT_DIR}/engine && go build -o #{SCRIPT_DIR}/dist/lokan ./cmd/lokan"
   puts "built #{SCRIPT_DIR}/dist/lokan"
+  true
+end
+
+# build web + binary, then run against a scratch project seeded with demo
+# data. Project lives in the OS tmpdir and is reused across runs (existing
+# board is kept; only seeded when empty). Port via LOKAN_PREVIEW_PORT.
+def cmd_preview
+  cmd_build
+  bin = "#{SCRIPT_DIR}/dist/lokan"
+  project = File.join(Dir.tmpdir, "lokan-preview")
+  port = ENV["LOKAN_PREVIEW_PORT"] || "7777"
+  Dir.mkdir(project) unless Dir.exist?(project)
+
+  Dir.chdir(project) do
+    run "#{bin} init"
+    pid = Process.spawn(bin, "ui", "--port", port, out: $stdout, err: $stderr)
+    begin
+      sleep 1.5
+      board = File.read(".lokan/board.md") rescue ""
+      if !board.include?("<!-- lokan:")
+        puts "  seeding demo data…"
+        system "curl -s -X POST http://localhost:#{port}/api/seed"
+        puts ""
+      end
+      puts "lokan preview — http://localhost:#{port} (project: #{project})"
+      puts "Press Ctrl+C to stop."
+      Process.wait(pid)
+    ensure
+      begin
+        Process.kill("INT", pid)
+      rescue StandardError
+        nil
+      end
+      begin
+        Process.wait(pid)
+      rescue StandardError
+        nil
+      end
+    end
+  end
   true
 end
 
