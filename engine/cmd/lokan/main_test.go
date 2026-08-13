@@ -145,7 +145,7 @@ func TestCreateValid(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if summary.Type != types.TypeTask || summary.Status != types.StatusTodo || summary.Priority != types.PriorityMedium {
+	if summary.Type != types.TypeTask || summary.Status != types.StatusBacklog || summary.Priority != types.PriorityMedium {
 		t.Fatalf("summary = %+v", summary)
 	}
 	if summary.Title != "hello" {
@@ -294,7 +294,7 @@ func TestEditInvalidStatus(t *testing.T) {
 	if code == 0 {
 		t.Fatalf("invalid status should fail")
 	}
-	if !strings.Contains(stderr, `Invalid status "whenever". Must be one of: todo, in-progress, backlog, done, cancelled`) {
+	if !strings.Contains(stderr, `Invalid status "whenever". Must be one of: backlog, todo, in-progress, done, cancelled`) {
 		t.Fatalf("stderr = %q", stderr)
 	}
 }
@@ -390,7 +390,7 @@ func TestEditParentSet(t *testing.T) {
 func TestEditNoChanges(t *testing.T) {
 	root := initProject(t)
 	mustCreate(t, root, "hello")
-	code, stdout, stderr := runCLI(t, root, "edit", "1", "--status", "todo")
+	code, stdout, stderr := runCLI(t, root, "edit", "1", "--status", "backlog")
 	if code != 0 {
 		t.Fatalf("edit failed: %s", stderr)
 	}
@@ -480,7 +480,7 @@ func TestListMarkdown(t *testing.T) {
 	if !strings.Contains(stdout, "# Board — 1 active, 1 archived") {
 		t.Fatalf("missing header: %q", stdout)
 	}
-	if !strings.Contains(stdout, "## todo") || !strings.Contains(stdout, "## done") {
+	if !strings.Contains(stdout, "## backlog") || !strings.Contains(stdout, "## done") {
 		t.Fatalf("missing status groups: %q", stdout)
 	}
 	if !strings.Contains(stdout, "- 1 [medium] alpha") || !strings.Contains(stdout, "- 2 [medium] beta") {
