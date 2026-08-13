@@ -10,14 +10,19 @@ interface Props {
 }
 
 export default function Column({ label, modifier, rows, subtaskCount, onSelect }: Props) {
-  const className = modifier ? `column ${modifier}` : 'column'
+  // accent bar on the in-progress column head
+  const headClass = modifier
+    ? 'mb-1 flex items-baseline justify-between border-t-2 border-accent pt-3 text-[11px] font-normal uppercase text-fg'
+    : 'mb-1 flex items-baseline justify-between border-t border-fg pt-3 text-[11px] font-normal uppercase'
   return (
-    <section className={className} aria-label={label}>
-      <h2 className="column-head">
-        {label} <span className="count">{rows.length}</span>
+    <section className="flex flex-col" aria-label={label}>
+      <h2 className={headClass}>
+        {label} <span className="font-sans text-sm text-muted">{rows.length}</span>
       </h2>
       {rows.length === 0 ? (
-        <div className="empty">no tasks — create one with lokan create</div>
+        <div className="py-3.5 text-[11px] uppercase text-muted">
+          no tasks — create one with lokan create
+        </div>
       ) : (
         rows.map((row) => (
           <TaskRow

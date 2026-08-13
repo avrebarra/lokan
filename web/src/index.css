@@ -1,0 +1,46 @@
+@import 'tailwindcss';
+
+/* lokan theme: map design tokens (tokens.css vars) into tailwind utilities */
+@theme {
+  --color-bg: var(--bg);
+  --color-fg: var(--fg);
+  --color-border: var(--border);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-zebra: var(--zebra);
+
+  --font-sans: 'Geist', Helvetica, Arial, sans-serif;
+  --font-mono: 'Geist Mono', 'Courier New', monospace;
+}
+
+/* base: page surface + link/button inheritance */
+@layer base {
+  html {
+    background: var(--bg);
+    color: var(--fg);
+  }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-mono);
+    -webkit-font-smoothing: antialiased;
+  }
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+  button {
+    background: none;
+    border: 0;
+    cursor: pointer;
+  }
+}
+
+/* reduced motion: kill transitions globally */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+  }
+}

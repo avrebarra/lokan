@@ -2,7 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
 import './tokens.css'
-import './styles.css'
+import './index.css'
 
 // resolve theme: stored preference, else system, before first render
 const stored = localStorage.getItem('lokan-theme')

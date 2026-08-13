@@ -24,7 +24,7 @@ export default function Board({ tasks, subtaskCount, onSelect }: Props) {
   // subtasks live under their parents, not as board rows
   const visible = tasks.filter((t) => t.type !== 'subtask')
   return (
-    <main className="board">
+    <main className="grid grid-cols-3 items-start gap-6 max-[900px]:grid-cols-1 max-[900px]:gap-10">
       {COLUMNS.map((col) => (
         <Column
           key={col.label}

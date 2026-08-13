@@ -77,7 +77,7 @@ export default function App() {
   )
 
   return (
-    <div className="wrap">
+    <div className="mx-auto w-full max-w-[1200px] px-6 pb-16 pt-8 max-[900px]:px-4 max-[900px]:pb-12 max-[900px]:pt-5">
       <Topline
         taskCount={tasks.filter((t) => t.type !== 'subtask').length}
         updatedAt={updatedAt}
