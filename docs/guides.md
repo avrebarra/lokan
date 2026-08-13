@@ -5,7 +5,7 @@ frozen source of truth for types/endpoints; this doc is the *workflow* layer.
 
 ## Human workflow (daily loop)
 
-1. `lokan init --board <file>` — create a board (one self-contained markdown
+1. `lokan init <board>` — create a board (one self-contained markdown
    file; explicit, required once). `docs/board.md` is the conventional spot.
 2. `lokan create -t task -p high "Do thing"` — add work.
 3. `lokan list --md` — compact board view; `lokan list` for the UI-style table.
@@ -13,7 +13,7 @@ frozen source of truth for types/endpoints; this doc is the *workflow* layer.
 5. `lokan edit <id> --status done` — finishes the task; it auto-moves to Archive.
 6. `lokan get <id>` — full task (frontmatter + body) when you need detail.
 
-Every command targets a board with `--board <file>` (required). Filters:
+Every command takes the board as its first positional argument. Filters:
 `--type/--status/--priority` on `list`. Hierarchy: `epic` →
 `task`/`bug` → `subtask` (`lokan subtasks <id>` shows children).
 
@@ -32,7 +32,7 @@ UI, and an agent.
 
 Stable entry points (frozen in `api.md`):
 
-- **Read full state:** open the board file directly (your `--board` target) —
+- **Read full state:** open the board file directly (your board path) —
   it is the complete
   board as markdown.
 - **Read lean state:** `lokan list --md` — one line per task, grouped by status.
@@ -78,5 +78,5 @@ exit code 1 with a stderr message; re-read and retry.
   processes. A human raw-editing the board file while an agent runs the CLI is
   out-of-band; keep the repo committed and reconcile conflicts with git.
 - **Explicit init.** Every command except `init`/`help` errors with
-  `not a lokan board — run lokan init --board <file>` when `--board` points at
+  `not a lokan board — run lokan init <file>` when the path points at
   a missing file or one without the config marker.

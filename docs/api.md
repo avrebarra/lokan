@@ -202,10 +202,10 @@ All error bodies: `{ "error": "<message>" }`
 The board and CLI are designed to be operated by AI agents. Two stable
 entry points, both frozen:
 
-- **Full state:** read the board file directly (your `--board` target) — it
+- **Full state:** read the board file directly (your board path) — it
   is the complete board (config, all fields, bodies, Active/Archive
   sections) as markdown.
-- **Lean board view:** `lokan list --md --board <file>` prints a compact
+- **Lean board view:** `lokan list --md <file>` prints a compact
   markdown summary —
   a `# Board — <n> active, <n> archived` header, then one `## <status>`
   group per configured lane (in lane order) with one
@@ -219,18 +219,18 @@ Mutations use the regular CLI (stable commands): `lokan create "<title>"`
 Output discipline for agents:
 
 - stdout carries the result; stderr carries errors only
-- exit code 0 on success, 1 on any failure (missing --board, not found, validation)
+- exit code 0 on success, 1 on any failure (missing board path, not found, validation)
 - human `list`/`get` output remains available and is agent-readable too
 
 ## Agent write contract
 
 The interface above is read/write-safe only when agents follow this contract:
 
-- **Read** the board by opening your `--board` file or running
-  `lokan list --md --board <file>`.
+- **Read** the board by opening your board file or running
+  `lokan list --md <file>`.
   Both always reflect current state.
 - **Mutate only via CLI/API.** Never hand-rewrite the board file (your
-  `--board` target). The engine
+  board path). The engine
   owns the file format — markers, block ordering, `## Archive` placement, and
   the `updated` timestamp — and rewrites it atomically under `<board>.lock`.
 - **Treat these fields as engine-owned:** `id`, `created`, `updated`. Do not set
@@ -260,8 +260,8 @@ and embedded via `//go:embed all:dist` (package `engine/web`). `GET /` serves
 
 A board is a markdown file whose first block is the `<!-- lokan:config -->`
 marker (YAML: `counter`, `version`, `statuses`) followed by task blocks.
-Every command targets a board explicitly via `--board <file>` — there is no
-discovery and no default path. `lokan init --board <file>` creates a fresh
+Every command takes the board as its first positional argument — there is no
+discovery and no default path. `lokan init <file>` creates a fresh
 board; any markdown file can become one.
 
 The board file holds every task as a `<!-- lokan:<id> -->`-delimited block (YAML

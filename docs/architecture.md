@@ -75,10 +75,10 @@ status, priority, parent?, related?, docs?, tags?, created, updated` — plus
   `<board>.lock` guard, so concurrent writers cannot lose updates.
 - IDs are **plain counter values** (`1`, `2`, `3`), shared across all types.
   The counter lives in the board's config block.
-- **Explicit board targeting (DECIDED 2026-08-13):** every command takes a
-  required `--board <file>`. There is no discovery and no default path — a
-  markdown file is a board only when its first block is the
-  `<!-- lokan:config -->` marker. `lokan init --board <file>` creates one;
+- **Explicit board targeting (DECIDED 2026-08-13):** every command takes the
+  board as its required first positional argument. There is no discovery and
+  no default path — a markdown file is a board only when its first block is
+  the `<!-- lokan:config -->` marker. `lokan init <file>` creates one;
   every other command errors when the file is missing or lacks the marker.
 
 ## Build Chain & Embedding

@@ -85,10 +85,10 @@ Easy docs items are done; implementation items are parked for later.
 ### Implementation (later)
 
 - [x] **G1 — Configurable board path** — DONE (2026-08-13): every command
-      targets a board explicitly via `--board <file>` — no discovery, no
+      takes the board as its first positional argument — no discovery, no
       default path. A board is self-contained: a `<!-- lokan:config -->`
       block (counter, version, statuses) sits at the top, and any markdown
-      file with that marker can be one. `lokan init --board <file>` creates a
+      file with that marker can be one. `lokan init <file>` creates a
       fresh board — a single `roadmap.md` can be managed by the tool itself.
 - [x] **G7 — Parser warnings** — DONE (2026-08-13): already implemented —
       `parseBoard` logs `Warning: skipping invalid task block` to stderr
