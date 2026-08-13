@@ -38,7 +38,7 @@ IDs are type-prefixed with a shared counter (`epic-1`, `task-2`, `bug-3`).
 ## Web UI
 
 `lokan ui` serves the embedded React app on `localhost:7777` and opens your
-browser. Brutalist-terminal aesthetic (shiprank-derived): monochrome, mono
+browser. Brutalist-terminal aesthetic: monochrome, mono
 labels, rows with hairline separators, a single yellow accent on the
 in-progress column. Dark mode follows your system with an explicit toggle.
 

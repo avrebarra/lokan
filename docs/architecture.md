@@ -23,7 +23,7 @@ in one static binary. All tasks live in one git-friendly `.lokan/board.md`
 | Engine   | Go 1.26, stdlib `net/http`, urfave/cli                  | Single static binary, trivial distribution                   |
 | Storage  | Single markdown board file + YAML frontmatter (yaml.v3) | Git-diffable, editor-editable, human-readable                |
 | Frontend | Vite + React 18 + TypeScript + Tailwind CSS             | Design tokens mapped into Tailwind `@theme`, utility styling |
-| Fonts    | Geist Sans + Geist Mono (Google Fonts)                  | shiprank design system heritage                              |
+| Fonts    | Geist Sans + Geist Mono (Google Fonts)                  | terminal design heritage                                     |
 | Build    | `runtask` (root) → `go:embed`                           | One command produces the final binary                        |
 
 Stack evolution is tracked in [`roadmap.md`](./roadmap.md) (Protobuf is a
@@ -106,7 +106,7 @@ UI never trusts itself. Unknown routes 404; error bodies are always
 
 ## Design Language
 
-Brutalist-terminal (shiprank-derived): monochrome, sharp corners (radius 0),
+Brutalist-terminal: monochrome, sharp corners (radius 0),
 no shadows except the detail modal, Geist Mono uppercase labels + Geist Sans
 titles, tasks as leaderboard **rows** with hairline separators.
 

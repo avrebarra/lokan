@@ -1,7 +1,7 @@
 # lokan — Design Tokens (hi-fi spec)
 
-> Source of truth for the frontend build (G4). Derived from shiprank
-> (brutalist-terminal aesthetic) + lokan's kanban data model. Mockup:
+> Source of truth for the frontend build (G4). Derived from a brutalist-terminal
+> aesthetic + lokan's kanban data model. Mockup:
 > `docs/design/mockup.html`. Approved by user on 2026-08-13.
 
 ## 1. Design read
@@ -57,8 +57,7 @@ in G4; default light + auto dark.)
 | empty state   | Geist Mono| 11px  | 400    | uppercase | `0`          |
 
 Fallbacks: Geist Sans → `Helvetica, Arial, sans-serif`; Geist Mono →
-`"Courier New", monospace`. **Load from Google Fonts** (same source shiprank
-uses via `next/font/google`):
+`"Courier New", monospace`. **Load from Google Fonts** (via `next/font/google`):
 `https://fonts.googleapis.com/css2?family=Geist:wght@400..700&family=Geist+Mono:wght@400..500&display=swap`
 (preconnect to fonts.googleapis.com + fonts.gstatic.com). Do NOT use jsdelivr
 geist package — Google Fonts is the canonical source.
@@ -69,14 +68,13 @@ geist package — Google Fonts is the canonical source.
 - **1px solid borders**, color `--border` for hairlines, `--fg` for
   structural lines (topline, section tops, primary buttons).
 - **No box-shadows** (except detail modal — see 7).
-- **Rows, not cards (DECIDED 2026-08-13):** tasks render as shiprank
+- **Rows, not cards (DECIDED 2026-08-13):** tasks render as
   leaderboard `.row` entries — `border-bottom: 1px solid var(--border)`,
   `padding: 11px 0`, hover = zebra bg + title underline. NO boxed cards.
 - **Contrast rule (DECIDED 2026-08-13):** `--accent` `#ffc800` is **fill-only
   — never text.** Yellow text on white = 1.9:1, fails WCAG. Allowed uses:
   (1) in-progress column header `border-top: 2px solid var(--accent)` bar
-  (header TEXT stays `--fg` black — mirrors shiprank's WED bar, which is a
-  filled bar, not colored text), (2) primary CTA button bg with `#000` text
+  (header TEXT stays `--fg` black — the bar is fill-only, not colored text), (2) primary CTA button bg with `#000` text
   (black-on-yellow ≈ 14:1 ✓).
 
 ## 5. Components
@@ -93,11 +91,11 @@ geist package — Google Fonts is the canonical source.
   `--fg`** (contrast rule — yellow is fill-only).
 - **Accent scope (DECIDED 2026-08-13):** exactly two allowed accent uses — (1)
   in-progress column header bar, (2) primary CTA button (`+ NEW TASK`).
-  Matches shiprank's dual use (WED bar + `.github-connect-button`). Everything
+  Matches the dual use — accent bar + primary button, both fill-only. Everything
   else stays monochrome.
 - Body: `display: flex; flex-direction: column`.
 
-### Row (task entry — shiprank leaderboard pattern, NO boxes)
+### Row (task entry — leaderboard pattern, NO boxes)
 ```
 task-05 · MED                  [2]      ← mono meta: id · priority tag · subtask count
 Add cycle detection to buildTree         ← Geist Sans title
@@ -113,7 +111,7 @@ Add cycle detection to buildTree         ← Geist Sans title
 - Row click → detail modal (G4).
 
 ### Detail modal (task detail data — DECIDED 2026-08-13)
-Clicking a row opens a centered modal (shiprank share-layer pattern):
+Clicking a row opens a centered modal (share-layer pattern):
 - Backdrop: `color-mix(in srgb, var(--bg) 72%, transparent)`.
 - Panel: `1px solid var(--fg)`, `max-width: 680px`, `max-height: min(92vh, 840px)`,
   the ONLY allowed shadow: `0 24px 80px color-mix(in srgb, var(--fg) 18%, transparent)`.
@@ -146,7 +144,7 @@ Mono uppercase `--muted`: `no tasks — create one with lokan create`.
 - `.wrap`: `max-width: 1200px; margin: 0 auto; padding: 32px 24px 64px`.
 - Board: `display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px`.
 
-### Narrow (< 900px) — shiprank single-column stack
+### Narrow (< 900px) — single-column stack
 - Board becomes `grid-template-columns: 1fr` — columns **stack vertically**,
   one per section with its own border-top header. No horizontal scroll.
 - Topline actions collapse: `+ NEW TASK` stays, meta line hides or wraps.
