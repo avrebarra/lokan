@@ -272,7 +272,7 @@ func SeedDemoData(root string) (int, error) {
 
 // seedTask allocates an id via the project counter and writes one demo task.
 func seedTask(root string, fm types.TaskFrontmatter) (string, error) {
-	// allocate id + filename from the counter
+	// allocate id from the counter
 	counter, err := id.NextCounter(root)
 	if err != nil {
 		return "", err
@@ -280,10 +280,7 @@ func seedTask(root string, fm types.TaskFrontmatter) (string, error) {
 	fm.ID = id.GenerateID(fm.Type, counter)
 	fm.Created = today()
 	fm.Updated = today()
-	filename := id.GenerateFilename(fm.Type, counter, fm.Title)
-
-	// write the task file
-	if _, err := store.CreateTask(root, fm, filename, ""); err != nil {
+	if _, err := store.CreateTask(root, fm, ""); err != nil {
 		return "", err
 	}
 	return fm.ID, nil

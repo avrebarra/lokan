@@ -33,7 +33,7 @@ func createTestTask(t *testing.T, root string, id, title string, status types.St
 		Created:  "2024-01-01",
 		Updated:  "2024-01-01",
 	}
-	if _, err := store.CreateTask(root, fm, id+"-test.md", ""); err != nil {
+	if _, err := store.CreateTask(root, fm, ""); err != nil {
 		t.Fatal(err)
 	}
 }

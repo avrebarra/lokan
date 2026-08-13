@@ -3,7 +3,6 @@ package store
 import (
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -12,142 +11,200 @@ import (
 	"github.com/avressatelier/lokan/internal/types"
 )
 
-const tasksDirName = ".lokan"
+const (
+	tasksDirName   = ".lokan"
+	boardFileName  = "board.md"
+	lockTimeout    = 5 * time.Second
+	lockRetryDelay = 10 * time.Millisecond
+)
 
-// ErrNotFound is returned when no task file matches a requested id.
+// ErrNotFound is returned when no task block matches a requested id.
 var ErrNotFound = errors.New("task not found")
 
-// TasksDir returns the absolute tasks directory under root.
+// TasksDir returns the virtual tasks directory under root. Tasks no longer
+// live as separate files; the path only backs the filePath values reported
+// through the API.
 func TasksDir(root string) string {
 	return filepath.Join(root, tasksDirName, "tasks")
 }
 
-// LoadAllSummaries reads every task file in the tasks dir, skipping files
+// BoardPath returns the absolute path of the single board file under root.
+func BoardPath(root string) string {
+	return filepath.Join(root, tasksDirName, boardFileName)
+}
+
+// VirtualPath returns the virtual per-task path reported through the API,
+// e.g. "<root>/.lokan/tasks/task-1.md". It resolves to a block in board.md.
+func VirtualPath(root, id string) string {
+	return filepath.Join(TasksDir(root), id+".md")
+}
+
+// boardPath resolves the board file path from a virtual task path.
+func boardPath(virtualPath string) string {
+	return filepath.Join(filepath.Dir(filepath.Dir(virtualPath)), boardFileName)
+}
+
+// rootFromVirtual resolves the project root from a virtual task path.
+func rootFromVirtual(virtualPath string) string {
+	return filepath.Dir(filepath.Dir(filepath.Dir(virtualPath)))
+}
+
+// LoadAllSummaries reads every task block in the board file, skipping blocks
 // that fail to parse (with a warning).
 func LoadAllSummaries(root string) ([]types.TaskSummary, error) {
-	dir := TasksDir(root)
+	tasks, err := readBoard(root)
+	if err != nil {
+		return nil, err
+	}
+	summaries := make([]types.TaskSummary, len(tasks))
+	for i, t := range tasks {
+		summaries[i] = types.TaskSummary{TaskFrontmatter: t.TaskFrontmatter, FilePath: VirtualPath(root, t.ID)}
+	}
+	return summaries, nil
+}
 
-	// read the tasks dir, tolerating a missing dir as empty
-	entries, err := os.ReadDir(dir)
+// FindByID scans the board for the task block matching id.
+func FindByID(root string, id string) (types.TaskSummary, error) {
+	var summary types.TaskSummary
+	tasks, err := readBoard(root)
+	if err != nil {
+		return summary, err
+	}
+	for _, t := range tasks {
+		if t.ID == id {
+			return types.TaskSummary{TaskFrontmatter: t.TaskFrontmatter, FilePath: VirtualPath(root, t.ID)}, nil
+		}
+	}
+	return summary, fmt.Errorf("%w: %s", ErrNotFound, id)
+}
+
+// LoadTask reads and fully parses the task block addressed by a virtual path.
+func LoadTask(virtualPath string) (types.Task, error) {
+	var task types.Task
+	id := strings.TrimSuffix(filepath.Base(virtualPath), ".md")
+	tasks, err := readBoard(rootFromVirtual(virtualPath))
+	if err != nil {
+		return task, err
+	}
+	for _, t := range tasks {
+		if t.ID == id {
+			t.FilePath = virtualPath
+			return t, nil
+		}
+	}
+	return task, fmt.Errorf("%w: %s", ErrNotFound, id)
+}
+
+// WriteTask persists a task by replacing its block in the board, bumping the
+// updated field to today (UTC). The mutation is lock-guarded and committed
+// atomically via temp-file-then-rename.
+func WriteTask(task types.Task) error {
+	task.Updated = time.Now().UTC().Format("2006-01-02")
+	return withBoardLock(boardPath(task.FilePath), func() error {
+		root := rootFromVirtual(task.FilePath)
+		tasks, err := readBoard(root)
+		if err != nil {
+			return err
+		}
+		replaced := false
+		for i, t := range tasks {
+			if t.ID == task.ID {
+				tasks[i] = task
+				replaced = true
+				break
+			}
+		}
+		if !replaced {
+			tasks = append(tasks, task)
+		}
+		return writeBoard(root, tasks)
+	})
+}
+
+// CreateTask appends a new task block to the board and returns it.
+func CreateTask(root string, fm types.TaskFrontmatter, body string) (types.Task, error) {
+	var task types.Task
+	if err := os.MkdirAll(filepath.Dir(BoardPath(root)), 0o755); err != nil {
+		return task, err
+	}
+	task = types.Task{
+		TaskFrontmatter: fm,
+		Body:            buildInitialBody(fm.Title, body),
+		FilePath:        VirtualPath(root, fm.ID),
+	}
+	err := withBoardLock(BoardPath(root), func() error {
+		tasks, err := readBoard(root)
+		if err != nil {
+			return err
+		}
+		tasks = append(tasks, task)
+		return writeBoard(root, tasks)
+	})
+	if err != nil {
+		return task, err
+	}
+	return task, nil
+}
+
+// readBoard loads all task blocks from the board file. A missing board file
+// is treated as an empty board.
+func readBoard(root string) ([]types.Task, error) {
+	raw, err := os.ReadFile(BoardPath(root))
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return nil, nil
 		}
 		return nil, err
 	}
-
-	// parse each .md file, skipping invalid ones
-	var summaries []types.TaskSummary
-	for _, entry := range entries {
-		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".md") {
-			continue
-		}
-		filePath := filepath.Join(dir, entry.Name())
-		summary, err := loadSummaryFile(filePath)
-		if err != nil {
-			log.Printf("Warning: skipping invalid task file: %s", entry.Name())
-			continue
-		}
-		summaries = append(summaries, summary)
-	}
-	return summaries, nil
+	return parseBoard(string(raw)), nil
 }
 
-// LoadTask reads and fully parses a single task file.
-func LoadTask(filePath string) (types.Task, error) {
-	var task types.Task
-	raw, err := os.ReadFile(filePath)
-	if err != nil {
-		return task, err
-	}
-	parsed, err := parseFullFile(string(raw), filePath)
-	if err != nil {
-		return task, fmt.Errorf("failed to parse task file %s: %w", filePath, err)
-	}
-	return *parsed, nil
-}
-
-// FindByID resolves a task summary by scanning only for the id's file prefix
-// (id + "-*.md") instead of parsing the whole tasks dir (Issue 5).
-func FindByID(root string, id string) (types.TaskSummary, error) {
-	var summary types.TaskSummary
-	matches, err := filepath.Glob(filepath.Join(TasksDir(root), id+"-*.md"))
-	if err != nil {
-		return summary, err
-	}
-	if len(matches) == 0 {
-		return summary, fmt.Errorf("%w: %s", ErrNotFound, id)
-	}
-	return loadSummaryFile(matches[0])
-}
-
-// WriteTask persists a task, bumping the updated field to today (UTC).
-func WriteTask(task types.Task) error {
-	task.Updated = time.Now().UTC().Format("2006-01-02")
-	raw, err := serializeTask(task)
+// writeBoard atomically persists the full board document.
+func writeBoard(root string, tasks []types.Task) error {
+	raw, err := serializeBoard(tasks)
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(task.FilePath, []byte(raw), 0o644)
+	board := BoardPath(root)
+	tmp, err := os.CreateTemp(filepath.Dir(board), ".board-*.tmp")
+	if err != nil {
+		return err
+	}
+	tmpPath := tmp.Name()
+	defer func() {
+		tmp.Close()
+		os.Remove(tmpPath)
+	}()
+	if _, err := tmp.WriteString(raw); err != nil {
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+	return os.Rename(tmpPath, board)
 }
 
-// RenameTask moves a task to a new filename in the same directory and returns
-// the task with its new path. The original file is removed.
-func RenameTask(task types.Task, newFilename string) (types.Task, error) {
-	dir := filepath.Dir(task.FilePath)
-	newPath := filepath.Join(dir, newFilename)
-
-	// serialize the task to its new path, then remove the old file
-	updated := task
-	updated.FilePath = newPath
-	raw, err := serializeTask(updated)
-	if err != nil {
-		return task, err
+// withBoardLock serializes board mutations with an exclusive lock file so
+// concurrent writers cannot clobber each other's full-document rewrites.
+func withBoardLock(board string, fn func() error) error {
+	lockPath := board + ".lock"
+	deadline := time.Now().Add(lockTimeout)
+	for {
+		lock, err := os.OpenFile(lockPath, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
+		if err == nil {
+			defer func() {
+				lock.Close()
+				os.Remove(lockPath)
+			}()
+			break
+		}
+		if !errors.Is(err, os.ErrExist) {
+			return err
+		}
+		if time.Now().After(deadline) {
+			return fmt.Errorf("timed out acquiring lock %s", lockPath)
+		}
+		time.Sleep(lockRetryDelay)
 	}
-	if err := os.WriteFile(newPath, []byte(raw), 0o644); err != nil {
-		return task, err
-	}
-	if err := os.Remove(task.FilePath); err != nil {
-		return task, err
-	}
-	return updated, nil
-}
-
-// CreateTask writes a new task file with the given name and returns it.
-func CreateTask(root string, fm types.TaskFrontmatter, filename string, body string) (types.Task, error) {
-	var task types.Task
-	dir := TasksDir(root)
-
-	// ensure the tasks dir, assemble the task, serialize it
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return task, err
-	}
-	task = types.Task{
-		TaskFrontmatter: fm,
-		Body:            buildInitialBody(fm.Title, body),
-		FilePath:        filepath.Join(dir, filename),
-	}
-	raw, err := serializeTask(task)
-	if err != nil {
-		return task, err
-	}
-
-	// write the task file
-	if err := os.WriteFile(task.FilePath, []byte(raw), 0o644); err != nil {
-		return task, err
-	}
-	return task, nil
-}
-
-func loadSummaryFile(filePath string) (types.TaskSummary, error) {
-	var summary types.TaskSummary
-	raw, err := os.ReadFile(filePath)
-	if err != nil {
-		return summary, err
-	}
-	parsed, err := parseFile(string(raw), filePath)
-	if err != nil {
-		return summary, err
-	}
-	return *parsed, nil
+	return fn()
 }

@@ -33,14 +33,14 @@ func newInitCmd() *cobra.Command {
 			if err := id.WriteConfig(root, types.LokanConfig{Counter: 0, Version: "1"}); err != nil {
 				return err
 			}
-			// scaffold the tasks dir to match the frozen layout
-			tasksDir := store.TasksDir(root)
-			if err := os.MkdirAll(tasksDir, 0o755); err != nil {
-				return err
-			}
-			gitkeep := filepath.Join(tasksDir, ".gitkeep")
-			if _, err := os.Stat(gitkeep); os.IsNotExist(err) {
-				if err := os.WriteFile(gitkeep, []byte{}, 0o644); err != nil {
+			// scaffold the single board file to match the frozen layout
+			board := store.BoardPath(root)
+			if _, err := os.Stat(board); os.IsNotExist(err) {
+				if err := os.MkdirAll(filepath.Dir(board), 0o755); err != nil {
+					return err
+				}
+				initial := "# Kanlo Board\n\n## Active\n\n## Archive\n"
+				if err := os.WriteFile(board, []byte(initial), 0o644); err != nil {
 					return err
 				}
 			}
@@ -48,7 +48,7 @@ func newInitCmd() *cobra.Command {
 			// report the created paths
 			fmt.Fprintf(cmd.OutOrStdout(), "Initialized lokan project.\n")
 			fmt.Fprintf(cmd.OutOrStdout(), "  Config: %s\n", configPath)
-			fmt.Fprintf(cmd.OutOrStdout(), "  Tasks:  %s\n", tasksDir)
+			fmt.Fprintf(cmd.OutOrStdout(), "  Board:  %s\n", board)
 			return nil
 		},
 	}

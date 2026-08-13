@@ -2,8 +2,9 @@
 
 Markdown task manager — kanban-focused. Go engine + React frontend in a single binary.
 
-Each task is a git-friendly `.md` file (YAML frontmatter + markdown body) under
-`.lokan/tasks/`. No database.
+All tasks live in one git-friendly `.lokan/board.md` (YAML frontmatter blocks
+grouped into Active/Archive sections). No database. Fork of `@onmyway133/nod`,
+rebuilt in Go.
 
 ## Quick start
 
