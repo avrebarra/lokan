@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/avressatelier/lokan/internal/id"
 	"github.com/avressatelier/lokan/internal/store"
 	"github.com/avressatelier/lokan/internal/types"
 	"github.com/avressatelier/lokan/web"
@@ -34,6 +35,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/create", s.handleCreate)
 	mux.HandleFunc("POST /api/update", s.handleUpdate)
 	mux.HandleFunc("POST /api/move", s.handleMove)
+	mux.HandleFunc("POST /api/config/statuses", s.handleConfigStatuses)
+	mux.HandleFunc("POST /api/clear", s.handleClear)
 	mux.HandleFunc("POST /api/seed", s.handleSeed)
 	return mux
 }
@@ -67,7 +70,7 @@ func (s *Server) serveAssets(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleTasks(w http.ResponseWriter, r *http.Request) {
-	// load all summaries and respond, defaulting to an empty list
+	// load all summaries and the lane config, defaulting to empty lists
 	tasks, err := store.LoadAllSummaries(s.root)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
@@ -76,9 +79,15 @@ func (s *Server) handleTasks(w http.ResponseWriter, r *http.Request) {
 	if tasks == nil {
 		tasks = []types.TaskSummary{}
 	}
+	cfg, err := id.ReadConfig(s.root)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
 	writeJSON(w, http.StatusOK, map[string]any{
-		"tasks": tasks,
-		"root":  s.root,
+		"tasks":    tasks,
+		"statuses": cfg.Statuses,
+		"root":     s.root,
 	})
 }
 
@@ -169,7 +178,7 @@ func (s *Server) handleUpdate(w http.ResponseWriter, r *http.Request) {
 	// apply the requested field with enum validation
 	switch req.Field {
 	case "status":
-		if !contains(types.Statuses, types.Status(req.Value)) {
+		if !s.validStatus(types.Status(req.Value)) {
 			writeError(w, http.StatusBadRequest, fmt.Sprintf("Invalid status: %s", req.Value))
 			return
 		}
@@ -230,7 +239,7 @@ func (s *Server) handleMove(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// validate the target lane and the anchor task against the board
-	if !contains(types.Statuses, req.Status) {
+	if !s.validStatus(req.Status) {
 		writeError(w, http.StatusBadRequest, fmt.Sprintf("Invalid status: %s", req.Status))
 		return
 	}
@@ -265,6 +274,135 @@ func (s *Server) handleMove(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"task": moved})
+}
+
+// validStatus reports whether v is one of the configured lane ids.
+func (s *Server) validStatus(v types.Status) bool {
+	cfg, err := id.ReadConfig(s.root)
+	if err != nil {
+		return false
+	}
+	for _, st := range cfg.Statuses {
+		if st.ID == v {
+			return true
+		}
+	}
+	return false
+}
+
+type configStatusesRequest struct {
+	Statuses []types.StatusDef `json:"statuses"`
+}
+
+func (s *Server) handleConfigStatuses(w http.ResponseWriter, r *http.Request) {
+	// decode the request body
+	var req configStatusesRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	// validate: at least one lane, non-empty unique ids
+	if len(req.Statuses) == 0 {
+		writeError(w, http.StatusBadRequest, "At least one status is required")
+		return
+	}
+	seen := map[types.Status]bool{}
+	for _, st := range req.Statuses {
+		if st.ID == "" {
+			writeError(w, http.StatusBadRequest, "Status id cannot be empty")
+			return
+		}
+		if seen[st.ID] {
+			writeError(w, http.StatusBadRequest, fmt.Sprintf("Duplicate status: %s", st.ID))
+			return
+		}
+		seen[st.ID] = true
+	}
+
+	// diff against the current lanes: positional renames first, then moves
+	// for removed lanes (tasks land in the leftmost remaining lane)
+	cfg, err := id.ReadConfig(s.root)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	oldSet := map[types.Status]bool{}
+	for _, st := range cfg.Statuses {
+		oldSet[st.ID] = true
+	}
+	renamedFrom := map[types.Status]bool{}
+	var renames [][2]types.Status
+	for i := 0; i < len(cfg.Statuses) && i < len(req.Statuses); i++ {
+		o, n := cfg.Statuses[i].ID, req.Statuses[i].ID
+		if o == n || oldSet[n] || seen[o] {
+			continue
+		}
+		renames = append(renames, [2]types.Status{o, n})
+		renamedFrom[o] = true
+	}
+	moved := 0
+	for _, pair := range renames {
+		n, err := store.MoveLane(s.root, pair[0], pair[1])
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		moved += n
+	}
+	leftmost := req.Statuses[0].ID
+	for _, st := range cfg.Statuses {
+		if !seen[st.ID] && !renamedFrom[st.ID] {
+			n, err := store.MoveLane(s.root, st.ID, leftmost)
+			if err != nil {
+				writeError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+			moved += n
+		}
+	}
+
+	// persist the new lane set and respond
+	cfg.Statuses = req.Statuses
+	if err := id.WriteConfig(s.root, cfg); err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"statuses": cfg.Statuses,
+		"moved":    moved,
+	})
+}
+
+type clearRequest struct {
+	Scope string `json:"scope"`
+}
+
+func (s *Server) handleClear(w http.ResponseWriter, r *http.Request) {
+	// decode the request body
+	var req clearRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	// run the requested scope and report how many were deleted
+	var deleted int
+	var err error
+	switch req.Scope {
+	case "archived":
+		deleted, err = store.ClearArchived(s.root)
+	case "all":
+		deleted, err = store.ClearAll(s.root)
+	default:
+		writeError(w, http.StatusBadRequest, "Invalid scope: must be \"archived\" or \"all\"")
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"deleted": deleted})
 }
 
 func (s *Server) handleSeed(w http.ResponseWriter, r *http.Request) {
