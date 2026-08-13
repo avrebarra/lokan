@@ -20,7 +20,7 @@ in one static binary. All tasks live in one git-friendly `.lokan/board.md`
 
 | Layer    | Technology                                              | Why                                                          |
 | -------- | ------------------------------------------------------- | ------------------------------------------------------------ |
-| Engine   | Go 1.26, stdlib `net/http`, urfave/cli                   | Single static binary, trivial distribution                   |
+| Engine   | Go 1.26, stdlib `net/http`, urfave/cli                  | Single static binary, trivial distribution                   |
 | Storage  | Single markdown board file + YAML frontmatter (yaml.v3) | Git-diffable, editor-editable, human-readable                |
 | Frontend | Vite + React 18 + TypeScript + Tailwind CSS             | Design tokens mapped into Tailwind `@theme`, utility styling |
 | Fonts    | Geist Sans + Geist Mono (Google Fonts)                  | shiprank design system heritage                              |
