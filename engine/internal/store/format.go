@@ -90,9 +90,9 @@ const (
 	configMarkerLine = markerPrefix + configMarkerID + " -->"
 )
 
-// isArchived reports whether a task belongs in the Archive section, per the
+// IsArchived reports whether a task belongs in the Archive section, per the
 // configured lane set. Unknown statuses default to active.
-func isArchived(status types.Status, statuses []types.StatusDef) bool {
+func IsArchived(status types.Status, statuses []types.StatusDef) bool {
 	for _, s := range statuses {
 		if s.ID == status {
 			return s.Archived
@@ -189,7 +189,7 @@ func isSectionHeader(line string) bool {
 func serializeBoard(tasks []types.Task, cfg types.LokanConfig) (string, error) {
 	var active, archived []types.Task
 	for _, t := range tasks {
-		if isArchived(t.Status, cfg.Statuses) {
+		if IsArchived(t.Status, cfg.Statuses) {
 			archived = append(archived, t)
 		} else {
 			active = append(active, t)

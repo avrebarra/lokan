@@ -571,7 +571,7 @@ func TestCreateTaskEndpoint(t *testing.T) {
 	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
 		t.Fatalf("decode response: %v", err)
 	}
-	if resp.Task.Title != "Hello from API" || resp.Task.Status != types.StatusTodo {
+	if resp.Task.Title != "Hello from API" || resp.Task.Status != types.StatusBacklog {
 		t.Fatalf("unexpected task: %+v", resp.Task)
 	}
 	// persisted to disk
@@ -590,8 +590,9 @@ func TestCreateTaskValidation(t *testing.T) {
 		want string
 	}{
 		{"missing title", map[string]any{"type": "task", "priority": "medium"}, "Missing title"},
-		{"bad type", map[string]any{"title": "x", "type": "nope", "priority": "medium"}, "Invalid type: nope"},
-		{"bad priority", map[string]any{"title": "x", "type": "task", "priority": "nope"}, "Invalid priority: nope"},
+		{"bad type", map[string]any{"title": "x", "type": "nope", "priority": "medium"}, `Invalid type "nope". Must be one of: epic, task, subtask, bug`},
+		{"bad priority", map[string]any{"title": "x", "type": "task", "priority": "nope"}, `Invalid priority "nope". Must be one of: critical, high, medium, low`},
+		{"parent not found", map[string]any{"title": "x", "type": "task", "priority": "medium", "parent": "99"}, "Parent task not found: 99"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -602,6 +603,21 @@ func TestCreateTaskValidation(t *testing.T) {
 			assertError(t, rec, tc.want)
 		})
 	}
+}
+
+func TestCreateParentTypeValidation(t *testing.T) {
+	board := newTestProject(t)
+	h := New(board).Handler()
+	createTestTask(t, board, "1", "parent", types.StatusTodo, types.PriorityMedium)
+
+	// epics cannot sit under tasks
+	rec := doRequest(t, h, "POST", "/api/create", map[string]any{
+		"title": "x", "type": "epic", "priority": "medium", "parent": "1",
+	})
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want 400", rec.Code)
+	}
+	assertError(t, rec, "Cannot create epic under task (1). Allowed parents: none")
 }
 
 func TestUpdateTaskNotFound(t *testing.T) {

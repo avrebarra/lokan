@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/avressatelier/lokan/internal/store"
 	"github.com/avressatelier/lokan/internal/types"
 )
 
@@ -110,7 +111,7 @@ func renderMarkdownBoard(tasks []types.TaskSummary, statuses []types.StatusDef) 
 	// count active vs archived per the configured lane set
 	active, archived := 0, 0
 	for _, t := range tasks {
-		if isArchivedStatus(t.Status, statuses) {
+		if store.IsArchived(t.Status, statuses) {
 			archived++
 		} else {
 			active++

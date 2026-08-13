@@ -46,6 +46,16 @@ var AllowedParents = map[TaskType][]TaskType{
 	TypeBug:     {TypeEpic, TypeTask},
 }
 
+// Contains reports whether v is in list. Shared by the CLI and the API.
+func Contains[T comparable](list []T, v T) bool {
+	for _, item := range list {
+		if item == v {
+			return true
+		}
+	}
+	return false
+}
+
 // TaskFrontmatter is the YAML frontmatter of a task file. Field order mirrors
 // the reference serializer output.
 type TaskFrontmatter struct {
@@ -113,10 +123,4 @@ type QueryOptions struct {
 	Priority Priority
 	Parent   string
 	Tags     []string
-}
-
-// TreeNode is a task with its nested children.
-type TreeNode struct {
-	Task     TaskSummary
-	Children []TreeNode
 }

@@ -1,9 +1,9 @@
 package server
 
 import (
+	"strconv"
 	"time"
 
-	"github.com/avressatelier/lokan/internal/id"
 	"github.com/avressatelier/lokan/internal/store"
 	"github.com/avressatelier/lokan/internal/types"
 )
@@ -277,43 +277,13 @@ func seedTask(board string, fm types.TaskFrontmatter) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	fm.ID = id.GenerateID(counter)
+	fm.ID = strconv.Itoa(counter)
 	fm.Created = today()
 	fm.Updated = today()
 	if _, err := store.CreateTask(board, fm, ""); err != nil {
 		return "", err
 	}
 	return fm.ID, nil
-}
-
-// CreateTask creates a single task via the project counter and returns it.
-// Used by the POST /api/create endpoint.
-func CreateTask(board, title string, taskType types.TaskType, priority types.Priority, parent string) (*types.Task, error) {
-	// build the frontmatter, optionally setting the parent
-	fm := types.TaskFrontmatter{
-		Type:     taskType,
-		Title:    title,
-		Status:   types.StatusTodo,
-		Priority: priority,
-	}
-	if parent != "" {
-		fm.Parent = parent
-	}
-
-	// create via the counter, then reload the full task
-	id, err := seedTask(board, fm)
-	if err != nil {
-		return nil, err
-	}
-	summary, err := store.FindByID(board, id)
-	if err != nil {
-		return nil, err
-	}
-	task, err := store.LoadTask(summary.FilePath)
-	if err != nil {
-		return nil, err
-	}
-	return &task, nil
 }
 
 func today() string {

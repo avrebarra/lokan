@@ -2,9 +2,7 @@ package main
 
 import (
 	"fmt"
-	"time"
 
-	"github.com/avressatelier/lokan/internal/id"
 	"github.com/avressatelier/lokan/internal/store"
 	"github.com/avressatelier/lokan/internal/types"
 	"github.com/urfave/cli/v2"
@@ -24,68 +22,25 @@ func newCreateCmd() *cli.Command {
 			&cli.StringSliceFlag{Name: "tag", Usage: "Tag to add (repeatable)"},
 		},
 		Action: func(c *cli.Context) error {
-			// validate the positional title
+			// validate the positional title, resolve the board
 			if err := requireArgs(c, 1); err != nil {
 				return err
 			}
-			title := c.Args().First()
-			taskType := c.String("type")
-			priority := c.String("priority")
-			parent := c.String("parent")
-			tags := c.StringSlice("tag")
-
-			// every command except init/help targets an explicit board
 			board, err := requireBoard(c)
 			if err != nil {
 				return err
 			}
 
-			// validate type and priority enums
-			t := types.TaskType(taskType)
-			if !contains(types.TaskTypes, t) {
-				return cliErrorf("Invalid type %q. Must be one of: %s", taskType, joinTypes())
-			}
-			p := types.Priority(priority)
-			if !contains(types.Priorities, p) {
-				return cliErrorf("Invalid priority %q. Must be one of: %s", priority, joinPriorities())
-			}
-
-			// resolve and validate the parent, if given
-			if parent != "" {
-				parentSummary, err := store.FindByID(board, parent)
-				if err != nil {
-					return cliErrorf("Parent task not found: %s", parent)
-				}
-				if !contains(types.AllowedParents[t], parentSummary.Type) {
-					return cliErrorf("Cannot create %s under %s (%s). Allowed parents: %s", t, parentSummary.Type, parent, allowedParents(t))
-				}
-			}
-
-			// allocate id/filename from the counter and write the task file
-			counter, err := store.NextCounter(board)
-			if err != nil {
-				return err
-			}
-			taskID := id.GenerateID(counter)
-			today := time.Now().UTC().Format("2006-01-02")
-
-			task, err := store.CreateTask(board, types.TaskFrontmatter{
-				ID:       taskID,
-				Title:    title,
-				Type:     t,
-				Status:   defaultStatus(board),
-				Priority: p,
-				Created:  today,
-				Updated:  today,
-				Parent:   parent,
-				Tags:     tags,
-			}, "")
+			// create via the shared flow — same validation as the API
+			task, err := store.CreateTaskFromInput(board, c.Args().First(),
+				types.TaskType(c.String("type")), types.Priority(c.String("priority")),
+				c.String("parent"), c.StringSlice("tag"))
 			if err != nil {
 				return err
 			}
 			// print the created task with the targeted board path
 			fmt.Fprintf(c.App.Writer, "Created %s → %s\n", task.ID, c.String("board"))
-			if parent != "" {
+			if parent := c.String("parent"); parent != "" {
 				fmt.Fprintf(c.App.Writer, "  Parent: %s\n", parent)
 			}
 			return nil

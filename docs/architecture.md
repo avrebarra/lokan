@@ -42,9 +42,8 @@ lokan/
     cmd/lokan/            # urfave/cli: init create get list edit subtasks clear ui
     internal/
       types/              # enums, Task/TaskSummary/TaskFrontmatter, ALLOWED_PARENTS
-      id/                 # config read/write, atomic NextCounter (lock file)
-      store/              # board document parse/serialize, load/find/write/create (lock + atomic rewrite)
-      query/              # filters, children/descendants, cycle-safe buildTree
+      store/              # board document parse/serialize, load/find/write/create + input validation (lock + atomic rewrite)
+      query/              # filters, children, sortByPriority
       server/             # HTTP handlers + seed data
     web/                  # embed package: dist/ (built frontend, committed placeholder)
   web/                    # Vite React frontend

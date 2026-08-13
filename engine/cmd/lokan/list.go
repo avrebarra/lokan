@@ -32,7 +32,7 @@ func newListCmd() *cli.Command {
 			}
 
 			// validate the status filter against the configured lanes
-			if st := c.String("status"); st != "" && !contains(statusIDs(board), types.Status(st)) {
+			if st := c.String("status"); st != "" && !types.Contains(statusIDs(board), types.Status(st)) {
 				return cliErrorf("Invalid status %q. Must be one of: %s", st, joinStatuses(board))
 			}
 			cfg, err := store.ReadConfig(board)

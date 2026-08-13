@@ -3,6 +3,7 @@ package server
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/fs"
 	"net/http"
@@ -125,23 +126,14 @@ func (s *Server) handleCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// validate title and enums before creating
-	if req.Title == "" {
-		writeError(w, http.StatusBadRequest, "Missing title")
-		return
-	}
-	if !contains(types.TaskTypes, req.Type) {
-		writeError(w, http.StatusBadRequest, fmt.Sprintf("Invalid type: %s", req.Type))
-		return
-	}
-	if !contains(types.Priorities, req.Priority) {
-		writeError(w, http.StatusBadRequest, fmt.Sprintf("Invalid priority: %s", req.Priority))
-		return
-	}
-
-	// create and respond with the new task
-	task, err := CreateTask(s.board, req.Title, req.Type, req.Priority, req.Parent)
+	// create via the shared flow — same validation as the CLI
+	task, err := store.CreateTaskFromInput(s.board, req.Title, req.Type, req.Priority, req.Parent, nil)
 	if err != nil {
+		var ve *store.ValidationError
+		if errors.As(err, &ve) {
+			writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -183,7 +175,7 @@ func (s *Server) handleUpdate(w http.ResponseWriter, r *http.Request) {
 		}
 		task.Status = types.Status(req.Value)
 	case "priority":
-		if !contains(types.Priorities, types.Priority(req.Value)) {
+		if !types.Contains(types.Priorities, types.Priority(req.Value)) {
 			writeError(w, http.StatusBadRequest, fmt.Sprintf("Invalid priority: %s", req.Value))
 			return
 		}
@@ -191,7 +183,7 @@ func (s *Server) handleUpdate(w http.ResponseWriter, r *http.Request) {
 	case "title":
 		task.Title = req.Value
 	case "type":
-		if !contains(types.TaskTypes, types.TaskType(req.Value)) {
+		if !types.Contains(types.TaskTypes, types.TaskType(req.Value)) {
 			writeError(w, http.StatusBadRequest, fmt.Sprintf("Invalid type: %s", req.Value))
 			return
 		}
@@ -407,13 +399,4 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 
 func writeError(w http.ResponseWriter, status int, message string) {
 	writeJSON(w, status, map[string]string{"error": message})
-}
-
-func contains[T ~string](list []T, v T) bool {
-	for _, item := range list {
-		if item == v {
-			return true
-		}
-	}
-	return false
 }
