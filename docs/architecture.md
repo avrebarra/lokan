@@ -96,6 +96,7 @@ GET  /api/tasks     { tasks: [TaskSummary], root }
 GET  /api/task/:id  { task: Task }
 POST /api/create    { title, type, priority, parent? } → { task }
 POST /api/update    { id, field, value } → { task }
+POST /api/move      { id, status, beforeId? } → { task }
 POST /api/seed      { created }
 ```
 

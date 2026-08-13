@@ -109,6 +109,25 @@ Validation:
 Success: `{ "task": Task }`
 Failure: 500 `{ "error": "<message>" }`
 
+### POST /api/move
+
+Request body: `{ "id": string, "status": Status, "beforeId"?: string }`
+
+Moves a task to another lane and/or position within a lane. The moved task
+lands directly **before** `beforeId`; omit or empty `beforeId` to append at
+the end of the lane. Backed by a physical block reorder of `board.md`
+(preserves lane order, no position field).
+
+Validation:
+
+- `status` must be in STATUSES, else 400 `{ "error": "Invalid status: <v>" }`
+- `id` must exist, else 404 `{ "error": "task not found: <id>" }`
+- `beforeId`, when given, must exist and already be in the target lane,
+  else 400 `{ "error": "beforeId must be a task in the target lane" }`
+
+Success: `{ "task": Task }`
+Failure: 500 `{ "error": "<message>" }`
+
 ### POST /api/seed
 
 ```json
