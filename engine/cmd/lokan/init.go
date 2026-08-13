@@ -8,24 +8,29 @@ import (
 	"github.com/avressatelier/lokan/internal/id"
 	"github.com/avressatelier/lokan/internal/store"
 	"github.com/avressatelier/lokan/internal/types"
-	"github.com/spf13/cobra"
+	"github.com/urfave/cli/v2"
 )
 
-func newInitCmd() *cobra.Command {
-	return &cobra.Command{
-		Use:   "init",
-		Short: "Initialize a lokan project in the current directory",
-		Args:  cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, args []string) error {
+func newInitCmd() *cli.Command {
+	return &cli.Command{
+		Name:         "init",
+		Usage:        "Initialize a lokan project in the current directory",
+		OnUsageError: quietUsageError,
+		Action: func(c *cli.Context) error {
+			// only a bare invocation is valid
+			if err := requireArgs(c, 0); err != nil {
+				return err
+			}
 			root, err := os.Getwd()
 			if err != nil {
 				return err
 			}
+			out := c.App.Writer
 
 			// already initialized — report and bail
 			configPath := id.ConfigPath(root)
 			if _, err := os.Stat(configPath); err == nil {
-				fmt.Fprintf(cmd.OutOrStdout(), "Already a lokan project. Config: %s\n", configPath)
+				fmt.Fprintf(out, "Already a lokan project. Config: %s\n", configPath)
 				return nil
 			}
 
@@ -46,9 +51,9 @@ func newInitCmd() *cobra.Command {
 			}
 
 			// report the created paths
-			fmt.Fprintf(cmd.OutOrStdout(), "Initialized lokan project.\n")
-			fmt.Fprintf(cmd.OutOrStdout(), "  Config: %s\n", configPath)
-			fmt.Fprintf(cmd.OutOrStdout(), "  Board:  %s\n", board)
+			fmt.Fprintf(out, "Initialized lokan project.\n")
+			fmt.Fprintf(out, "  Config: %s\n", configPath)
+			fmt.Fprintf(out, "  Board:  %s\n", board)
 			return nil
 		},
 	}

@@ -5,20 +5,23 @@ import (
 	"fmt"
 	"io"
 	"os"
+
+	"github.com/urfave/cli/v2"
 )
 
 func main() {
 	os.Exit(run(os.Args[1:], os.Stdout, os.Stderr))
 }
 
-// run executes the root command with args, writing output to stdout and
-// errors to stderr. It returns the process exit code.
+// run executes the app with args, writing output to stdout and errors to
+// stderr. It returns the process exit code.
 func run(args []string, stdout, stderr io.Writer) int {
-	root := newRootCmd()
-	root.SetOut(stdout)
-	root.SetErr(stderr)
-	root.SetArgs(args)
-	if err := root.Execute(); err != nil {
+	app := newApp()
+	app.Writer = stdout
+	app.ErrWriter = stderr
+	// silence urfave's own error printing — run() owns the single error line
+	app.ExitErrHandler = func(_ *cli.Context, _ error) {}
+	if err := app.Run(append([]string{app.Name}, reorderFlags(args)...)); err != nil {
 		fmt.Fprintf(stderr, "error: %s\n", err)
 		return 1
 	}

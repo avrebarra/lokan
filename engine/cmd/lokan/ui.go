@@ -13,27 +13,29 @@ import (
 	"time"
 
 	"github.com/avressatelier/lokan/internal/server"
-	"github.com/spf13/cobra"
+	"github.com/urfave/cli/v2"
 )
 
 const defaultPort = 7777
 
-func newUICmd() *cobra.Command {
-	uiCmd := &cobra.Command{
-		Use:   "ui",
-		Short: "Start the kanban web UI",
-		RunE:  runUI,
+func newUICmd() *cli.Command {
+	return &cli.Command{
+		Name:         "ui",
+		Usage:        "Start the kanban web UI",
+		OnUsageError: quietUsageError,
+		Flags: []cli.Flag{
+			&cli.IntFlag{Name: "port", Aliases: []string{"p"}, Value: defaultPort, Usage: "port to listen on"},
+		},
+		Action: runUI,
 	}
-	uiCmd.Flags().IntP("port", "p", defaultPort, "port to listen on")
-	return uiCmd
 }
 
-func runUI(cmd *cobra.Command, args []string) error {
-	port, err := cmd.Flags().GetInt("port")
+func runUI(c *cli.Context) error {
+	port := c.Int("port")
+	root, err := requireProject(c)
 	if err != nil {
 		return err
 	}
-	root := cmdRoot(cmd)
 
 	// build the http server over the embedded api
 	url := fmt.Sprintf("http://localhost:%d", port)

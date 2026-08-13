@@ -5,18 +5,27 @@ import (
 
 	"github.com/avressatelier/lokan/internal/query"
 	"github.com/avressatelier/lokan/internal/store"
-	"github.com/spf13/cobra"
+	"github.com/urfave/cli/v2"
 )
 
-func newSubtasksCmd() *cobra.Command {
-	return &cobra.Command{
-		Use:   "subtasks <id>",
-		Short: "List direct children of a task",
-		Args:  cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
+func newSubtasksCmd() *cli.Command {
+	return &cli.Command{
+		Name:         "subtasks",
+		Usage:        "List direct children of a task",
+		ArgsUsage:    "<id>",
+		OnUsageError: quietUsageError,
+		Action: func(c *cli.Context) error {
+			// validate the positional id, resolve the project
+			if err := requireArgs(c, 1); err != nil {
+				return err
+			}
+			root, err := requireProject(c)
+			if err != nil {
+				return err
+			}
+			id := c.Args().First()
+
 			// verify the task exists, then gather + sort its children
-			id := args[0]
-			root := cmdRoot(cmd)
 			if _, err := store.FindByID(root, id); err != nil {
 				return notFoundError(id, err)
 			}
@@ -28,12 +37,12 @@ func newSubtasksCmd() *cobra.Command {
 
 			// report children, or a friendly empty message
 			if len(children) == 0 {
-				fmt.Fprintf(cmd.OutOrStdout(), "No subtasks for %s.\n", id)
+				fmt.Fprintf(c.App.Writer, "No subtasks for %s.\n", id)
 				return nil
 			}
-			fmt.Fprintf(cmd.OutOrStdout(), "Subtasks of %s\n", id)
+			fmt.Fprintf(c.App.Writer, "Subtasks of %s\n", id)
 			for _, child := range children {
-				fmt.Fprintf(cmd.OutOrStdout(), "  %s\n", rowLine(child))
+				fmt.Fprintf(c.App.Writer, "  %s\n", rowLine(child))
 			}
 			return nil
 		},

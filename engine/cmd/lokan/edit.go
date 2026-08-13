@@ -5,18 +5,35 @@ import (
 
 	"github.com/avressatelier/lokan/internal/store"
 	"github.com/avressatelier/lokan/internal/types"
-	"github.com/spf13/cobra"
+	"github.com/urfave/cli/v2"
 )
 
-func newEditCmd() *cobra.Command {
-	var newStatus, newPriority, newTitle, newParent string
-
-	cmd := &cobra.Command{
-		Use:   "edit <id>",
-		Short: "Update task fields",
-		Args:  cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			taskID := args[0]
+func newEditCmd() *cli.Command {
+	return &cli.Command{
+		Name:         "edit",
+		Usage:        "Update task fields",
+		ArgsUsage:    "<id>",
+		OnUsageError: quietUsageError,
+		Flags: []cli.Flag{
+			&cli.StringFlag{Name: "status", Usage: "New status: todo, in-progress, backlog, done, cancelled"},
+			&cli.StringFlag{Name: "priority", Usage: "New priority: critical, high, medium, low"},
+			&cli.StringFlag{Name: "title", Usage: "New title"},
+			&cli.StringFlag{Name: "parent", Usage: "Set parent task ID (empty clears)"},
+		},
+		Action: func(c *cli.Context) error {
+			// validate the positional id, resolve the project
+			if err := requireArgs(c, 1); err != nil {
+				return err
+			}
+			root, err := requireProject(c)
+			if err != nil {
+				return err
+			}
+			taskID := c.Args().First()
+			newStatus := c.String("status")
+			newPriority := c.String("priority")
+			newTitle := c.String("title")
+			newParent := c.String("parent")
 
 			// validate flag enums before touching the store
 			if newStatus != "" && !contains(types.Statuses, types.Status(newStatus)) {
@@ -27,7 +44,6 @@ func newEditCmd() *cobra.Command {
 			}
 
 			// load the target task
-			root := cmdRoot(cmd)
 			summary, err := store.FindByID(root, taskID)
 			if err != nil {
 				return notFoundError(taskID, err)
@@ -47,7 +63,7 @@ func newEditCmd() *cobra.Command {
 				changes = append(changes, fmt.Sprintf("priority: %s → %s", task.Priority, newPriority))
 				task.Priority = types.Priority(newPriority)
 			}
-			if cmd.Flags().Changed("parent") {
+			if c.IsSet("parent") {
 				old := task.Parent
 				if old == "" {
 					old = "none"
@@ -63,7 +79,7 @@ func newEditCmd() *cobra.Command {
 
 			// nothing to do — report and bail early
 			if len(changes) == 0 {
-				fmt.Fprintf(cmd.OutOrStdout(), "No changes for %s.\n", taskID)
+				fmt.Fprintf(c.App.Writer, "No changes for %s.\n", taskID)
 				return nil
 			}
 
@@ -72,19 +88,13 @@ func newEditCmd() *cobra.Command {
 			}
 
 			// print the change list
-			fmt.Fprintf(cmd.OutOrStdout(), "Updated %s\n", taskID)
-			for _, c := range changes {
-				fmt.Fprintf(cmd.OutOrStdout(), "  %s\n", c)
+			fmt.Fprintf(c.App.Writer, "Updated %s\n", taskID)
+			for _, ch := range changes {
+				fmt.Fprintf(c.App.Writer, "  %s\n", ch)
 			}
 			return nil
 		},
 	}
-
-	cmd.Flags().StringVar(&newStatus, "status", "", "New status: todo, in-progress, backlog, done, cancelled")
-	cmd.Flags().StringVar(&newPriority, "priority", "", "New priority: critical, high, medium, low")
-	cmd.Flags().StringVar(&newTitle, "title", "", "New title")
-	cmd.Flags().StringVar(&newParent, "parent", "", "Set parent task ID (empty clears)")
-	return cmd
 }
 
 func parentLabel(p string) string {

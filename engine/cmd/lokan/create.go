@@ -8,19 +8,37 @@ import (
 	"github.com/avressatelier/lokan/internal/id"
 	"github.com/avressatelier/lokan/internal/store"
 	"github.com/avressatelier/lokan/internal/types"
-	"github.com/spf13/cobra"
+	"github.com/urfave/cli/v2"
 )
 
-func newCreateCmd() *cobra.Command {
-	var taskType, priority, parent string
-	var tags []string
+func newCreateCmd() *cli.Command {
+	return &cli.Command{
+		Name:         "create",
+		Usage:        "Create a new task",
+		ArgsUsage:    "<title>",
+		OnUsageError: quietUsageError,
+		Flags: []cli.Flag{
+			&cli.StringFlag{Name: "type", Aliases: []string{"t"}, Value: string(types.TypeTask), Usage: "Task type: epic, task, subtask, bug"},
+			&cli.StringFlag{Name: "priority", Value: string(types.PriorityMedium), Usage: "Priority: critical, high, medium, low"},
+			&cli.StringFlag{Name: "parent", Usage: "Parent task ID"},
+			&cli.StringSliceFlag{Name: "tag", Usage: "Tag to add (repeatable)"},
+		},
+		Action: func(c *cli.Context) error {
+			// validate the positional title
+			if err := requireArgs(c, 1); err != nil {
+				return err
+			}
+			title := c.Args().First()
+			taskType := c.String("type")
+			priority := c.String("priority")
+			parent := c.String("parent")
+			tags := c.StringSlice("tag")
 
-	cmd := &cobra.Command{
-		Use:   "create <title>",
-		Short: "Create a new task",
-		Args:  cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			title := args[0]
+			// every command except init/help needs a project
+			root, err := requireProject(c)
+			if err != nil {
+				return err
+			}
 
 			// validate type and priority enums
 			t := types.TaskType(taskType)
@@ -33,7 +51,6 @@ func newCreateCmd() *cobra.Command {
 			}
 
 			// resolve and validate the parent, if given
-			root := cmdRoot(cmd)
 			if parent != "" {
 				parentSummary, err := store.FindByID(root, parent)
 				if err != nil {
@@ -71,17 +88,11 @@ func newCreateCmd() *cobra.Command {
 			if err != nil {
 				rel = store.BoardPath(root)
 			}
-			fmt.Fprintf(cmd.OutOrStdout(), "Created %s → %s\n", task.ID, rel)
+			fmt.Fprintf(c.App.Writer, "Created %s → %s\n", task.ID, rel)
 			if parent != "" {
-				fmt.Fprintf(cmd.OutOrStdout(), "  Parent: %s\n", parent)
+				fmt.Fprintf(c.App.Writer, "  Parent: %s\n", parent)
 			}
 			return nil
 		},
 	}
-
-	cmd.Flags().StringVarP(&taskType, "type", "t", string(types.TypeTask), "Task type: epic, task, subtask, bug")
-	cmd.Flags().StringVar(&priority, "priority", string(types.PriorityMedium), "Priority: critical, high, medium, low")
-	cmd.Flags().StringVar(&parent, "parent", "", "Parent task ID")
-	cmd.Flags().StringArrayVar(&tags, "tag", nil, "Tag to add (repeatable)")
-	return cmd
 }
