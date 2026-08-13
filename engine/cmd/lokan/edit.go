@@ -36,10 +36,10 @@ func newEditCmd() *cli.Command {
 			newParent := c.String("parent")
 
 			// validate flag enums before touching the store
-			if newStatus != "" && !contains(statusIDs(board), types.Status(newStatus)) {
+			if newStatus != "" && !types.Contains(statusIDs(board), types.Status(newStatus)) {
 				return cliErrorf("Invalid status %q. Must be one of: %s", newStatus, joinStatuses(board))
 			}
-			if newPriority != "" && !contains(types.Priorities, types.Priority(newPriority)) {
+			if newPriority != "" && !types.Contains(types.Priorities, types.Priority(newPriority)) {
 				return cliErrorf("Invalid priority %q. Must be one of: %s", newPriority, joinPriorities())
 			}
 
