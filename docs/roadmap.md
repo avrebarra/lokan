@@ -31,9 +31,14 @@ The board is read + status-advance only. Natural next steps.
 
 - [x] Task detail editing from the UI (edit fields in modal, not just advance) — DONE (2026-08-13)
 - [x] Backlog/cancelled columns or filtering UI — DONE (2026-08-13)
-- [ ] Drag-and-drop column moves (deferred by design — status click is the
-      interaction contract; revisit if it becomes annoying)
+- [ ] Drag-and-drop column moves — requested (2026-08-13): dragging tasks
+      between lanes; status click stays as the interaction contract, drag is
+      the gesture on top
 - [x] Subtask creation from the UI — DONE (2026-08-13)
+- [ ] **Config page** — customize the available lanes (add/rename/remove
+      statuses) and bulk operations: clear archived, clear all tickets
+- [ ] Default to light mode — currently dark-first/follows system; flip the
+      default to light with dark as opt-in
 
 ## Phase 4 — Storage & stack evolution
 
