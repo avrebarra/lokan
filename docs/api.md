@@ -123,6 +123,28 @@ Failure: 500 `{ "error": "<message>" }`
 
 All error bodies: `{ "error": "<message>" }`
 
+## Agent interface
+
+The board and CLI are designed to be operated by AI agents. Two stable
+entry points, both frozen:
+
+- **Full state:** read `.lokan/board.md` directly — it is the complete board
+  (all fields, bodies, Active/Archive sections) as markdown.
+- **Lean board view:** `lokan list --md` prints a compact markdown summary —
+  a `# Board — <n> active, <n> archived` header, then one `## <status>`
+  group per status with one `- <id> [<priority>] <title>` line per task.
+  The `--type/--status/--priority` filters apply as normal.
+
+Mutations use the regular CLI (stable commands): `lokan create "<title>"`
+(`--type/--priority/--parent/--tag`) and `lokan edit <id>`
+(`--status/--priority/--title/--parent`).
+
+Output discipline for agents:
+
+- stdout carries the result; stderr carries errors only
+- exit code 0 on success, 1 on any failure (missing project, not found, validation)
+- human `list`/`get` output remains available and is agent-readable too
+
 ## Embedding
 
 The built Vite app (from `web/`) is copied to `engine/web/dist/` by the build

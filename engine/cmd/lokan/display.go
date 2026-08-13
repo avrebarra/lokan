@@ -92,3 +92,42 @@ func renderTaskDetail(task types.Task) string {
 func rowLine(t types.TaskSummary) string {
 	return fmt.Sprintf("%s  %s  %s  %s  %s", t.ID, t.Type, t.Status, t.Priority, t.Title)
 }
+
+// renderMarkdownBoard renders tasks grouped by status as compact markdown,
+// one line per task — the agent-friendly list mode.
+func renderMarkdownBoard(tasks []types.TaskSummary) string {
+	if len(tasks) == 0 {
+		return "No tasks found."
+	}
+
+	// bucket tasks by status
+	byStatus := make(map[types.Status][]types.TaskSummary)
+	for _, t := range tasks {
+		byStatus[t.Status] = append(byStatus[t.Status], t)
+	}
+
+	// count active vs archived (done/cancelled)
+	active, archived := 0, 0
+	for _, t := range tasks {
+		if t.Status == types.StatusDone || t.Status == types.StatusCancelled {
+			archived++
+		} else {
+			active++
+		}
+	}
+
+	// render status groups in contract order
+	var b strings.Builder
+	fmt.Fprintf(&b, "# Board — %d active, %d archived\n", active, archived)
+	for _, status := range types.Statuses {
+		group, ok := byStatus[status]
+		if !ok {
+			continue
+		}
+		b.WriteString("\n## " + string(status) + "\n")
+		for _, t := range group {
+			fmt.Fprintf(&b, "- %s [%s] %s\n", t.ID, t.Priority, t.Title)
+		}
+	}
+	return strings.TrimRight(b.String(), "\n")
+}
