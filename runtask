@@ -20,7 +20,8 @@ COMMANDS = {
   %w[build]     => c("Build the full lokan binary (web + engine)") { cmd_build },
   %w[test]      => c("Run engine Go tests") { run "cd #{SCRIPT_DIR}/engine && go test ./..." },
   %w[e2e]       => c("End-to-end smoke: init, create, list, ui, API") { cmd_e2e },
-  %w[web dev]   => c("Start Vite dev server with HMR") { run "cd #{SCRIPT_DIR}/web && npm run dev" },
+  %w[web dev]   => c("Start Vite dev server + mock API (interactive UI)") { cmd_web_dev },
+  %w[web mock]  => c("Run the mock API server only (port 8787)") { cmd_web_mock },
   %w[web build] => c("Build the web frontend only") { run "cd #{SCRIPT_DIR}/web && npm run build" },
 }.freeze
 
@@ -47,6 +48,24 @@ def cmd_build
   run "mkdir -p #{SCRIPT_DIR}/dist"
   run "cd #{SCRIPT_DIR}/engine && go build -o #{SCRIPT_DIR}/dist/lokan ./cmd/lokan"
   puts "built #{SCRIPT_DIR}/dist/lokan"
+  true
+end
+
+# run the mock API server (in-memory, implements docs/api.md) on port 8787
+def cmd_web_mock
+  run "cd #{SCRIPT_DIR}/web && node mock-server.mjs"
+  true
+end
+
+# start the mock API server + Vite dev server together; kill mock on exit
+def cmd_web_dev
+  mock = Process.spawn("node mock-server.mjs", chdir: "#{SCRIPT_DIR}/web", out: $stdout, err: $stderr)
+  begin
+    run "cd #{SCRIPT_DIR}/web && npm run dev"
+  ensure
+    Process.kill("INT", mock) rescue nil
+    Process.wait(mock) rescue nil
+  end
   true
 end
 
