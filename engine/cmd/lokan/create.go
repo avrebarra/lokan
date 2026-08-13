@@ -14,21 +14,20 @@ func newCreateCmd() *cli.Command {
 	return &cli.Command{
 		Name:         "create",
 		Usage:        "Create a new task",
-		ArgsUsage:    "<title>",
+		ArgsUsage:    "<board> <title>",
 		OnUsageError: quietUsageError,
 		Flags: []cli.Flag{
-			boardFlag(),
 			&cli.StringFlag{Name: "type", Aliases: []string{"t"}, Value: string(types.TypeTask), Usage: "Task type: epic, task, subtask, bug"},
 			&cli.StringFlag{Name: "priority", Value: string(types.PriorityMedium), Usage: "Priority: critical, high, medium, low"},
 			&cli.StringFlag{Name: "parent", Usage: "Parent task ID"},
 			&cli.StringSliceFlag{Name: "tag", Usage: "Tag to add (repeatable)"},
 		},
 		Action: func(c *cli.Context) error {
-			// validate the positional title
-			if err := requireArgs(c, 1); err != nil {
+			// validate the positional board and title
+			if err := requireArgs(c, 2); err != nil {
 				return err
 			}
-			title := c.Args().First()
+			title := c.Args().Get(1)
 			taskType := c.String("type")
 			priority := c.String("priority")
 			parent := c.String("parent")
@@ -84,7 +83,7 @@ func newCreateCmd() *cli.Command {
 				return err
 			}
 			// print the created task with the targeted board path
-			fmt.Fprintf(c.App.Writer, "Created %s → %s\n", task.ID, c.String("board"))
+			fmt.Fprintf(c.App.Writer, "Created %s → %s\n", task.ID, c.Args().Get(0))
 			if parent != "" {
 				fmt.Fprintf(c.App.Writer, "  Parent: %s\n", parent)
 			}

@@ -20,9 +20,9 @@ func newUICmd() *cli.Command {
 	return &cli.Command{
 		Name:         "ui",
 		Usage:        "Start the kanban web UI",
+		ArgsUsage:    "<board>",
 		OnUsageError: quietUsageError,
 		Flags: []cli.Flag{
-			boardFlag(),
 			&cli.IntFlag{Name: "port", Aliases: []string{"p"}, Value: defaultPort, Usage: "port to listen on"},
 		},
 		Action: runUI,
@@ -30,6 +30,10 @@ func newUICmd() *cli.Command {
 }
 
 func runUI(c *cli.Context) error {
+	// the board path is the required positional argument
+	if err := requireArgs(c, 1); err != nil {
+		return err
+	}
 	port := c.Int("port")
 	board, err := requireBoard(c)
 	if err != nil {

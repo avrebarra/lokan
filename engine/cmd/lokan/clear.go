@@ -11,15 +11,15 @@ func newClearCmd() *cli.Command {
 	return &cli.Command{
 		Name:         "clear",
 		Usage:        "Delete tasks in bulk",
+		ArgsUsage:    "<board>",
 		OnUsageError: quietUsageError,
 		Flags: []cli.Flag{
-			boardFlag(),
 			&cli.BoolFlag{Name: "archived", Usage: "Delete all tasks in archived lanes"},
 			&cli.BoolFlag{Name: "all", Usage: "Delete every task on the board"},
 		},
 		Action: func(c *cli.Context) error {
-			// only a bare invocation is valid
-			if err := requireArgs(c, 0); err != nil {
+			// the board path is the required positional argument
+			if err := requireArgs(c, 1); err != nil {
 				return err
 			}
 			board, err := requireBoard(c)

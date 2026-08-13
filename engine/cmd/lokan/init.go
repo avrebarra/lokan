@@ -14,19 +14,14 @@ func newInitCmd() *cli.Command {
 	return &cli.Command{
 		Name:         "init",
 		Usage:        "Initialize a lokan board at an explicit path",
+		ArgsUsage:    "<board>",
 		OnUsageError: quietUsageError,
-		Flags: []cli.Flag{
-			&cli.StringFlag{Name: "board", Usage: "Board file to create; required"},
-		},
 		Action: func(c *cli.Context) error {
-			// only a bare invocation is valid
-			if err := requireArgs(c, 0); err != nil {
+			// the board path is the required positional argument
+			if err := requireArgs(c, 1); err != nil {
 				return err
 			}
-			board := c.String("board")
-			if board == "" {
-				return cliErrorf("missing required flag: --board <file>")
-			}
+			board := c.Args().First()
 			abs, err := filepath.Abs(board)
 			if err != nil {
 				return err

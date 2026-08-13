@@ -24,7 +24,7 @@ func runCLI(t *testing.T, dir string, args ...string) (int, string, string) {
 func initProject(t *testing.T) string {
 	t.Helper()
 	root := t.TempDir()
-	if code, _, stderr := runBoard(t, root, "init", "--board", bp(root)); code != 0 {
+	if code, _, stderr := runCLI(t, root, "init", bp(root)); code != 0 {
 		t.Fatalf("init failed: %s", stderr)
 	}
 	return root
@@ -35,17 +35,17 @@ func bp(dir string) string {
 	return filepath.Join(dir, "docs", "board.md")
 }
 
-// runBoard runs the CLI from dir, injecting the project's --board flag after
-// the command name.
+// runBoard runs the CLI from dir, injecting the project's board path as the
+// first positional argument.
 func runBoard(t *testing.T, dir string, args ...string) (int, string, string) {
 	t.Helper()
-	full := append([]string{args[0], "--board", bp(dir)}, args[1:]...)
+	full := append([]string{args[0], bp(dir)}, args[1:]...)
 	return runCLI(t, dir, full...)
 }
 
 func mustCreate(t *testing.T, dir string, args ...string) string {
 	t.Helper()
-	args = append([]string{"create", "--board", bp(dir)}, args...)
+	args = append([]string{"create", bp(dir)}, args...)
 	if code, _, stderr := runCLI(t, dir, args...); code != 0 {
 		t.Fatalf("create %v failed: %s", args, stderr)
 	}
@@ -107,7 +107,7 @@ func TestInitIdempotent(t *testing.T) {
 func TestInitWithCustomBoard(t *testing.T) {
 	root := t.TempDir()
 	board := filepath.Join(root, "docs", "roadmap.md")
-	code, stdout, stderr := runCLI(t, root, "init", "--board", board)
+	code, stdout, stderr := runCLI(t, root, "init", board)
 	if code != 0 {
 		t.Fatalf("init failed: %s", stderr)
 	}
@@ -131,16 +131,16 @@ func TestInitWithCustomBoard(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// explicit --board rule
+// explicit board rule
 // ---------------------------------------------------------------------------
 
-func TestMissingBoardFlag(t *testing.T) {
+func TestMissingBoardPath(t *testing.T) {
 	root := t.TempDir()
 	code, _, stderr := runCLI(t, root, "list")
 	if code == 0 {
-		t.Fatalf("list should fail without --board")
+		t.Fatalf("list should fail without a board path")
 	}
-	if !strings.Contains(stderr, "missing required flag: --board <file>") {
+	if !strings.Contains(stderr, "accepts 1 arg(s), received 0") {
 		t.Fatalf("stderr = %q", stderr)
 	}
 	if !strings.HasPrefix(stderr, "error: ") {

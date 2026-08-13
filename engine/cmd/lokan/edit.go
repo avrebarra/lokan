@@ -12,25 +12,24 @@ func newEditCmd() *cli.Command {
 	return &cli.Command{
 		Name:         "edit",
 		Usage:        "Update task fields",
-		ArgsUsage:    "<id>",
+		ArgsUsage:    "<board> <id>",
 		OnUsageError: quietUsageError,
 		Flags: []cli.Flag{
-			boardFlag(),
 			&cli.StringFlag{Name: "status", Usage: "New status: todo, in-progress, backlog, done, cancelled"},
 			&cli.StringFlag{Name: "priority", Usage: "New priority: critical, high, medium, low"},
 			&cli.StringFlag{Name: "title", Usage: "New title"},
 			&cli.StringFlag{Name: "parent", Usage: "Set parent task ID (empty clears)"},
 		},
 		Action: func(c *cli.Context) error {
-			// validate the positional id, resolve the board
-			if err := requireArgs(c, 1); err != nil {
+			// validate the positional board and id
+			if err := requireArgs(c, 2); err != nil {
 				return err
 			}
 			board, err := requireBoard(c)
 			if err != nil {
 				return err
 			}
-			taskID := c.Args().First()
+			taskID := c.Args().Get(1)
 			newStatus := c.String("status")
 			newPriority := c.String("priority")
 			newTitle := c.String("title")

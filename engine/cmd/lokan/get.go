@@ -11,21 +11,18 @@ func newGetCmd() *cli.Command {
 	return &cli.Command{
 		Name:         "get",
 		Usage:        "Show a task by ID",
-		ArgsUsage:    "<id>",
+		ArgsUsage:    "<board> <id>",
 		OnUsageError: quietUsageError,
-		Flags: []cli.Flag{
-			boardFlag(),
-		},
 		Action: func(c *cli.Context) error {
-			// validate the positional id, resolve the board
-			if err := requireArgs(c, 1); err != nil {
+			// validate the positional board and id
+			if err := requireArgs(c, 2); err != nil {
 				return err
 			}
 			board, err := requireBoard(c)
 			if err != nil {
 				return err
 			}
-			id := c.Args().First()
+			id := c.Args().Get(1)
 
 			// resolve the task then print its full detail
 			summary, err := store.FindByID(board, id)

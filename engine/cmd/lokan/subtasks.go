@@ -12,21 +12,18 @@ func newSubtasksCmd() *cli.Command {
 	return &cli.Command{
 		Name:         "subtasks",
 		Usage:        "List direct children of a task",
-		ArgsUsage:    "<id>",
+		ArgsUsage:    "<board> <id>",
 		OnUsageError: quietUsageError,
-		Flags: []cli.Flag{
-			boardFlag(),
-		},
 		Action: func(c *cli.Context) error {
-			// validate the positional id, resolve the board
-			if err := requireArgs(c, 1); err != nil {
+			// validate the positional board and id
+			if err := requireArgs(c, 2); err != nil {
 				return err
 			}
 			board, err := requireBoard(c)
 			if err != nil {
 				return err
 			}
-			id := c.Args().First()
+			id := c.Args().Get(1)
 
 			// verify the task exists, then gather + sort its children
 			if _, err := store.FindByID(board, id); err != nil {

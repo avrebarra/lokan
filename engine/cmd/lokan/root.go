@@ -8,24 +8,19 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-// boardFlag is the explicit board file flag shared by every command.
-func boardFlag() cli.Flag {
-	return &cli.StringFlag{Name: "board", Usage: "Board file (markdown with a lokan config block); required"}
-}
-
-// requireBoard resolves and validates the explicit --board file. Every
-// command except init and help needs a board.
+// requireBoard resolves and validates the board path — the first positional
+// argument, required by every command except init and help.
 func requireBoard(c *cli.Context) (string, error) {
-	board := c.String("board")
-	if board == "" {
-		return "", cliErrorf("missing required flag: --board <file>")
+	if c.Args().Len() == 0 {
+		return "", cliErrorf("missing board path — usage: lokan <command> <board> [args...]")
 	}
+	board := c.Args().First()
 	abs, err := filepath.Abs(board)
 	if err != nil {
 		return "", err
 	}
 	if !store.IsBoard(abs) {
-		return "", cliErrorf("not a lokan board: %s (run lokan init --board <file>)", abs)
+		return "", cliErrorf("not a lokan board: %s (run lokan init %s)", abs, board)
 	}
 	return abs, nil
 }

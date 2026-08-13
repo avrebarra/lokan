@@ -13,17 +13,17 @@ func newListCmd() *cli.Command {
 	return &cli.Command{
 		Name:         "list",
 		Usage:        "List tasks with optional filters",
+		ArgsUsage:    "<board>",
 		OnUsageError: quietUsageError,
 		Flags: []cli.Flag{
-			boardFlag(),
 			&cli.StringFlag{Name: "type", Usage: "Filter by type: epic, task, subtask, bug"},
 			&cli.StringFlag{Name: "status", Usage: "Filter by status: todo, in-progress, backlog, done, cancelled"},
 			&cli.StringFlag{Name: "priority", Usage: "Filter by priority: critical, high, medium, low"},
 			&cli.BoolFlag{Name: "md", Usage: "Output compact markdown (agent-friendly)"},
 		},
 		Action: func(c *cli.Context) error {
-			// only a bare invocation is valid
-			if err := requireArgs(c, 0); err != nil {
+			// the board path is the required positional argument
+			if err := requireArgs(c, 1); err != nil {
 				return err
 			}
 			board, err := requireBoard(c)
