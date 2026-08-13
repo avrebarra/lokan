@@ -1,0 +1,65 @@
+import type { Task, TaskSummary, Priority, TaskType } from './types'
+
+async function req<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(path, {
+    headers: { 'Content-Type': 'application/json' },
+    ...init,
+  })
+  if (!res.ok) {
+    const body = await res.json().catch(() => null)
+    throw new Error(body?.error ?? `request failed: ${res.status}`)
+  }
+  return res.json() as Promise<T>
+}
+
+export interface FetchTasksResult {
+  tasks: TaskSummary[]
+  root: string
+}
+
+export interface FetchTaskResult {
+  task: Task
+}
+
+export interface UpdateTaskResult {
+  task: Task
+}
+
+export async function fetchTasks(): Promise<FetchTasksResult> {
+  return req<FetchTasksResult>('/api/tasks')
+}
+
+export async function fetchTask(id: string): Promise<FetchTaskResult> {
+  return req<FetchTaskResult>(`/api/task/${id}`)
+}
+
+export interface UpdateTaskInput {
+  id: string
+  field: 'status' | 'priority' | 'title'
+  value: string
+}
+
+export async function updateTask(
+  id: string,
+  field: UpdateTaskInput['field'],
+  value: string,
+): Promise<UpdateTaskResult> {
+  return req<UpdateTaskResult>('/api/update', {
+    method: 'POST',
+    body: JSON.stringify({ id, field, value }),
+  })
+}
+
+export interface CreateTaskInput {
+  title: string
+  type: TaskType
+  priority: Priority
+  parent?: string
+}
+
+export async function createTask(input: CreateTaskInput): Promise<UpdateTaskResult> {
+  return req<UpdateTaskResult>('/api/create', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
+}

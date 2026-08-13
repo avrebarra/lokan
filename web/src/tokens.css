@@ -1,0 +1,22 @@
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400..700&family=Geist+Mono:wght@400..500&display=swap');
+
+/* ============ lokan design tokens (port of web/design/tokens.md) ============ */
+
+:root,
+[data-theme='light'] {
+  --bg: #fff;
+  --fg: #000;
+  --border: #ebebeb;
+  --muted: #888;
+  --accent: #ffc800;
+  --zebra: #f5f5f5;
+}
+
+[data-theme='dark'] {
+  --bg: #000;
+  --fg: #fff;
+  --border: #1f1f1f;
+  --muted: #777;
+  --accent: #ffc800;
+  --zebra: #111;
+}

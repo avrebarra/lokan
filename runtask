@@ -1,0 +1,129 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "tmpdir"
+
+# ─── commands (self-documenting) ─────────────────────────────────────────────
+# %w[ns sub] => c("desc") { body } — run via ./runtask ns sub
+# Block bodies resolve constants/methods at call time — helpers live below.
+
+def c(desc, &block)
+  [desc, block]
+end
+
+GROUPS = {
+  ""    => "General",
+  "web" => "Web (Vite React)",
+}.freeze
+
+COMMANDS = {
+  %w[build]     => c("Build the full lokan binary (web + engine)") { cmd_build },
+  %w[test]      => c("Run engine Go tests") { run "cd #{SCRIPT_DIR}/engine && go test ./..." },
+  %w[e2e]       => c("End-to-end smoke: init, create, list, ui, API") { cmd_e2e },
+  %w[web dev]   => c("Start Vite dev server with HMR") { run "cd #{SCRIPT_DIR}/web && npm run dev" },
+  %w[web build] => c("Build the web frontend only") { run "cd #{SCRIPT_DIR}/web && npm run build" },
+}.freeze
+
+# ─── config & helpers ────────────────────────────────────────────────────────
+
+SCRIPT_DIR = File.dirname(File.expand_path(__FILE__))
+
+def bail(msg)
+  warn "error: #{msg}"
+  exit 1
+end
+
+def run(cmd)
+  puts "  $ #{cmd}"
+  bail("#{cmd.split.first} failed") unless system(cmd)
+  true
+end
+
+# build the vite app, copy dist into the engine embed dir, compile the binary
+def cmd_build
+  run "cd #{SCRIPT_DIR}/web && npm run build"
+  run "rm -rf #{SCRIPT_DIR}/engine/web/dist"
+  run "cp -r #{SCRIPT_DIR}/web/dist #{SCRIPT_DIR}/engine/web/dist"
+  run "mkdir -p #{SCRIPT_DIR}/dist"
+  run "cd #{SCRIPT_DIR}/engine && go build -o #{SCRIPT_DIR}/dist/lokan ./cmd/lokan"
+  puts "built #{SCRIPT_DIR}/dist/lokan"
+  true
+end
+
+# end-to-end smoke against a scratch project in the OS tmp dir
+def cmd_e2e
+  run "cd #{SCRIPT_DIR} && ./runtask build"
+  tmp = Dir.mktmpdir("lokan-e2e")
+  bin = "#{SCRIPT_DIR}/dist/lokan"
+  project = File.join(tmp, "proj")
+  Dir.mkdir(project)
+
+  Dir.chdir(project) do
+    run "#{bin} init"
+    run "#{bin} create --type task --priority high \"E2E task one\""
+    run "#{bin} create --type task --priority low \"E2E task two\""
+    run "#{bin} list"
+
+    port = 7999
+    pid = Process.spawn(bin, "ui", "--port", port.to_s, out: "/dev/null", err: "/dev/null")
+    begin
+      sleep 1.5
+      body = `curl -s http://localhost:#{port}/api/tasks`
+      bail("api/tasks returned no tasks") unless body.include?("E2E task one")
+      html = `curl -s http://localhost:#{port}/`
+      bail("ui did not serve index") unless html.include?("lokan")
+      puts "e2e ok — ui + api live on port #{port}"
+    ensure
+      begin
+        Process.kill("INT", pid)
+      rescue StandardError
+        nil
+      end
+      begin
+        Process.wait(pid)
+      rescue StandardError
+        nil
+      end
+    end
+  end
+  FileUtils.remove_entry(tmp) rescue nil
+  true
+end
+
+# ─── usage (auto-generated) ──────────────────────────────────────────────────
+
+def usage(group = nil)
+  lines = ["Usage: ./runtask <command>", ""]
+  groups = group ? { group => GROUPS[group] } : GROUPS
+  groups.each do |ns, label|
+    cmds = if ns == ""
+      COMMANDS.select { |k, _| k.length == 1 }
+    else
+      COMMANDS.select { |k, _| k.length > 1 && k.first == ns }
+    end
+    next if cmds.empty?
+
+    lines << "#{label}:"
+    cmds.each do |k, (desc, _)|
+      next if desc.nil?
+      lines << "  #{k.join(' ').ljust(14)}#{desc}"
+    end
+    lines << ""
+  end
+  lines.join("\n")
+end
+
+# ─── dispatch ────────────────────────────────────────────────────────────────
+
+input = ARGV.map(&:downcase)
+entry = COMMANDS[input]
+
+if entry
+  exit entry[1].call ? 0 : 1
+elsif input.length == 1 && GROUPS.key?(input[0])
+  puts usage(input[0])
+  exit 0
+else
+  puts usage
+  exit 1
+end

@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+!engine/web/dist/
+engine/web/dist/*
+!engine/web/dist/.gitkeep
+
+# Built binary
+/dist/lokan
+
+# Bun
+bun.lockb
+
+# npm pack artifact
+*.tgz
+
+# macOS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Test temp dirs are in OS tmpdir, nothing to ignore here

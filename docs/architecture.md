@@ -1,0 +1,115 @@
+# Architecture — lokan
+
+## Contents
+
+- [What it is](#what-it-is)
+- [Stack](#stack)
+- [Repository Layout](#repository-layout)
+- [Storage Model](#storage-model)
+- [Build Chain & Embedding](#build-chain--embedding)
+- [HTTP API](#http-api)
+- [Design Language](#design-language)
+
+## What it is
+
+Lokan is a markdown task manager with a kanban-focused CLI and a web UI, all
+in one static binary. Each task is a git-friendly `.md` file — no database.
+
+## Stack
+
+| Layer    | Technology                                  | Why                                           |
+| -------- | ------------------------------------------- | --------------------------------------------- |
+| Engine   | Go 1.26, stdlib `net/http`, cobra CLI       | Single static binary, trivial distribution    |
+| Storage  | Markdown files + YAML frontmatter (yaml.v3) | Git-diffable, editor-editable, human-readable |
+| Frontend | Vite + React 18 + TypeScript, plain CSS     | No framework deps, design tokens in CSS       |
+| Fonts    | Geist Sans + Geist Mono (Google Fonts)      | shiprank design system heritage               |
+| Build    | `runtask` (root) → `go:embed`               | One command produces the final binary         |
+
+Stack evolution is tracked in [`roadmap.md`](./roadmap.md) (urfave/cli,
+Tailwind, single-file storage, Protobuf are planned assessments).
+
+## Repository Layout
+
+```
+lokan/
+  runtask                 # task runner: build / test / e2e / web dev
+  dist/                   # built binary: dist/lokan (gitignored)
+  docs/                   # architecture, API contract, roadmap, design
+  engine/                 # Go module github.com/avressatelier/lokan
+    cmd/lokan/            # cobra CLI: init create get list edit subtasks ui
+    internal/
+      types/              # enums, Task/TaskSummary/TaskFrontmatter, ALLOWED_PARENTS
+      id/                 # config read/write, atomic NextCounter (lock file)
+      store/              # markdown parse/serialize, load/find/write/create
+      query/              # filters, children/descendants, cycle-safe buildTree
+      server/             # HTTP handlers + seed data
+    web/                  # embed package: dist/ (built frontend, committed placeholder)
+  web/                    # Vite React frontend
+    src/                  # components, tokens.css, api client
+```
+
+## Storage Model
+
+```
+<project>/
+  .lokan/
+    config.json           { "counter": N, "version": "..." }
+    tasks/
+      epic-1-launch-route.md
+      task-2-submit-approval.md
+```
+
+- One `.md` per task: YAML frontmatter (`id, title, type, status, priority,
+parent?, related?, docs?, tags?, created, updated`) + markdown body.
+- IDs are **type-prefixed with a shared counter**: `epic-1`, `task-2`,
+  `bug-3`. The counter lives in `config.json`. (Decoupling type from the ID
+  is planned — see roadmap.)
+- **Explicit init only (DECIDED 2026-08-13):** no lazy auto-init. Every
+  command except `init`/`help` errors with `not a lokan project — run lokan init`.
+
+## Build Chain & Embedding
+
+```
+./runtask build
+  1. cd web && npm run build        → web/dist/ (index.html + hashed assets)
+  2. rm -rf engine/web/dist && cp -r web/dist engine/web/dist
+  3. cd engine && go build -o dist/lokan ./cmd/lokan
+     → go:embed all:dist (package engine/web) → single binary in dist/
+```
+
+- `engine/web/dist/.gitkeep` is the committed placeholder so `go build`
+  works before the frontend has ever been built (go:embed fails on empty
+  dirs — `.gitkeep` keeps the dir non-empty). Real build assets are
+  gitignored; `runtask build` regenerates them.
+- The binary lives in `dist/lokan` and is gitignored.
+
+## HTTP API
+
+Frozen contract in [`api.md`](./api.md):
+
+```
+GET  /              embedded app (dist/index.html)
+GET  /assets/*      bundled JS/CSS
+GET  /api/tasks     { tasks: [TaskSummary], root }
+GET  /api/task/:id  { task: Task }
+POST /api/create    { title, type, priority, parent? } → { task }
+POST /api/update    { id, field, value } → { task }
+POST /api/seed      { created }
+```
+
+Validation is enforced server-side (enum membership, required title) — the
+UI never trusts itself. Unknown routes 404; error bodies are always
+`{ "error": "<message>" }`.
+
+## Design Language
+
+Brutalist-terminal (shiprank-derived): monochrome, sharp corners (radius 0),
+no shadows except the detail modal, Geist Mono uppercase labels + Geist Sans
+titles, tasks as leaderboard **rows** with hairline separators.
+
+**Contrast rule (DECIDED 2026-08-13):** accent `#ffc800` is fill-only, never
+text. Exactly two accent uses: the in-progress column's 2px top bar and the
+primary CTA button. Yellow text on white fails WCAG (~1.9:1).
+
+Full spec: [`design/tokens.md`](./design/tokens.md). Visual
+contract: [`design/mockup.html`](./design/mockup.html).
