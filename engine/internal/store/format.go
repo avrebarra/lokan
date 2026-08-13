@@ -3,6 +3,7 @@ package store
 import (
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/avressatelier/lokan/internal/types"
@@ -75,7 +76,120 @@ func buildInitialBody(title string, body string) string {
 	if body != "" {
 		content = strings.TrimRight(body, " \t\n") + "\n"
 	}
-	return fmt.Sprintf("# %s\n\n%s\n## Notes\n\n\n## Work Log\n\n", title, content)
+	return fmt.Sprintf("# %s\n\n%s\n## Notes\n\n\n## Work Log\n", title, content)
+}
+
+// board document layout: one file holding every task block, grouped into
+// Active (open statuses) and Archive (done/cancelled) sections.
+const (
+	boardHeader    = "# Kanlo Board"
+	sectionActive  = "## Active"
+	sectionArchive = "## Archive"
+	markerPrefix   = "<!-- lokan:"
+)
+
+// isArchived reports whether a task belongs in the Archive section.
+func isArchived(status types.Status) bool {
+	return status == types.StatusDone || status == types.StatusCancelled
+}
+
+// parseBoard splits a board document into task blocks. Each task block starts
+// with a "<!-- lokan:<id> -->" marker; blocks that fail to parse are skipped
+// with a warning. Section headers and blank lines between blocks are dropped.
+func parseBoard(raw string) []types.Task {
+	var tasks []types.Task
+	var block []string
+	blockID := ""
+
+	flush := func() {
+		if blockID == "" {
+			return
+		}
+		// trim leading/trailing blank lines and stray section headers
+		for len(block) > 0 && strings.TrimSpace(block[0]) == "" {
+			block = block[1:]
+		}
+		for len(block) > 0 {
+			last := strings.TrimSpace(block[len(block)-1])
+			if last == "" || last == sectionActive || last == sectionArchive || last == boardHeader {
+				block = block[:len(block)-1]
+				continue
+			}
+			break
+		}
+		parsed, err := parseFullFile(strings.Join(block, "\n"), blockID)
+		if err != nil {
+			log.Printf("Warning: skipping invalid task block: %s", blockID)
+		} else {
+			tasks = append(tasks, *parsed)
+		}
+		block = nil
+		blockID = ""
+	}
+
+	for _, line := range strings.Split(raw, "\n") {
+		if id, ok := markerID(line); ok {
+			flush()
+			blockID = id
+			continue
+		}
+		if blockID != "" {
+			block = append(block, line)
+		}
+	}
+	flush()
+	return tasks
+}
+
+// serializeBoard renders tasks back to a single board document, grouping
+// active tasks under "## Active" and finished ones under "## Archive".
+func serializeBoard(tasks []types.Task) (string, error) {
+	var active, archived []types.Task
+	for _, t := range tasks {
+		if isArchived(t.Status) {
+			archived = append(archived, t)
+		} else {
+			active = append(active, t)
+		}
+	}
+
+	var b strings.Builder
+	b.WriteString(boardHeader + "\n\n")
+	writeSection := func(title string, section []types.Task) error {
+		b.WriteString(title + "\n")
+		if len(section) == 0 {
+			b.WriteString("\n")
+			return nil
+		}
+		for _, t := range section {
+			raw, err := serializeTask(t)
+			if err != nil {
+				return err
+			}
+			fmt.Fprintf(&b, "\n<!-- lokan:%s -->\n%s", t.ID, raw)
+		}
+		return nil
+	}
+	if err := writeSection(sectionActive, active); err != nil {
+		return "", err
+	}
+	if err := writeSection(sectionArchive, archived); err != nil {
+		return "", err
+	}
+	return b.String(), nil
+}
+
+// markerID extracts the task id from a "<!-- lokan:<id> -->" marker line.
+func markerID(line string) (string, bool) {
+	line = strings.TrimSpace(line)
+	if !strings.HasPrefix(line, markerPrefix) || !strings.HasSuffix(line, " -->") {
+		return "", false
+	}
+	id := strings.TrimSuffix(strings.TrimPrefix(line, markerPrefix), " -->")
+	if id == "" {
+		return "", false
+	}
+	return id, true
 }
 
 // splitFrontmatter extracts the YAML block and body from a task file.

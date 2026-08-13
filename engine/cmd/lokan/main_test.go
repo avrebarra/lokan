@@ -73,6 +73,9 @@ func TestInitCreatesConfig(t *testing.T) {
 	if cfg.Counter != 0 || cfg.Version != "1" {
 		t.Fatalf("cfg = %+v", cfg)
 	}
+	if _, err := os.Stat(store.BoardPath(root)); err != nil {
+		t.Fatalf("board file missing: %v", err)
+	}
 }
 
 func TestInitIdempotent(t *testing.T) {
@@ -308,22 +311,17 @@ func TestEditInvalidPriority(t *testing.T) {
 	}
 }
 
-// Issue 2: title rename must derive the counter from the existing filename
-// basename, not from the user-supplied id.
-func TestEditTitleRenameCounterFromFilename(t *testing.T) {
+// Title edits update the task block in place — per-task file renames are gone
+// with single-board storage.
+func TestEditTitleUpdatesInPlace(t *testing.T) {
 	root := initProject(t)
 	mustCreate(t, root, "hello")
 	code, _, stderr := runCLI(t, root, "edit", "task-1", "--title", "hello world")
 	if code != 0 {
 		t.Fatalf("edit title failed: %s", stderr)
 	}
-	oldPath := filepath.Join(store.TasksDir(root), "task-1-hello.md")
-	if _, err := os.Stat(oldPath); !os.IsNotExist(err) {
-		t.Fatalf("old file should be gone: %v", err)
-	}
-	newPath := filepath.Join(store.TasksDir(root), "task-1-hello-world.md")
-	if _, err := os.Stat(newPath); err != nil {
-		t.Fatalf("new file missing: %v", err)
+	if _, err := os.Stat(filepath.Join(store.TasksDir(root), "task-1-hello.md")); !os.IsNotExist(err) {
+		t.Fatalf("no per-task files should exist: %v", err)
 	}
 	summary, err := store.FindByID(root, "task-1")
 	if err != nil {
@@ -332,55 +330,26 @@ func TestEditTitleRenameCounterFromFilename(t *testing.T) {
 	if summary.Title != "hello world" {
 		t.Fatalf("title = %q", summary.Title)
 	}
-	if summary.FilePath != newPath {
-		t.Fatalf("filePath = %q, want %q", summary.FilePath, newPath)
+	if summary.FilePath != store.VirtualPath(root, "task-1") {
+		t.Fatalf("filePath = %q, want %q", summary.FilePath, store.VirtualPath(root, "task-1"))
 	}
 }
 
-// Renaming twice must keep the counter stable (still derived from the basename).
-func TestEditTitleRenameTwiceKeepsCounter(t *testing.T) {
+// Editing the title twice must keep the id stable.
+func TestEditTitleTwiceKeepsID(t *testing.T) {
 	root := initProject(t)
 	mustCreate(t, root, "hello")
 	if code, _, stderr := runCLI(t, root, "edit", "task-1", "--title", "second"); code != 0 {
-		t.Fatalf("first rename failed: %s", stderr)
+		t.Fatalf("first title edit failed: %s", stderr)
 	}
 	if code, _, stderr := runCLI(t, root, "edit", "task-1", "--title", "third"); code != 0 {
-		t.Fatalf("second rename failed: %s", stderr)
+		t.Fatalf("second title edit failed: %s", stderr)
 	}
 	if code, _, stderr := runCLI(t, root, "get", "task-1"); code != 0 {
-		t.Fatalf("get after renames failed: %s", stderr)
-	}
-	want := filepath.Join(store.TasksDir(root), "task-1-third.md")
-	if _, err := os.Stat(want); err != nil {
-		t.Fatalf("expected %q: %v", want, err)
+		t.Fatalf("get after title edits failed: %s", stderr)
 	}
 	if len(taskIDs(t, root)) != 1 {
 		t.Fatalf("ids = %v", taskIDs(t, root))
-	}
-}
-
-// A filename whose second segment is not a number must produce a clean error,
-// not a corrupt task-NaN filename (the original Issue 2 bug).
-func TestEditTitleNonNumericFilenameErrors(t *testing.T) {
-	root := initProject(t)
-	raw := "---\nid: foo-bar\ntitle: Original\ntype: task\nstatus: todo\npriority: medium\ncreated: \"2026-01-01\"\nupdated: \"2026-01-01\"\n---\n# Original\n"
-	dir := store.TasksDir(root)
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(dir, "foo-bar-baz.md"), []byte(raw), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	code, _, stderr := runCLI(t, root, "edit", "foo-bar", "--title", "renamed")
-	if code == 0 {
-		t.Fatalf("rename of non-numeric counter should fail")
-	}
-	if !strings.Contains(stderr, "Cannot rename: could not parse counter from filename") {
-		t.Fatalf("stderr = %q", stderr)
-	}
-	matches, _ := filepath.Glob(filepath.Join(dir, "*NaN*"))
-	if len(matches) > 0 {
-		t.Fatalf("corrupt NaN filename created: %v", matches)
 	}
 }
 

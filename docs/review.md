@@ -23,16 +23,16 @@ implementation. Treat them as contract:
 - **Cycle-safe tree building.** `buildTree` tracks ids on the current path, so
   a corrupt parent graph (A→B→A) cannot infinite-loop. Human/AI-edited
   frontmatter is an expected input.
-- **O(1) id lookup.** `FindByID` resolves the file by id-prefix glob
-  (`task-2-*.md`) instead of scanning and parsing the whole tasks dir. Don't
-  reintroduce full scans on the hot path.
-- **Filename counter derived from the file, not user input.** Title edits
-  re-parse the counter from the existing basename, so `task-NaN-title.md`
-  corruption is impossible.
-- **One file per task.** Git-diffable and editor-editable is the point.
-  Consolidating into a database or a single blob would kill the
-  human-readable benefit. If storage is revisited, it must preserve
-  git-friendliness.
+- **O(N) id lookup on the board document.** `FindByID` scans `.lokan/board.md`
+  blocks (there are no per-task files). Keep the scan linear and cheap — no
+  regex-over-filepath tricks; a full board scan is fine at kanban scale.
+- **ID immutable on title edits.** Title edits update the task block in
+  place — the id always comes from frontmatter, never from a filename, so
+  `task-NaN-title.md` corruption is impossible by construction.
+- **One board file, git-friendly.** Git-diffable and editor-editable is the
+  point. The single `.lokan/board.md` preserves that: `<!-- lokan:<id> -->`
+  blocks, deterministic Active/Archive grouping, atomic temp+rename rewrites.
+  If storage is revisited, it must preserve git-friendliness.
 
 ## Test Coverage Priorities
 
@@ -40,25 +40,23 @@ The core layers (id/store/query) have solid happy-path coverage. The gaps
 that matter most, in order:
 
 1. **Serialize/deserialize round-trip** — every task read and write goes
-   through `format.go`. A round-trip test (parse → serialize → parse equals
-   original) catches silent corruption that unit tests of individual fields
-   miss.
-2. **`renameTask`** — writes a new file then deletes the old. Partial failure
-   (write succeeds, unlink fails) leaves duplicates. Cover: old file removed,
-   new file correct, collision behavior.
+   through `format.go` (board document parse + per-block serialize). A
+   round-trip test (parse → serialize → parse equals original) catches silent
+   corruption that unit tests of individual fields miss.
+2. **Board rewrite atomicity** — every mutation rewrites the whole document.
+   Cover: lock-guarded concurrent creates never lose updates, temp+rename
+   leaves no partial writes, invalid blocks are skipped with a warning.
 3. **Parent type validation** — creating a `subtask` under an `epic` must
    fail. This is the core guard against an invalid task graph.
-4. **Slug edge cases** — empty title, all-symbol title (`!!!`), exactly-50
-   chars, unicode. All-symbol input can produce `task-1-.md`, which is
-   invalid on some filesystems.
+4. **Archive grouping** — `done`/`cancelled` tasks render under `## Archive`,
+   everything else under `## Active`; reopening a task moves it back.
 5. **Cycle detection** — buildTree on circular parent references returns
    cleanly instead of recursing forever.
 
 ## Architecture Decisions That Are Fine As-Is
 
-- **One file per task** — see invariants above.
-- **No caching layer** — correct at this scale; the O(1) lookup buys the
-  headroom first.
+- **One board file** — see invariants above.
+- **No caching layer** — correct at this scale; the board scan stays cheap.
 - **Boring CLI framework, stdlib HTTP** — the right call. Don't swap for
   custom parsing or a heavy web framework without a concrete win.
 - **Test structure** — pure unit tests for query/id, integration tests with

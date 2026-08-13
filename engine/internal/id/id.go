@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
-	"strings"
 	"time"
 
 	"github.com/avressatelier/lokan/internal/types"
@@ -114,32 +112,7 @@ func NextCounter(root string) (int, error) {
 	return cfg.Counter, nil
 }
 
-// GenerateSlug lowercases a title, hyphenates non-alphanumeric runs, trims
-// edge hyphens, and truncates at a word boundary below 50 characters.
-func GenerateSlug(title string) string {
-	// normalize to a lowercase hyphenated slug
-	slug := strings.ToLower(title)
-	slug = nonAlnum.ReplaceAllString(slug, "-")
-	slug = strings.Trim(slug, "-")
-
-	// truncate at a word boundary past 50 chars
-	if len(slug) > 50 {
-		slug = trailingWord.ReplaceAllString(slug[:50], "")
-	}
-	return slug
-}
-
 // GenerateID builds a task id from type and counter, e.g. "task-2".
 func GenerateID(taskType types.TaskType, counter int) string {
 	return fmt.Sprintf("%s-%d", taskType, counter)
 }
-
-// GenerateFilename builds the task file name, e.g. "task-2-setup-db.md".
-func GenerateFilename(taskType types.TaskType, counter int, title string) string {
-	return fmt.Sprintf("%s-%d-%s.md", taskType, counter, GenerateSlug(title))
-}
-
-var (
-	nonAlnum     = regexp.MustCompile(`[^a-z0-9]+`)
-	trailingWord = regexp.MustCompile(`-[^-]*$`)
-)

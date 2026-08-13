@@ -50,7 +50,6 @@ func newCreateCmd() *cobra.Command {
 				return err
 			}
 			taskID := id.GenerateID(t, counter)
-			filename := id.GenerateFilename(t, counter, title)
 			today := time.Now().UTC().Format("2006-01-02")
 
 			task, err := store.CreateTask(root, types.TaskFrontmatter{
@@ -63,15 +62,14 @@ func newCreateCmd() *cobra.Command {
 				Updated:  today,
 				Parent:   parent,
 				Tags:     tags,
-			}, filename, "")
+			}, "")
 			if err != nil {
 				return err
 			}
-
 			// print the created task with a project-relative path
-			rel, err := filepath.Rel(root, task.FilePath)
+			rel, err := filepath.Rel(root, store.BoardPath(root))
 			if err != nil {
-				rel = task.FilePath
+				rel = store.BoardPath(root)
 			}
 			fmt.Fprintf(cmd.OutOrStdout(), "Created %s → %s\n", task.ID, rel)
 			if parent != "" {

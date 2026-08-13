@@ -2,9 +2,11 @@ package store
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -50,39 +52,53 @@ func makeFrontmatter(overrides map[string]interface{}) types.TaskFrontmatter {
 
 func newTempRoot(t *testing.T) string {
 	t.Helper()
-	root := t.TempDir()
-	if err := os.MkdirAll(TasksDir(root), 0o755); err != nil {
+	return t.TempDir()
+}
+
+func mustCreate(t *testing.T, root string, fm types.TaskFrontmatter) types.Task {
+	t.Helper()
+	task, err := CreateTask(root, fm, "")
+	if err != nil {
 		t.Fatal(err)
 	}
-	return root
+	return task
 }
 
 // ---------------------------------------------------------------------------
 // createTask
 // ---------------------------------------------------------------------------
 
-func TestCreateTaskCreatesFile(t *testing.T) {
+func TestCreateTaskWritesBoard(t *testing.T) {
 	root := newTempRoot(t)
-	fm := makeFrontmatter(nil)
-	if _, err := CreateTask(root, fm, "task-1-test-task.md", ""); err != nil {
+	if _, err := CreateTask(root, makeFrontmatter(nil), ""); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := os.Stat(filepath.Join(TasksDir(root), "task-1-test-task.md")); err != nil {
-		t.Fatalf("task file missing: %v", err)
+	if _, err := os.Stat(BoardPath(root)); err != nil {
+		t.Fatalf("board file missing: %v", err)
+	}
+	if _, err := os.Stat(TasksDir(root)); !os.IsNotExist(err) {
+		t.Fatalf("tasks dir should not exist: %v", err)
+	}
+	summaries, err := LoadAllSummaries(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(summaries) != 1 {
+		t.Fatalf("len = %d, want 1", len(summaries))
 	}
 }
 
 func TestCreateTaskReturnsFields(t *testing.T) {
 	root := newTempRoot(t)
 	fm := makeFrontmatter(map[string]interface{}{"id": "epic-5", "title": "Big Epic", "type": types.TypeEpic})
-	task, err := CreateTask(root, fm, "epic-5-big-epic.md", "")
+	task, err := CreateTask(root, fm, "")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if task.ID != "epic-5" || task.Title != "Big Epic" {
 		t.Fatalf("task = %+v", task)
 	}
-	if task.FilePath != filepath.Join(TasksDir(root), "epic-5-big-epic.md") {
+	if task.FilePath != VirtualPath(root, "epic-5") {
 		t.Fatalf("filePath = %q", task.FilePath)
 	}
 }
@@ -94,7 +110,7 @@ func TestCreateTaskReturnsFields(t *testing.T) {
 func TestLoadTaskRoundTrip(t *testing.T) {
 	root := newTempRoot(t)
 	fm := makeFrontmatter(map[string]interface{}{"id": "task-42", "title": "Round-trip Task", "priority": types.PriorityHigh})
-	created, err := CreateTask(root, fm, "task-42-round-trip-task.md", "")
+	created, err := CreateTask(root, fm, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -114,14 +130,21 @@ func TestLoadTaskRoundTrip(t *testing.T) {
 	}
 }
 
+func TestLoadTaskMissing(t *testing.T) {
+	root := newTempRoot(t)
+	if _, err := LoadTask(VirtualPath(root, "task-999")); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("err = %v, want ErrNotFound", err)
+	}
+}
+
 // ---------------------------------------------------------------------------
 // loadAllSummaries
 // ---------------------------------------------------------------------------
 
 func TestLoadAllSummariesReturnsAll(t *testing.T) {
 	root := newTempRoot(t)
-	mustCreate(t, root, "task-1-first.md", makeFrontmatter(map[string]interface{}{"id": "task-1", "title": "First"}))
-	mustCreate(t, root, "task-2-second.md", makeFrontmatter(map[string]interface{}{"id": "task-2", "title": "Second"}))
+	mustCreate(t, root, makeFrontmatter(map[string]interface{}{"id": "task-1", "title": "First"}))
+	mustCreate(t, root, makeFrontmatter(map[string]interface{}{"id": "task-2", "title": "Second"}))
 
 	summaries, err := LoadAllSummaries(root)
 	if err != nil {
@@ -138,8 +161,15 @@ func TestLoadAllSummariesReturnsAll(t *testing.T) {
 
 func TestLoadAllSummariesSkipsInvalid(t *testing.T) {
 	root := newTempRoot(t)
-	mustCreate(t, root, "task-1-valid.md", makeFrontmatter(map[string]interface{}{"id": "task-1", "title": "Valid"}))
-	if err := os.WriteFile(filepath.Join(TasksDir(root), "garbage.md"), []byte("not frontmatter\njust text\n"), 0o644); err != nil {
+	raw := "# Kanlo Board\n\n## Active\n\n" +
+		"<!-- lokan:task-1 -->\n" +
+		"---\nid: task-1\ntitle: Valid\ntype: task\nstatus: todo\npriority: medium\ncreated: \"2024-01-01\"\nupdated: \"2024-01-01\"\n---\n# Valid\n\n" +
+		"<!-- lokan:bad -->\n" +
+		"this is not frontmatter\n"
+	if err := os.MkdirAll(filepath.Dir(BoardPath(root)), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(BoardPath(root), []byte(raw), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -152,8 +182,14 @@ func TestLoadAllSummariesSkipsInvalid(t *testing.T) {
 	}
 }
 
-func TestLoadAllSummariesEmptyDir(t *testing.T) {
+func TestLoadAllSummariesEmptyBoard(t *testing.T) {
 	root := newTempRoot(t)
+	if err := os.MkdirAll(filepath.Dir(BoardPath(root)), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(BoardPath(root), []byte("# Kanlo Board\n\n## Active\n\n## Archive\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
 	summaries, err := LoadAllSummaries(root)
 	if err != nil {
 		t.Fatal(err)
@@ -163,8 +199,8 @@ func TestLoadAllSummariesEmptyDir(t *testing.T) {
 	}
 }
 
-func TestLoadAllSummariesMissingDir(t *testing.T) {
-	root := t.TempDir()
+func TestLoadAllSummariesMissingBoard(t *testing.T) {
+	root := newTempRoot(t)
 	summaries, err := LoadAllSummaries(root)
 	if err != nil {
 		t.Fatal(err)
@@ -180,7 +216,7 @@ func TestLoadAllSummariesMissingDir(t *testing.T) {
 
 func TestFindByID(t *testing.T) {
 	root := newTempRoot(t)
-	mustCreate(t, root, "task-7-find-me.md", makeFrontmatter(map[string]interface{}{"id": "task-7", "title": "Find Me"}))
+	mustCreate(t, root, makeFrontmatter(map[string]interface{}{"id": "task-7", "title": "Find Me"}))
 	summary, err := FindByID(root, "task-7")
 	if err != nil {
 		t.Fatal(err)
@@ -199,7 +235,7 @@ func TestFindByIDMissing(t *testing.T) {
 
 func TestFindByIDDoesNotMatchLongerID(t *testing.T) {
 	root := newTempRoot(t)
-	mustCreate(t, root, "task-12-foo.md", makeFrontmatter(map[string]interface{}{"id": "task-12", "title": "Foo"}))
+	mustCreate(t, root, makeFrontmatter(map[string]interface{}{"id": "task-12", "title": "Foo"}))
 	if _, err := FindByID(root, "task-1"); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("err = %v, want ErrNotFound", err)
 	}
@@ -212,7 +248,7 @@ func TestFindByIDDoesNotMatchLongerID(t *testing.T) {
 func TestWriteTaskBumpsUpdated(t *testing.T) {
 	root := newTempRoot(t)
 	fm := makeFrontmatter(map[string]interface{}{"id": "task-1", "updated": "2020-01-01"})
-	created, err := CreateTask(root, fm, "task-1-test-task.md", "")
+	created, err := CreateTask(root, fm, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -232,7 +268,7 @@ func TestWriteTaskBumpsUpdated(t *testing.T) {
 
 func TestWriteTaskPersistsChanges(t *testing.T) {
 	root := newTempRoot(t)
-	created, err := CreateTask(root, makeFrontmatter(nil), "task-1-test-task.md", "")
+	created, err := CreateTask(root, makeFrontmatter(nil), "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -257,7 +293,7 @@ func TestWriteTaskPreservesBodyAndOptionalFields(t *testing.T) {
 		"parent": "epic-1",
 		"tags":   []string{"frontend", "auth"},
 	})
-	created, err := CreateTask(root, fm, "task-9-nested.md", "")
+	created, err := CreateTask(root, fm, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -274,6 +310,100 @@ func TestWriteTaskPreservesBodyAndOptionalFields(t *testing.T) {
 	}
 	if !strings.Contains(reloaded.Body, "custom note") {
 		t.Fatalf("body lost content: %q", reloaded.Body)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// archive grouping
+// ---------------------------------------------------------------------------
+
+func TestArchiveSectionGroupsDoneTasks(t *testing.T) {
+	root := newTempRoot(t)
+	created, err := CreateTask(root, makeFrontmatter(nil), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	created.Status = types.StatusDone
+	if err := WriteTask(created); err != nil {
+		t.Fatal(err)
+	}
+
+	raw, err := os.ReadFile(BoardPath(root))
+	if err != nil {
+		t.Fatal(err)
+	}
+	content := string(raw)
+	if !strings.Contains(content, "## Archive\n\n<!-- lokan:task-1 -->") {
+		t.Fatalf("done task not under Archive section:\n%s", content)
+	}
+	if strings.Contains(content, "## Active\n\n<!-- lokan:task-1 -->") {
+		t.Fatalf("done task still under Active:\n%s", content)
+	}
+
+	summaries, err := LoadAllSummaries(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(summaries) != 1 || summaries[0].ID != "task-1" {
+		t.Fatalf("summaries = %+v, want task-1", summaries)
+	}
+}
+
+func TestWriteTaskUnarchivesOnReopen(t *testing.T) {
+	root := newTempRoot(t)
+	created, err := CreateTask(root, makeFrontmatter(nil), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	created.Status = types.StatusDone
+	if err := WriteTask(created); err != nil {
+		t.Fatal(err)
+	}
+	created.Status = types.StatusTodo
+	if err := WriteTask(created); err != nil {
+		t.Fatal(err)
+	}
+
+	raw, err := os.ReadFile(BoardPath(root))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(raw), "## Active\n\n<!-- lokan:task-1 -->") {
+		t.Fatalf("reopened task not back under Active:\n%s", raw)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// concurrency
+// ---------------------------------------------------------------------------
+
+func TestConcurrentCreateNoLostUpdates(t *testing.T) {
+	root := newTempRoot(t)
+	const n = 30
+	var wg sync.WaitGroup
+	errs := make(chan error, n)
+	for i := 1; i <= n; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			fm := makeFrontmatter(map[string]interface{}{"id": fmt.Sprintf("task-%d", i), "title": fmt.Sprintf("T%d", i)})
+			if _, err := CreateTask(root, fm, ""); err != nil {
+				errs <- err
+			}
+		}(i)
+	}
+	wg.Wait()
+	close(errs)
+	for err := range errs {
+		t.Fatalf("CreateTask: %v", err)
+	}
+
+	summaries, err := LoadAllSummaries(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(summaries) != n {
+		t.Fatalf("got %d tasks, want %d (lost updates)", len(summaries), n)
 	}
 }
 
@@ -320,17 +450,4 @@ func TestAcceptsValidFrontmatterWithOptionalFields(t *testing.T) {
 	if summary.Parent != "task-2" || len(summary.Related) != 2 || len(summary.Docs) != 1 || len(summary.Tags) != 1 {
 		t.Fatalf("summary = %+v", summary)
 	}
-}
-
-// ---------------------------------------------------------------------------
-// helpers
-// ---------------------------------------------------------------------------
-
-func mustCreate(t *testing.T, root string, filename string, fm types.TaskFrontmatter) types.Task {
-	t.Helper()
-	task, err := CreateTask(root, fm, filename, "")
-	if err != nil {
-		t.Fatal(err)
-	}
-	return task
 }

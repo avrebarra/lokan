@@ -41,8 +41,9 @@ Assessments to run; each item is a proposal, not a commitment.
 - [ ] **Decouple type from ID** — plain counter IDs (`1`, `2`) instead of
       type-prefixed (`epic-1`, `task-2`), so changing a task's type doesn't
       change its ID
-- [ ] **Single-file storage** — assess making storage one markdown file that
-      is parsed and read directly, with this app as its editor/viewer
+- [x] **Single-file storage** — DONE (2026-08-13): storage is one
+      `.lokan/board.md` (Active/Archive sections, `<!-- lokan:<id> -->`
+      blocks) parsed and rewritten atomically, with this app as editor/viewer
 - [ ] **Switch CLI framework** — from cobra to urfave/cli
 - [ ] **Tailwind CSS** — adopt Tailwind for the frontend as much as possible
 - [ ] **Protobuf** — assess Protobuf instead of HTTP RESTful for the API

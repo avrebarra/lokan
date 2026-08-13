@@ -13,20 +13,21 @@
 ## What it is
 
 Lokan is a markdown task manager with a kanban-focused CLI and a web UI, all
-in one static binary. Each task is a git-friendly `.md` file — no database.
+in one static binary. All tasks live in one git-friendly `.lokan/board.md`
+(Active/Archive sections) — no database.
 
 ## Stack
 
 | Layer    | Technology                                  | Why                                           |
 | -------- | ------------------------------------------- | --------------------------------------------- |
 | Engine   | Go 1.26, stdlib `net/http`, cobra CLI       | Single static binary, trivial distribution    |
-| Storage  | Markdown files + YAML frontmatter (yaml.v3) | Git-diffable, editor-editable, human-readable |
+| Storage  | Single markdown board file + YAML frontmatter (yaml.v3) | Git-diffable, editor-editable, human-readable |
 | Frontend | Vite + React 18 + TypeScript, plain CSS     | No framework deps, design tokens in CSS       |
 | Fonts    | Geist Sans + Geist Mono (Google Fonts)      | shiprank design system heritage               |
 | Build    | `runtask` (root) → `go:embed`               | One command produces the final binary         |
 
 Stack evolution is tracked in [`roadmap.md`](./roadmap.md) (urfave/cli,
-Tailwind, single-file storage, Protobuf are planned assessments).
+Tailwind, Protobuf are planned assessments).
 
 ## Repository Layout
 
@@ -40,7 +41,7 @@ lokan/
     internal/
       types/              # enums, Task/TaskSummary/TaskFrontmatter, ALLOWED_PARENTS
       id/                 # config read/write, atomic NextCounter (lock file)
-      store/              # markdown parse/serialize, load/find/write/create
+      store/              # board document parse/serialize, load/find/write/create (lock + atomic rewrite)
       query/              # filters, children/descendants, cycle-safe buildTree
       server/             # HTTP handlers + seed data
     web/                  # embed package: dist/ (built frontend, committed placeholder)
@@ -54,13 +55,15 @@ lokan/
 <project>/
   .lokan/
     config.json           { "counter": N, "version": "..." }
-    tasks/
-      epic-1-launch-route.md
-      task-2-submit-approval.md
+    board.md              single file: all task blocks (Active/Archive)
 ```
 
-- One `.md` per task: YAML frontmatter (`id, title, type, status, priority,
-parent?, related?, docs?, tags?, created, updated`) + markdown body.
+- **One board file, one block per task:** every task is a
+  `<!-- lokan:<id> -->`-delimited block (YAML frontmatter — `id, title, type,
+  status, priority, parent?, related?, docs?, tags?, created, updated` — plus
+  markdown body), grouped into `## Active` and `## Archive` (done/cancelled).
+- Mutations rewrite the document atomically (temp + rename) under a
+  `board.md.lock` guard, so concurrent writers cannot lose updates.
 - IDs are **type-prefixed with a shared counter**: `epic-1`, `task-2`,
   `bug-3`. The counter lives in `config.json`. (Decoupling type from the ID
   is planned — see roadmap.)

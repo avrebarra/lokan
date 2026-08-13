@@ -5,7 +5,6 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 	"testing"
 
@@ -35,50 +34,7 @@ func writeTestConfig(t *testing.T, root string, cfg types.LokanConfig) {
 }
 
 // ---------------------------------------------------------------------------
-// generateSlug
-// ---------------------------------------------------------------------------
-
-func TestGenerateSlugLowercasesAndHyphenates(t *testing.T) {
-	if got := GenerateSlug("Hello World"); got != "hello-world" {
-		t.Fatalf("GenerateSlug(Hello World) = %q, want %q", got, "hello-world")
-	}
-}
-
-func TestGenerateSlugCollapsesHyphensAndTrims(t *testing.T) {
-	if got := GenerateSlug("  --Multiple---Hyphens-- "); got != "multiple-hyphens" {
-		t.Fatalf("got %q", got)
-	}
-}
-
-func TestGenerateSlugTruncatesAtWordBoundary(t *testing.T) {
-	long := "This is a very long title that definitely exceeds fifty characters in total"
-	got := GenerateSlug(long)
-	if len(got) > 50 {
-		t.Fatalf("slug too long: %d", len(got))
-	}
-	if len(got) > 0 && got[len(got)-1] == '-' {
-		t.Fatalf("slug ends mid-word: %q", got)
-	}
-	fullSlug := "this-is-a-very-long-title-that-definitely-exceeds-fifty-characters-in-total"
-	if !strings.HasPrefix(fullSlug, got) {
-		t.Fatalf("slug %q is not a prefix of %q", got, fullSlug)
-	}
-}
-
-func TestGenerateSlugSpecialOnly(t *testing.T) {
-	if got := GenerateSlug("!!!"); got != "" {
-		t.Fatalf("got %q, want empty", got)
-	}
-	if got := GenerateSlug(""); got != "" {
-		t.Fatalf("got %q, want empty", got)
-	}
-	if got := GenerateSlug("123"); got != "123" {
-		t.Fatalf("got %q, want 123", got)
-	}
-}
-
-// ---------------------------------------------------------------------------
-// generateId / generateFilename
+// generateId
 // ---------------------------------------------------------------------------
 
 func TestGenerateID(t *testing.T) {
@@ -98,13 +54,6 @@ func TestGenerateID(t *testing.T) {
 				t.Fatalf("GenerateID = %q, want %q", got, tc.want)
 			}
 		})
-	}
-}
-
-func TestGenerateFilename(t *testing.T) {
-	got := GenerateFilename(types.TypeTask, 2, "Setup DB")
-	if got != "task-2-setup-db.md" {
-		t.Fatalf("got %q", got)
 	}
 }
 

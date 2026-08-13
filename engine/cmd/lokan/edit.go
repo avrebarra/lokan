@@ -2,11 +2,7 @@ package main
 
 import (
 	"fmt"
-	"path/filepath"
-	"strconv"
-	"strings"
 
-	"github.com/avressatelier/lokan/internal/id"
 	"github.com/avressatelier/lokan/internal/store"
 	"github.com/avressatelier/lokan/internal/types"
 	"github.com/spf13/cobra"
@@ -71,20 +67,6 @@ func newEditCmd() *cobra.Command {
 				return nil
 			}
 
-			// rename the file when the title changed, then persist
-			if titleChanged {
-				// Issue 2: derive counter from the existing filename basename,
-				// not from the user-supplied id
-				counter, err := counterFromFilename(task.FilePath)
-				if err != nil {
-					return err
-				}
-				newFilename := id.GenerateFilename(task.Type, counter, task.Title)
-				task, err = store.RenameTask(task, newFilename)
-				if err != nil {
-					return err
-				}
-			}
 			if err := store.WriteTask(task); err != nil {
 				return err
 			}
@@ -103,22 +85,6 @@ func newEditCmd() *cobra.Command {
 	cmd.Flags().StringVar(&newTitle, "title", "", "New title")
 	cmd.Flags().StringVar(&newParent, "parent", "", "Set parent task ID (empty clears)")
 	return cmd
-}
-
-// counterFromFilename parses the numeric counter out of a task filename
-// basename, e.g. "task-12-old-title.md" → 12.
-func counterFromFilename(filePath string) (int, error) {
-	base := filepath.Base(filePath)
-	base = strings.TrimSuffix(base, filepath.Ext(base))
-	parts := strings.Split(base, "-")
-	if len(parts) < 2 {
-		return 0, cliErrorf("Cannot rename: could not parse counter from filename %q", base)
-	}
-	counter, err := strconv.Atoi(parts[1])
-	if err != nil {
-		return 0, cliErrorf("Cannot rename: could not parse counter from filename %q", base)
-	}
-	return counter, nil
 }
 
 func parentLabel(p string) string {

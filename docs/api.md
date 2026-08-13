@@ -32,7 +32,7 @@ critical | high | medium | low
 | subtask | task, bug       |
 | bug     | epic, task      |
 
-## Task frontmatter (YAML in `.lokan/tasks/*.md`)
+## Task frontmatter (YAML blocks in `.lokan/board.md`)
 
 | field    | type       | required | notes                       |
 | -------- | ---------- | -------- | --------------------------- |
@@ -48,8 +48,13 @@ critical | high | medium | low
 | created  | YYYY-MM-DD | yes      | set once on create          |
 | updated  | YYYY-MM-DD | yes      | auto-updated on every write |
 
-`Task` = frontmatter + `body` (raw markdown) + `filePath` (absolute path).
+`Task` = frontmatter + `body` (raw markdown) + `filePath` (virtual task path).
 `TaskSummary` = frontmatter + `filePath` (no body).
+
+> `filePath` is a **virtual path** — all tasks live in one file
+> (`.lokan/board.md`) as `<!-- lokan:<id> -->`-delimited blocks. The reported
+> path (`<root>/.lokan/tasks/<id>.md`) is stable per task and is how the
+> engine addresses a block; it is not a real file on disk.
 
 ## Endpoints
 
@@ -127,9 +132,30 @@ and embedded via `//go:embed all:dist` (package `engine/web`). `GET /` serves
 <project>/
   .lokan/
     config.json       { "counter": number, "version": string }
-    tasks/
-      task-01.md
-      task-02.md
+    board.md          single file: all task blocks
 ```
 
-Task file: YAML frontmatter (fields above) + blank line + markdown body.
+`board.md` holds every task as a `<!-- lokan:<id> -->`-delimited block (YAML
+frontmatter fields above + blank line + markdown body), grouped into two
+sections:
+
+```
+# Lokan Board
+
+## Active
+
+<!-- lokan:task-01 -->
+---
+id: task-01
+...
+---
+
+## Archive
+
+<!-- lokan:task-02 -->
+...
+```
+
+`## Archive` holds tasks whose status is `done` or `cancelled`; everything
+else renders under `## Active`. The engine rewrites the file atomically
+(temp + rename) under a `board.md.lock` guard on every mutation.
