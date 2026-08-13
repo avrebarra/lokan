@@ -115,7 +115,7 @@ export default function CreateModal({ onClose, onCreate }: Props) {
                 type="text"
                 value={parent}
                 onChange={(e) => setParent(e.target.value)}
-                placeholder="task-01"
+                placeholder="1"
                 className={fieldClass}
               />
             </div>

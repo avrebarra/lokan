@@ -115,7 +115,7 @@ Clicking a row opens a centered modal (share-layer pattern):
 - Backdrop: `color-mix(in srgb, var(--bg) 72%, transparent)`.
 - Panel: `1px solid var(--fg)`, `max-width: 680px`, `max-height: min(92vh, 840px)`,
   the ONLY allowed shadow: `0 24px 80px color-mix(in srgb, var(--fg) 18%, transparent)`.
-- Head: title (Geist Sans 24px) + id line (`task-01 · CRIT · bug`) + `× close` button.
+- Head: title (Geist Sans 24px) + id line (`1 · CRIT · bug`) + `× close` button.
 - Fields grid (2 cols, 1 col narrow): **status, type, priority, parent, created,
   updated, tags, related** — label `--muted` mono 11px uppercase left, value
   right-aligned 12px, `border-bottom` hairlines.

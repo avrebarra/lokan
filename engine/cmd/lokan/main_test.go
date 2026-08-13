@@ -114,9 +114,9 @@ func TestExplicitInitRequiredForAllCommands(t *testing.T) {
 	root := t.TempDir()
 	for _, args := range [][]string{
 		{"create", "hello"},
-		{"get", "task-1"},
-		{"edit", "task-1", "--status", "done"},
-		{"subtasks", "task-1"},
+		{"get", "1"},
+		{"edit", "1", "--status", "done"},
+		{"subtasks", "1"},
 	} {
 		code, _, stderr := runCLI(t, root, args...)
 		if code == 0 {
@@ -138,10 +138,10 @@ func TestCreateValid(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("create failed: %s", stderr)
 	}
-	if !strings.Contains(stdout, "Created task-1") {
+	if !strings.Contains(stdout, "Created 1") {
 		t.Fatalf("stdout = %q", stdout)
 	}
-	summary, err := store.FindByID(root, "task-1")
+	summary, err := store.FindByID(root, "1")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -159,7 +159,7 @@ func TestCreateWithTypePriorityAndTags(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("create failed: %s", stderr)
 	}
-	summary, err := store.FindByID(root, "bug-1")
+	summary, err := store.FindByID(root, "1")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -195,26 +195,26 @@ func TestCreateInvalidPriority(t *testing.T) {
 
 func TestCreateParentNotFound(t *testing.T) {
 	root := initProject(t)
-	code, _, stderr := runCLI(t, root, "create", "--parent", "task-99", "hello")
+	code, _, stderr := runCLI(t, root, "create", "--parent", "99", "hello")
 	if code == 0 {
 		t.Fatalf("missing parent should fail")
 	}
-	if !strings.Contains(stderr, "Parent task not found: task-99") {
+	if !strings.Contains(stderr, "Parent task not found: 99") {
 		t.Fatalf("stderr = %q", stderr)
 	}
 }
 
 func TestCreateParentTypeNotAllowed(t *testing.T) {
 	root := initProject(t)
-	// epic-1 can hold task
+	// 1 can hold task
 	if code, _, stderr := runCLI(t, root, "create", "--type", "epic", "e"); code != 0 {
 		t.Fatalf("create epic failed: %s", stderr)
 	}
-	if code, _, stderr := runCLI(t, root, "create", "--parent", "epic-1", "t"); code != 0 {
+	if code, _, stderr := runCLI(t, root, "create", "--parent", "1", "t"); code != 0 {
 		t.Fatalf("create task under epic failed: %s", stderr)
 	}
 	// task cannot be created under a task
-	if code, _, stderr := runCLI(t, root, "create", "--parent", "task-2", "sub"); code == 0 {
+	if code, _, stderr := runCLI(t, root, "create", "--parent", "2", "sub"); code == 0 {
 		t.Fatalf("task under task should fail")
 	} else if !strings.Contains(stderr, "Allowed parents: epic") {
 		t.Fatalf("stderr = %q", stderr)
@@ -224,7 +224,7 @@ func TestCreateParentTypeNotAllowed(t *testing.T) {
 func TestCreateEpicNoParent(t *testing.T) {
 	root := initProject(t)
 	mustCreate(t, root, "parent task")
-	if code, _, stderr := runCLI(t, root, "create", "--type", "epic", "--parent", "task-1", "e"); code == 0 {
+	if code, _, stderr := runCLI(t, root, "create", "--type", "epic", "--parent", "1", "e"); code == 0 {
 		t.Fatalf("epic with parent should fail")
 	} else if !strings.Contains(stderr, "Allowed parents: none") {
 		t.Fatalf("stderr = %q", stderr)
@@ -238,11 +238,11 @@ func TestCreateEpicNoParent(t *testing.T) {
 func TestGet(t *testing.T) {
 	root := initProject(t)
 	mustCreate(t, root, "hello")
-	code, stdout, stderr := runCLI(t, root, "get", "task-1")
+	code, stdout, stderr := runCLI(t, root, "get", "1")
 	if code != 0 {
 		t.Fatalf("get failed: %s", stderr)
 	}
-	if !strings.Contains(stdout, "task-1 · task") {
+	if !strings.Contains(stdout, "1 · task") {
 		t.Fatalf("stdout = %q", stdout)
 	}
 	if !strings.Contains(stdout, "Title:    hello") {
@@ -255,11 +255,11 @@ func TestGet(t *testing.T) {
 
 func TestGetNotFound(t *testing.T) {
 	root := initProject(t)
-	code, _, stderr := runCLI(t, root, "get", "task-99")
+	code, _, stderr := runCLI(t, root, "get", "99")
 	if code == 0 {
 		t.Fatalf("get missing should fail")
 	}
-	if !strings.Contains(stderr, "task not found: task-99") {
+	if !strings.Contains(stderr, "task not found: 99") {
 		t.Fatalf("stderr = %q", stderr)
 	}
 }
@@ -271,14 +271,14 @@ func TestGetNotFound(t *testing.T) {
 func TestEditStatus(t *testing.T) {
 	root := initProject(t)
 	mustCreate(t, root, "hello")
-	code, stdout, stderr := runCLI(t, root, "edit", "task-1", "--status", "done")
+	code, stdout, stderr := runCLI(t, root, "edit", "1", "--status", "done")
 	if code != 0 {
 		t.Fatalf("edit failed: %s", stderr)
 	}
-	if !strings.Contains(stdout, "Updated task-1") {
+	if !strings.Contains(stdout, "Updated 1") {
 		t.Fatalf("stdout = %q", stdout)
 	}
-	summary, err := store.FindByID(root, "task-1")
+	summary, err := store.FindByID(root, "1")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -290,7 +290,7 @@ func TestEditStatus(t *testing.T) {
 func TestEditInvalidStatus(t *testing.T) {
 	root := initProject(t)
 	mustCreate(t, root, "hello")
-	code, _, stderr := runCLI(t, root, "edit", "task-1", "--status", "whenever")
+	code, _, stderr := runCLI(t, root, "edit", "1", "--status", "whenever")
 	if code == 0 {
 		t.Fatalf("invalid status should fail")
 	}
@@ -302,7 +302,7 @@ func TestEditInvalidStatus(t *testing.T) {
 func TestEditInvalidPriority(t *testing.T) {
 	root := initProject(t)
 	mustCreate(t, root, "hello")
-	code, _, stderr := runCLI(t, root, "edit", "task-1", "--priority", "urgent")
+	code, _, stderr := runCLI(t, root, "edit", "1", "--priority", "urgent")
 	if code == 0 {
 		t.Fatalf("invalid priority should fail")
 	}
@@ -316,22 +316,22 @@ func TestEditInvalidPriority(t *testing.T) {
 func TestEditTitleUpdatesInPlace(t *testing.T) {
 	root := initProject(t)
 	mustCreate(t, root, "hello")
-	code, _, stderr := runCLI(t, root, "edit", "task-1", "--title", "hello world")
+	code, _, stderr := runCLI(t, root, "edit", "1", "--title", "hello world")
 	if code != 0 {
 		t.Fatalf("edit title failed: %s", stderr)
 	}
-	if _, err := os.Stat(filepath.Join(store.TasksDir(root), "task-1-hello.md")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(store.TasksDir(root), "1-hello.md")); !os.IsNotExist(err) {
 		t.Fatalf("no per-task files should exist: %v", err)
 	}
-	summary, err := store.FindByID(root, "task-1")
+	summary, err := store.FindByID(root, "1")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if summary.Title != "hello world" {
 		t.Fatalf("title = %q", summary.Title)
 	}
-	if summary.FilePath != store.VirtualPath(root, "task-1") {
-		t.Fatalf("filePath = %q, want %q", summary.FilePath, store.VirtualPath(root, "task-1"))
+	if summary.FilePath != store.VirtualPath(root, "1") {
+		t.Fatalf("filePath = %q, want %q", summary.FilePath, store.VirtualPath(root, "1"))
 	}
 }
 
@@ -339,13 +339,13 @@ func TestEditTitleUpdatesInPlace(t *testing.T) {
 func TestEditTitleTwiceKeepsID(t *testing.T) {
 	root := initProject(t)
 	mustCreate(t, root, "hello")
-	if code, _, stderr := runCLI(t, root, "edit", "task-1", "--title", "second"); code != 0 {
+	if code, _, stderr := runCLI(t, root, "edit", "1", "--title", "second"); code != 0 {
 		t.Fatalf("first title edit failed: %s", stderr)
 	}
-	if code, _, stderr := runCLI(t, root, "edit", "task-1", "--title", "third"); code != 0 {
+	if code, _, stderr := runCLI(t, root, "edit", "1", "--title", "third"); code != 0 {
 		t.Fatalf("second title edit failed: %s", stderr)
 	}
-	if code, _, stderr := runCLI(t, root, "get", "task-1"); code != 0 {
+	if code, _, stderr := runCLI(t, root, "get", "1"); code != 0 {
 		t.Fatalf("get after title edits failed: %s", stderr)
 	}
 	if len(taskIDs(t, root)) != 1 {
@@ -356,12 +356,12 @@ func TestEditTitleTwiceKeepsID(t *testing.T) {
 func TestEditParentClear(t *testing.T) {
 	root := initProject(t)
 	mustCreate(t, root, "--type", "epic", "e")
-	mustCreate(t, root, "--parent", "epic-1", "child")
-	code, _, stderr := runCLI(t, root, "edit", "task-2", "--parent", "")
+	mustCreate(t, root, "--parent", "1", "child")
+	code, _, stderr := runCLI(t, root, "edit", "2", "--parent", "")
 	if code != 0 {
 		t.Fatalf("parent clear failed: %s", stderr)
 	}
-	summary, err := store.FindByID(root, "task-2")
+	summary, err := store.FindByID(root, "2")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -374,15 +374,15 @@ func TestEditParentSet(t *testing.T) {
 	root := initProject(t)
 	mustCreate(t, root, "--type", "epic", "e")
 	mustCreate(t, root, "child")
-	code, _, stderr := runCLI(t, root, "edit", "task-2", "--parent", "epic-1")
+	code, _, stderr := runCLI(t, root, "edit", "2", "--parent", "1")
 	if code != 0 {
 		t.Fatalf("parent set failed: %s", stderr)
 	}
-	summary, err := store.FindByID(root, "task-2")
+	summary, err := store.FindByID(root, "2")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if summary.Parent != "epic-1" {
+	if summary.Parent != "1" {
 		t.Fatalf("parent = %q", summary.Parent)
 	}
 }
@@ -390,11 +390,11 @@ func TestEditParentSet(t *testing.T) {
 func TestEditNoChanges(t *testing.T) {
 	root := initProject(t)
 	mustCreate(t, root, "hello")
-	code, stdout, stderr := runCLI(t, root, "edit", "task-1", "--status", "todo")
+	code, stdout, stderr := runCLI(t, root, "edit", "1", "--status", "todo")
 	if code != 0 {
 		t.Fatalf("edit failed: %s", stderr)
 	}
-	if !strings.Contains(stdout, "No changes for task-1.") {
+	if !strings.Contains(stdout, "No changes for 1.") {
 		t.Fatalf("stdout = %q", stdout)
 	}
 }
@@ -411,7 +411,7 @@ func TestListAll(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("list failed: %s", stderr)
 	}
-	if !strings.Contains(stdout, "task-1") || !strings.Contains(stdout, "task-2") {
+	if !strings.Contains(stdout, "1") || !strings.Contains(stdout, "2") {
 		t.Fatalf("stdout = %q", stdout)
 	}
 	if !strings.Contains(stdout, "TITLE") {
@@ -423,10 +423,10 @@ func TestListFilters(t *testing.T) {
 	root := initProject(t)
 	mustCreate(t, root, "a")
 	mustCreate(t, root, "b")
-	if code, _, stderr := runCLI(t, root, "edit", "task-1", "--status", "done"); code != 0 {
+	if code, _, stderr := runCLI(t, root, "edit", "1", "--status", "done"); code != 0 {
 		t.Fatalf("edit failed: %s", stderr)
 	}
-	if code, _, stderr := runCLI(t, root, "edit", "task-2", "--priority", "high"); code != 0 {
+	if code, _, stderr := runCLI(t, root, "edit", "2", "--priority", "high"); code != 0 {
 		t.Fatalf("edit failed: %s", stderr)
 	}
 
@@ -434,7 +434,7 @@ func TestListFilters(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("list failed: %s", stderr)
 	}
-	if !strings.Contains(stdout, "task-1") || strings.Contains(stdout, "task-2") {
+	if !strings.Contains(stdout, "1") || strings.Contains(stdout, "2") {
 		t.Fatalf("stdout = %q", stdout)
 	}
 
@@ -442,7 +442,7 @@ func TestListFilters(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("list failed")
 	}
-	if !strings.Contains(stdout, "task-2") || strings.Contains(stdout, "task-1") {
+	if !strings.Contains(stdout, "2") || strings.Contains(stdout, "1") {
 		t.Fatalf("stdout = %q", stdout)
 	}
 
@@ -450,7 +450,7 @@ func TestListFilters(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("list failed")
 	}
-	if strings.Contains(stdout, "task-1") {
+	if strings.Contains(stdout, "1") {
 		t.Fatalf("stdout = %q", stdout)
 	}
 }
@@ -473,19 +473,19 @@ func TestListEmpty(t *testing.T) {
 func TestSubtasks(t *testing.T) {
 	root := initProject(t)
 	mustCreate(t, root, "--type", "epic", "e")
-	mustCreate(t, root, "--parent", "epic-1", "one")
-	mustCreate(t, root, "--parent", "epic-1", "two")
-	code, stdout, stderr := runCLI(t, root, "subtasks", "epic-1")
+	mustCreate(t, root, "--parent", "1", "one")
+	mustCreate(t, root, "--parent", "1", "two")
+	code, stdout, stderr := runCLI(t, root, "subtasks", "1")
 	if code != 0 {
 		t.Fatalf("subtasks failed: %s", stderr)
 	}
-	if !strings.Contains(stdout, "Subtasks of epic-1") {
+	if !strings.Contains(stdout, "Subtasks of 1") {
 		t.Fatalf("stdout = %q", stdout)
 	}
-	if !strings.Contains(stdout, "task-2") || !strings.Contains(stdout, "task-3") {
+	if !strings.Contains(stdout, "2") || !strings.Contains(stdout, "3") {
 		t.Fatalf("stdout = %q", stdout)
 	}
-	if strings.Contains(stdout, "epic-1") == false {
+	if strings.Contains(stdout, "1") == false {
 		t.Fatalf("stdout = %q", stdout)
 	}
 }
@@ -493,22 +493,22 @@ func TestSubtasks(t *testing.T) {
 func TestSubtasksNone(t *testing.T) {
 	root := initProject(t)
 	mustCreate(t, root, "only")
-	code, stdout, stderr := runCLI(t, root, "subtasks", "task-1")
+	code, stdout, stderr := runCLI(t, root, "subtasks", "1")
 	if code != 0 {
 		t.Fatalf("subtasks failed: %s", stderr)
 	}
-	if !strings.Contains(stdout, "No subtasks for task-1.") {
+	if !strings.Contains(stdout, "No subtasks for 1.") {
 		t.Fatalf("stdout = %q", stdout)
 	}
 }
 
 func TestSubtasksNotFound(t *testing.T) {
 	root := initProject(t)
-	code, _, stderr := runCLI(t, root, "subtasks", "task-99")
+	code, _, stderr := runCLI(t, root, "subtasks", "99")
 	if code == 0 {
 		t.Fatalf("missing task should fail")
 	}
-	if !strings.Contains(stderr, "task not found: task-99") {
+	if !strings.Contains(stderr, "task not found: 99") {
 		t.Fatalf("stderr = %q", stderr)
 	}
 }

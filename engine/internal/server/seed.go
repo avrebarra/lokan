@@ -277,7 +277,7 @@ func seedTask(root string, fm types.TaskFrontmatter) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	fm.ID = id.GenerateID(fm.Type, counter)
+	fm.ID = id.GenerateID(counter)
 	fm.Created = today()
 	fm.Updated = today()
 	if _, err := store.CreateTask(root, fm, ""); err != nil {

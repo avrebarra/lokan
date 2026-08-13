@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	"github.com/avressatelier/lokan/internal/types"
@@ -112,7 +113,7 @@ func NextCounter(root string) (int, error) {
 	return cfg.Counter, nil
 }
 
-// GenerateID builds a task id from type and counter, e.g. "task-2".
-func GenerateID(taskType types.TaskType, counter int) string {
-	return fmt.Sprintf("%s-%d", taskType, counter)
+// GenerateID returns the plain counter as the task id, e.g. "2".
+func GenerateID(counter int) string {
+	return strconv.Itoa(counter)
 }

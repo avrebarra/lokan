@@ -84,8 +84,8 @@ func TestTasksEmpty(t *testing.T) {
 
 func TestTasksSeeded(t *testing.T) {
 	root := newTestProject(t)
-	createTestTask(t, root, "task-1", "Alpha", types.StatusTodo, types.PriorityMedium)
-	createTestTask(t, root, "task-2", "Beta", types.StatusDone, types.PriorityHigh)
+	createTestTask(t, root, "1", "Alpha", types.StatusTodo, types.PriorityMedium)
+	createTestTask(t, root, "2", "Beta", types.StatusDone, types.PriorityHigh)
 
 	rec := doRequest(t, New(root).Handler(), "GET", "/api/tasks", nil)
 	if rec.Code != http.StatusOK {
@@ -100,7 +100,7 @@ func TestTasksSeeded(t *testing.T) {
 	if len(resp.Tasks) != 2 {
 		t.Fatalf("len(tasks) = %d, want 2", len(resp.Tasks))
 	}
-	if resp.Tasks[0].ID != "task-1" || resp.Tasks[1].ID != "task-2" {
+	if resp.Tasks[0].ID != "1" || resp.Tasks[1].ID != "2" {
 		t.Fatalf("unexpected task order: %+v", resp.Tasks)
 	}
 }
@@ -111,9 +111,9 @@ func TestTasksSeeded(t *testing.T) {
 
 func TestTaskFound(t *testing.T) {
 	root := newTestProject(t)
-	createTestTask(t, root, "task-1", "Alpha", types.StatusTodo, types.PriorityMedium)
+	createTestTask(t, root, "1", "Alpha", types.StatusTodo, types.PriorityMedium)
 
-	rec := doRequest(t, New(root).Handler(), "GET", "/api/task/task-1", nil)
+	rec := doRequest(t, New(root).Handler(), "GET", "/api/task/1", nil)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want 200", rec.Code)
 	}
@@ -123,8 +123,8 @@ func TestTaskFound(t *testing.T) {
 	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
 		t.Fatalf("decode response: %v", err)
 	}
-	if resp.Task.ID != "task-1" {
-		t.Fatalf("task id = %q, want task-1", resp.Task.ID)
+	if resp.Task.ID != "1" {
+		t.Fatalf("task id = %q, want 1", resp.Task.ID)
 	}
 	if resp.Task.Title != "Alpha" {
 		t.Fatalf("task title = %q, want Alpha", resp.Task.Title)
@@ -132,8 +132,8 @@ func TestTaskFound(t *testing.T) {
 	if resp.Task.Body == "" {
 		t.Fatal("task body should be non-empty")
 	}
-	if !strings.Contains(resp.Task.FilePath, "task-1") {
-		t.Fatalf("task filePath = %q, want it to contain task-1", resp.Task.FilePath)
+	if !strings.Contains(resp.Task.FilePath, "1") {
+		t.Fatalf("task filePath = %q, want it to contain 1", resp.Task.FilePath)
 	}
 }
 
@@ -160,10 +160,10 @@ func TestTaskNotFound(t *testing.T) {
 
 func TestUpdateStatus(t *testing.T) {
 	root := newTestProject(t)
-	createTestTask(t, root, "task-1", "Alpha", types.StatusTodo, types.PriorityMedium)
+	createTestTask(t, root, "1", "Alpha", types.StatusTodo, types.PriorityMedium)
 
 	rec := doRequest(t, New(root).Handler(), "POST", "/api/update", map[string]string{
-		"id": "task-1", "field": "status", "value": "done",
+		"id": "1", "field": "status", "value": "done",
 	})
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want 200", rec.Code)
@@ -177,15 +177,15 @@ func TestUpdateStatus(t *testing.T) {
 	if resp.Task.Status != types.StatusDone {
 		t.Fatalf("task status = %q, want done", resp.Task.Status)
 	}
-	assertStoredField(t, root, "task-1", func(t types.Task) bool { return t.Status == types.StatusDone })
+	assertStoredField(t, root, "1", func(t types.Task) bool { return t.Status == types.StatusDone })
 }
 
 func TestUpdateInvalidStatus(t *testing.T) {
 	root := newTestProject(t)
-	createTestTask(t, root, "task-1", "Alpha", types.StatusTodo, types.PriorityMedium)
+	createTestTask(t, root, "1", "Alpha", types.StatusTodo, types.PriorityMedium)
 
 	rec := doRequest(t, New(root).Handler(), "POST", "/api/update", map[string]string{
-		"id": "task-1", "field": "status", "value": "bogus",
+		"id": "1", "field": "status", "value": "bogus",
 	})
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d, want 400", rec.Code)
@@ -195,10 +195,10 @@ func TestUpdateInvalidStatus(t *testing.T) {
 
 func TestUpdateInvalidPriority(t *testing.T) {
 	root := newTestProject(t)
-	createTestTask(t, root, "task-1", "Alpha", types.StatusTodo, types.PriorityMedium)
+	createTestTask(t, root, "1", "Alpha", types.StatusTodo, types.PriorityMedium)
 
 	rec := doRequest(t, New(root).Handler(), "POST", "/api/update", map[string]string{
-		"id": "task-1", "field": "priority", "value": "bogus",
+		"id": "1", "field": "priority", "value": "bogus",
 	})
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d, want 400", rec.Code)
@@ -208,10 +208,10 @@ func TestUpdateInvalidPriority(t *testing.T) {
 
 func TestUpdateUnknownField(t *testing.T) {
 	root := newTestProject(t)
-	createTestTask(t, root, "task-1", "Alpha", types.StatusTodo, types.PriorityMedium)
+	createTestTask(t, root, "1", "Alpha", types.StatusTodo, types.PriorityMedium)
 
 	rec := doRequest(t, New(root).Handler(), "POST", "/api/update", map[string]string{
-		"id": "task-1", "field": "wat", "value": "x",
+		"id": "1", "field": "wat", "value": "x",
 	})
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d, want 400", rec.Code)
@@ -221,10 +221,10 @@ func TestUpdateUnknownField(t *testing.T) {
 
 func TestUpdateTitle(t *testing.T) {
 	root := newTestProject(t)
-	createTestTask(t, root, "task-1", "Alpha", types.StatusTodo, types.PriorityMedium)
+	createTestTask(t, root, "1", "Alpha", types.StatusTodo, types.PriorityMedium)
 
 	rec := doRequest(t, New(root).Handler(), "POST", "/api/update", map[string]string{
-		"id": "task-1", "field": "title", "value": "Renamed Alpha",
+		"id": "1", "field": "title", "value": "Renamed Alpha",
 	})
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want 200", rec.Code)
@@ -238,7 +238,7 @@ func TestUpdateTitle(t *testing.T) {
 	if resp.Task.Title != "Renamed Alpha" {
 		t.Fatalf("task title = %q, want Renamed Alpha", resp.Task.Title)
 	}
-	assertStoredField(t, root, "task-1", func(t types.Task) bool { return t.Title == "Renamed Alpha" })
+	assertStoredField(t, root, "1", func(t types.Task) bool { return t.Title == "Renamed Alpha" })
 }
 
 // ---------------------------------------------------------------------------
@@ -403,7 +403,7 @@ func TestCreateTaskValidation(t *testing.T) {
 func TestUpdateTaskNotFound(t *testing.T) {
 	root := newTestProject(t)
 	rec := doRequest(t, New(root).Handler(), "POST", "/api/update", map[string]any{
-		"id": "task-999", "field": "status", "value": "done",
+		"id": "999", "field": "status", "value": "done",
 	})
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("status = %d, want 404", rec.Code)

@@ -28,40 +28,40 @@ func makeTask(id string, mut func(*types.TaskSummary)) types.TaskSummary {
 
 func fixtureTasks() []types.TaskSummary {
 	return []types.TaskSummary{
-		makeTask("epic-1", func(t *types.TaskSummary) {
+		makeTask("1", func(t *types.TaskSummary) {
 			t.Type = types.TypeEpic
 			t.Status = types.StatusInProgress
 			t.Priority = types.PriorityCritical
 			t.Tags = []string{"frontend"}
 		}),
-		makeTask("task-1", func(t *types.TaskSummary) {
+		makeTask("2", func(t *types.TaskSummary) {
 			t.Status = types.StatusTodo
 			t.Priority = types.PriorityHigh
-			t.Parent = "epic-1"
+			t.Parent = "1"
 			t.Tags = []string{"frontend", "auth"}
 		}),
-		makeTask("task-2", func(t *types.TaskSummary) {
+		makeTask("3", func(t *types.TaskSummary) {
 			t.Status = types.StatusInProgress
-			t.Parent = "epic-1"
+			t.Parent = "1"
 		}),
-		makeTask("subtask-1", func(t *types.TaskSummary) {
+		makeTask("4", func(t *types.TaskSummary) {
 			t.Type = types.TypeSubtask
 			t.Priority = types.PriorityLow
-			t.Parent = "task-1"
+			t.Parent = "2"
 		}),
-		makeTask("subtask-2", func(t *types.TaskSummary) {
+		makeTask("5", func(t *types.TaskSummary) {
 			t.Type = types.TypeSubtask
 			t.Status = types.StatusDone
 			t.Priority = types.PriorityLow
-			t.Parent = "task-1"
+			t.Parent = "2"
 		}),
-		makeTask("bug-1", func(t *types.TaskSummary) {
+		makeTask("6", func(t *types.TaskSummary) {
 			t.Type = types.TypeBug
 			t.Status = types.StatusBacklog
 			t.Priority = types.PriorityHigh
 			t.Tags = []string{"auth"}
 		}),
-		makeTask("task-3", func(t *types.TaskSummary) {
+		makeTask("7", func(t *types.TaskSummary) {
 			t.Status = types.StatusCancelled
 			t.Priority = types.PriorityLow
 		}),
@@ -82,49 +82,49 @@ func ids(tasks []types.TaskSummary) []string {
 
 func TestFilterTasksByType(t *testing.T) {
 	got := ids(FilterTasks(fixtureTasks(), types.QueryOptions{Type: types.TypeSubtask}))
-	if !reflect.DeepEqual(got, []string{"subtask-1", "subtask-2"}) {
+	if !reflect.DeepEqual(got, []string{"4", "5"}) {
 		t.Fatalf("got %v", got)
 	}
 }
 
 func TestFilterTasksByStatus(t *testing.T) {
 	got := ids(FilterTasks(fixtureTasks(), types.QueryOptions{Status: types.StatusTodo}))
-	if !reflect.DeepEqual(got, []string{"task-1", "subtask-1"}) {
+	if !reflect.DeepEqual(got, []string{"2", "4"}) {
 		t.Fatalf("got %v", got)
 	}
 }
 
 func TestFilterTasksByPriority(t *testing.T) {
 	got := ids(FilterTasks(fixtureTasks(), types.QueryOptions{Priority: types.PriorityHigh}))
-	if !reflect.DeepEqual(got, []string{"task-1", "bug-1"}) {
+	if !reflect.DeepEqual(got, []string{"2", "6"}) {
 		t.Fatalf("got %v", got)
 	}
 }
 
 func TestFilterTasksByParent(t *testing.T) {
-	got := ids(FilterTasks(fixtureTasks(), types.QueryOptions{Parent: "task-1"}))
-	if !reflect.DeepEqual(got, []string{"subtask-1", "subtask-2"}) {
+	got := ids(FilterTasks(fixtureTasks(), types.QueryOptions{Parent: "2"}))
+	if !reflect.DeepEqual(got, []string{"4", "5"}) {
 		t.Fatalf("got %v", got)
 	}
 }
 
 func TestFilterTasksBySingleTag(t *testing.T) {
 	got := ids(FilterTasks(fixtureTasks(), types.QueryOptions{Tags: []string{"auth"}}))
-	if !reflect.DeepEqual(got, []string{"task-1", "bug-1"}) {
+	if !reflect.DeepEqual(got, []string{"2", "6"}) {
 		t.Fatalf("got %v", got)
 	}
 }
 
 func TestFilterTasksByMultipleTagsAND(t *testing.T) {
 	got := ids(FilterTasks(fixtureTasks(), types.QueryOptions{Tags: []string{"frontend", "auth"}}))
-	if !reflect.DeepEqual(got, []string{"task-1"}) {
+	if !reflect.DeepEqual(got, []string{"2"}) {
 		t.Fatalf("got %v", got)
 	}
 }
 
 func TestFilterTasksMultipleFilters(t *testing.T) {
 	got := ids(FilterTasks(fixtureTasks(), types.QueryOptions{Type: types.TypeTask, Status: types.StatusInProgress}))
-	if !reflect.DeepEqual(got, []string{"task-2"}) {
+	if !reflect.DeepEqual(got, []string{"3"}) {
 		t.Fatalf("got %v", got)
 	}
 }
@@ -146,21 +146,21 @@ func TestFilterTasksNoOptions(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestGetChildrenDirectOnly(t *testing.T) {
-	got := ids(GetChildren(fixtureTasks(), "task-1"))
-	if !reflect.DeepEqual(got, []string{"subtask-1", "subtask-2"}) {
+	got := ids(GetChildren(fixtureTasks(), "2"))
+	if !reflect.DeepEqual(got, []string{"4", "5"}) {
 		t.Fatalf("got %v", got)
 	}
 }
 
 func TestGetChildrenExcludesGrandchildren(t *testing.T) {
-	got := ids(GetChildren(fixtureTasks(), "epic-1"))
-	if !reflect.DeepEqual(got, []string{"task-1", "task-2"}) {
+	got := ids(GetChildren(fixtureTasks(), "1"))
+	if !reflect.DeepEqual(got, []string{"2", "3"}) {
 		t.Fatalf("got %v", got)
 	}
 }
 
 func TestGetChildrenLeaf(t *testing.T) {
-	if got := GetChildren(fixtureTasks(), "subtask-1"); len(got) != 0 {
+	if got := GetChildren(fixtureTasks(), "4"); len(got) != 0 {
 		t.Fatalf("got %v", got)
 	}
 }
@@ -170,8 +170,8 @@ func TestGetChildrenLeaf(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestGetDescendantsRecursesAllLevels(t *testing.T) {
-	got := ids(GetDescendants(fixtureTasks(), "epic-1"))
-	want := []string{"task-1", "subtask-1", "subtask-2", "task-2"}
+	got := ids(GetDescendants(fixtureTasks(), "1"))
+	want := []string{"2", "4", "5", "3"}
 	if len(got) != 4 {
 		t.Fatalf("got %v", got)
 	}
@@ -190,8 +190,8 @@ func TestGetDescendantsRecursesAllLevels(t *testing.T) {
 }
 
 func TestGetDescendantsDirectChildren(t *testing.T) {
-	got := ids(GetDescendants(fixtureTasks(), "task-1"))
-	if !reflect.DeepEqual(got, []string{"subtask-1", "subtask-2"}) {
+	got := ids(GetDescendants(fixtureTasks(), "2"))
+	if !reflect.DeepEqual(got, []string{"4", "5"}) {
 		t.Fatalf("got %v", got)
 	}
 }
@@ -245,7 +245,7 @@ func TestGetAvailableWithOptions(t *testing.T) {
 
 func TestGetBacklogOnlyBacklog(t *testing.T) {
 	got := GetBacklog(fixtureTasks(), nil)
-	if len(got) != 1 || got[0].ID != "bug-1" {
+	if len(got) != 1 || got[0].ID != "6" {
 		t.Fatalf("got %v", ids(got))
 	}
 }
@@ -255,61 +255,61 @@ func TestGetBacklogOnlyBacklog(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestBuildTreeUnknownRoot(t *testing.T) {
-	if tree := BuildTree(fixtureTasks(), "epic-99"); tree != nil {
+	if tree := BuildTree(fixtureTasks(), "99"); tree != nil {
 		t.Fatalf("expected nil, got %+v", tree)
 	}
 }
 
 func TestBuildTreeLeaf(t *testing.T) {
-	tasks := []types.TaskSummary{makeTask("epic-1", func(t *types.TaskSummary) { t.Type = types.TypeEpic })}
-	tree := BuildTree(tasks, "epic-1")
-	if tree == nil || tree.Task.ID != "epic-1" || len(tree.Children) != 0 {
+	tasks := []types.TaskSummary{makeTask("1", func(t *types.TaskSummary) { t.Type = types.TypeEpic })}
+	tree := BuildTree(tasks, "1")
+	if tree == nil || tree.Task.ID != "1" || len(tree.Children) != 0 {
 		t.Fatalf("tree = %+v", tree)
 	}
 }
 
 func TestBuildTreeTwoLevel(t *testing.T) {
 	tasks := []types.TaskSummary{
-		makeTask("epic-1", func(t *types.TaskSummary) { t.Type = types.TypeEpic }),
-		makeTask("task-2", func(t *types.TaskSummary) { t.Parent = "epic-1" }),
-		makeTask("task-3", func(t *types.TaskSummary) { t.Parent = "epic-1" }),
+		makeTask("1", func(t *types.TaskSummary) { t.Type = types.TypeEpic }),
+		makeTask("2", func(t *types.TaskSummary) { t.Parent = "1" }),
+		makeTask("3", func(t *types.TaskSummary) { t.Parent = "1" }),
 	}
-	tree := BuildTree(tasks, "epic-1")
+	tree := BuildTree(tasks, "1")
 	if len(tree.Children) != 2 {
 		t.Fatalf("children = %d, want 2", len(tree.Children))
 	}
 	childIDs := []string{tree.Children[0].Task.ID, tree.Children[1].Task.ID}
-	if !contains(childIDs, "task-2") || !contains(childIDs, "task-3") {
+	if !contains(childIDs, "2") || !contains(childIDs, "3") {
 		t.Fatalf("child ids = %v", childIDs)
 	}
 }
 
 func TestBuildTreeThreeLevel(t *testing.T) {
 	tasks := []types.TaskSummary{
-		makeTask("epic-1", func(t *types.TaskSummary) { t.Type = types.TypeEpic }),
-		makeTask("task-2", func(t *types.TaskSummary) { t.Parent = "epic-1" }),
-		makeTask("subtask-3", func(t *types.TaskSummary) { t.Type = types.TypeSubtask; t.Parent = "task-2" }),
+		makeTask("1", func(t *types.TaskSummary) { t.Type = types.TypeEpic }),
+		makeTask("2", func(t *types.TaskSummary) { t.Parent = "1" }),
+		makeTask("3", func(t *types.TaskSummary) { t.Type = types.TypeSubtask; t.Parent = "2" }),
 	}
-	tree := BuildTree(tasks, "epic-1")
-	if len(tree.Children) != 1 || tree.Children[0].Task.ID != "task-2" {
+	tree := BuildTree(tasks, "1")
+	if len(tree.Children) != 1 || tree.Children[0].Task.ID != "2" {
 		t.Fatalf("tree = %+v", tree)
 	}
 	grand := tree.Children[0].Children
-	if len(grand) != 1 || grand[0].Task.ID != "subtask-3" {
+	if len(grand) != 1 || grand[0].Task.ID != "3" {
 		t.Fatalf("grandchildren = %+v", grand)
 	}
 }
 
 func TestBuildTreeCycleSafe(t *testing.T) {
 	tasks := []types.TaskSummary{
-		makeTask("task-2", func(t *types.TaskSummary) { t.Parent = "task-3" }),
-		makeTask("task-3", func(t *types.TaskSummary) { t.Parent = "task-2" }),
+		makeTask("2", func(t *types.TaskSummary) { t.Parent = "3" }),
+		makeTask("3", func(t *types.TaskSummary) { t.Parent = "2" }),
 	}
-	tree := BuildTree(tasks, "task-2")
+	tree := BuildTree(tasks, "2")
 	if tree == nil {
 		t.Fatal("expected non-nil tree")
 	}
-	if len(tree.Children) != 1 || tree.Children[0].Task.ID != "task-3" {
+	if len(tree.Children) != 1 || tree.Children[0].Task.ID != "3" {
 		t.Fatalf("tree = %+v", tree)
 	}
 	if len(tree.Children[0].Children) != 0 {
@@ -319,9 +319,9 @@ func TestBuildTreeCycleSafe(t *testing.T) {
 
 func TestBuildTreeSelfCycleSafe(t *testing.T) {
 	tasks := []types.TaskSummary{
-		makeTask("task-1", func(t *types.TaskSummary) { t.Parent = "task-1" }),
+		makeTask("1", func(t *types.TaskSummary) { t.Parent = "1" }),
 	}
-	tree := BuildTree(tasks, "task-1")
+	tree := BuildTree(tasks, "1")
 	if tree == nil || len(tree.Children) != 0 {
 		t.Fatalf("tree = %+v", tree)
 	}
@@ -329,13 +329,13 @@ func TestBuildTreeSelfCycleSafe(t *testing.T) {
 
 func TestBuildTreeDiamondDoesNotLoseNodes(t *testing.T) {
 	tasks := []types.TaskSummary{
-		makeTask("epic-1", func(t *types.TaskSummary) { t.Type = types.TypeEpic }),
-		makeTask("task-2", func(t *types.TaskSummary) { t.Parent = "epic-1" }),
-		makeTask("task-3", func(t *types.TaskSummary) { t.Parent = "epic-1" }),
-		makeTask("subtask-4", func(t *types.TaskSummary) { t.Type = types.TypeSubtask; t.Parent = "task-2" }),
-		makeTask("subtask-5", func(t *types.TaskSummary) { t.Type = types.TypeSubtask; t.Parent = "task-3" }),
+		makeTask("1", func(t *types.TaskSummary) { t.Type = types.TypeEpic }),
+		makeTask("2", func(t *types.TaskSummary) { t.Parent = "1" }),
+		makeTask("3", func(t *types.TaskSummary) { t.Parent = "1" }),
+		makeTask("4", func(t *types.TaskSummary) { t.Type = types.TypeSubtask; t.Parent = "2" }),
+		makeTask("5", func(t *types.TaskSummary) { t.Type = types.TypeSubtask; t.Parent = "3" }),
 	}
-	tree := BuildTree(tasks, "epic-1")
+	tree := BuildTree(tasks, "1")
 	seen := map[string]bool{}
 	var walk func(n *types.TreeNode)
 	walk = func(n *types.TreeNode) {
@@ -345,7 +345,7 @@ func TestBuildTreeDiamondDoesNotLoseNodes(t *testing.T) {
 		}
 	}
 	walk(tree)
-	for _, id := range []string{"epic-1", "task-2", "task-3", "subtask-4", "subtask-5"} {
+	for _, id := range []string{"1", "2", "3", "4", "5"} {
 		if !seen[id] {
 			t.Fatalf("lost node %s in tree", id)
 		}

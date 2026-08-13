@@ -66,7 +66,7 @@ func newCreateCmd() *cli.Command {
 			if err != nil {
 				return err
 			}
-			taskID := id.GenerateID(t, counter)
+			taskID := id.GenerateID(counter)
 			today := time.Now().UTC().Format("2006-01-02")
 
 			task, err := store.CreateTask(root, types.TaskFrontmatter{

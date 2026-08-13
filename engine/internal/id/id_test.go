@@ -39,18 +39,17 @@ func writeTestConfig(t *testing.T, root string, cfg types.LokanConfig) {
 
 func TestGenerateID(t *testing.T) {
 	cases := map[string]struct {
-		taskType types.TaskType
-		counter  int
-		want     string
+		counter int
+		want    string
 	}{
-		"task":    {types.TypeTask, 2, "task-2"},
-		"epic":    {types.TypeEpic, 1, "epic-1"},
-		"bug":     {types.TypeBug, 99, "bug-99"},
-		"subtask": {types.TypeSubtask, 7, "subtask-7"},
+		"two":         {2, "2"},
+		"one":         {1, "1"},
+		"ninety-nine": {99, "99"},
+		"seven":       {7, "7"},
 	}
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
-			if got := GenerateID(tc.taskType, tc.counter); got != tc.want {
+			if got := GenerateID(tc.counter); got != tc.want {
 				t.Fatalf("GenerateID = %q, want %q", got, tc.want)
 			}
 		})

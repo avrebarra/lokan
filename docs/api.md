@@ -36,7 +36,7 @@ critical | high | medium | low
 
 | field    | type       | required | notes                       |
 | -------- | ---------- | -------- | --------------------------- |
-| id       | string     | yes      | unique, e.g. `task-01`      |
+| id       | string     | yes      | unique, e.g. `1`            |
 | title    | string     | yes      |                             |
 | type     | TaskType   | yes      |                             |
 | status   | Status     | yes      |                             |
@@ -144,15 +144,15 @@ sections:
 
 ## Active
 
-<!-- lokan:task-01 -->
+<!-- lokan:1 -->
 ---
-id: task-01
+id: "1"
 ...
 ---
 
 ## Archive
 
-<!-- lokan:task-02 -->
+<!-- lokan:2 -->
 ...
 ```
 

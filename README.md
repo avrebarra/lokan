@@ -13,8 +13,8 @@ rebuilt in Go.
 ./dist/lokan init        # create .lokan/ project (explicit — required first)
 ./dist/lokan create -t task "Fix counter race"    # new task
 ./dist/lokan list                                  # board summary
-./dist/lokan edit task-1 --status in-progress     # update fields
-./dist/lokan subtasks task-1                      # children of a task
+./dist/lokan edit 1 --status in-progress    # update fields
+./dist/lokan subtasks 1                     # children of a task
 ./dist/lokan ui                                   # open the web UI (embedded)
 ```
 
@@ -33,7 +33,7 @@ All commands except `init`/`help` require an initialized project and error with
 | `subtasks <id>` | direct children, indented                                             |
 | `ui`            | serve the web UI (default port 7777)                                  |
 
-IDs are type-prefixed with a shared counter (`epic-1`, `task-2`, `bug-3`).
+IDs are plain counter values (`1`, `2`, `3`), shared across all types.
 
 ## Web UI
 

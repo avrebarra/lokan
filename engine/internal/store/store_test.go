@@ -15,7 +15,7 @@ import (
 
 func makeFrontmatter(overrides map[string]interface{}) types.TaskFrontmatter {
 	fm := types.TaskFrontmatter{
-		ID:       "task-1",
+		ID:       "1",
 		Title:    "Test Task",
 		Type:     types.TypeTask,
 		Status:   types.StatusTodo,
@@ -90,15 +90,15 @@ func TestCreateTaskWritesBoard(t *testing.T) {
 
 func TestCreateTaskReturnsFields(t *testing.T) {
 	root := newTempRoot(t)
-	fm := makeFrontmatter(map[string]interface{}{"id": "epic-5", "title": "Big Epic", "type": types.TypeEpic})
+	fm := makeFrontmatter(map[string]interface{}{"id": "5", "title": "Big Epic", "type": types.TypeEpic})
 	task, err := CreateTask(root, fm, "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if task.ID != "epic-5" || task.Title != "Big Epic" {
+	if task.ID != "5" || task.Title != "Big Epic" {
 		t.Fatalf("task = %+v", task)
 	}
-	if task.FilePath != VirtualPath(root, "epic-5") {
+	if task.FilePath != VirtualPath(root, "5") {
 		t.Fatalf("filePath = %q", task.FilePath)
 	}
 }
@@ -109,7 +109,7 @@ func TestCreateTaskReturnsFields(t *testing.T) {
 
 func TestLoadTaskRoundTrip(t *testing.T) {
 	root := newTempRoot(t)
-	fm := makeFrontmatter(map[string]interface{}{"id": "task-42", "title": "Round-trip Task", "priority": types.PriorityHigh})
+	fm := makeFrontmatter(map[string]interface{}{"id": "42", "title": "Round-trip Task", "priority": types.PriorityHigh})
 	created, err := CreateTask(root, fm, "")
 	if err != nil {
 		t.Fatal(err)
@@ -132,7 +132,7 @@ func TestLoadTaskRoundTrip(t *testing.T) {
 
 func TestLoadTaskMissing(t *testing.T) {
 	root := newTempRoot(t)
-	if _, err := LoadTask(VirtualPath(root, "task-999")); !errors.Is(err, ErrNotFound) {
+	if _, err := LoadTask(VirtualPath(root, "999")); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("err = %v, want ErrNotFound", err)
 	}
 }
@@ -143,8 +143,8 @@ func TestLoadTaskMissing(t *testing.T) {
 
 func TestLoadAllSummariesReturnsAll(t *testing.T) {
 	root := newTempRoot(t)
-	mustCreate(t, root, makeFrontmatter(map[string]interface{}{"id": "task-1", "title": "First"}))
-	mustCreate(t, root, makeFrontmatter(map[string]interface{}{"id": "task-2", "title": "Second"}))
+	mustCreate(t, root, makeFrontmatter(map[string]interface{}{"id": "1", "title": "First"}))
+	mustCreate(t, root, makeFrontmatter(map[string]interface{}{"id": "2", "title": "Second"}))
 
 	summaries, err := LoadAllSummaries(root)
 	if err != nil {
@@ -154,7 +154,7 @@ func TestLoadAllSummariesReturnsAll(t *testing.T) {
 		t.Fatalf("len = %d, want 2", len(summaries))
 	}
 	ids := []string{summaries[0].ID, summaries[1].ID}
-	if (ids[0] != "task-1" || ids[1] != "task-2") && (ids[0] != "task-2" || ids[1] != "task-1") {
+	if (ids[0] != "1" || ids[1] != "2") && (ids[0] != "2" || ids[1] != "1") {
 		t.Fatalf("ids = %v", ids)
 	}
 }
@@ -162,8 +162,8 @@ func TestLoadAllSummariesReturnsAll(t *testing.T) {
 func TestLoadAllSummariesSkipsInvalid(t *testing.T) {
 	root := newTempRoot(t)
 	raw := "# Kanlo Board\n\n## Active\n\n" +
-		"<!-- lokan:task-1 -->\n" +
-		"---\nid: task-1\ntitle: Valid\ntype: task\nstatus: todo\npriority: medium\ncreated: \"2024-01-01\"\nupdated: \"2024-01-01\"\n---\n# Valid\n\n" +
+		"<!-- lokan:1 -->\n" +
+		"---\nid: \"1\"\ntitle: Valid\ntype: task\nstatus: todo\npriority: medium\ncreated: \"2024-01-01\"\nupdated: \"2024-01-01\"\n---\n# Valid\n\n" +
 		"<!-- lokan:bad -->\n" +
 		"this is not frontmatter\n"
 	if err := os.MkdirAll(filepath.Dir(BoardPath(root)), 0o755); err != nil {
@@ -177,8 +177,8 @@ func TestLoadAllSummariesSkipsInvalid(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(summaries) != 1 || summaries[0].ID != "task-1" {
-		t.Fatalf("summaries = %+v, want only task-1", summaries)
+	if len(summaries) != 1 || summaries[0].ID != "1" {
+		t.Fatalf("summaries = %+v, want only 1", summaries)
 	}
 }
 
@@ -216,27 +216,27 @@ func TestLoadAllSummariesMissingBoard(t *testing.T) {
 
 func TestFindByID(t *testing.T) {
 	root := newTempRoot(t)
-	mustCreate(t, root, makeFrontmatter(map[string]interface{}{"id": "task-7", "title": "Find Me"}))
-	summary, err := FindByID(root, "task-7")
+	mustCreate(t, root, makeFrontmatter(map[string]interface{}{"id": "7", "title": "Find Me"}))
+	summary, err := FindByID(root, "7")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if summary.ID != "task-7" || summary.Title != "Find Me" {
+	if summary.ID != "7" || summary.Title != "Find Me" {
 		t.Fatalf("summary = %+v", summary)
 	}
 }
 
 func TestFindByIDMissing(t *testing.T) {
 	root := newTempRoot(t)
-	if _, err := FindByID(root, "task-999"); !errors.Is(err, ErrNotFound) {
+	if _, err := FindByID(root, "999"); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("err = %v, want ErrNotFound", err)
 	}
 }
 
 func TestFindByIDDoesNotMatchLongerID(t *testing.T) {
 	root := newTempRoot(t)
-	mustCreate(t, root, makeFrontmatter(map[string]interface{}{"id": "task-12", "title": "Foo"}))
-	if _, err := FindByID(root, "task-1"); !errors.Is(err, ErrNotFound) {
+	mustCreate(t, root, makeFrontmatter(map[string]interface{}{"id": "12", "title": "Foo"}))
+	if _, err := FindByID(root, "1"); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("err = %v, want ErrNotFound", err)
 	}
 }
@@ -247,7 +247,7 @@ func TestFindByIDDoesNotMatchLongerID(t *testing.T) {
 
 func TestWriteTaskBumpsUpdated(t *testing.T) {
 	root := newTempRoot(t)
-	fm := makeFrontmatter(map[string]interface{}{"id": "task-1", "updated": "2020-01-01"})
+	fm := makeFrontmatter(map[string]interface{}{"id": "1", "updated": "2020-01-01"})
 	created, err := CreateTask(root, fm, "")
 	if err != nil {
 		t.Fatal(err)
@@ -289,8 +289,8 @@ func TestWriteTaskPersistsChanges(t *testing.T) {
 func TestWriteTaskPreservesBodyAndOptionalFields(t *testing.T) {
 	root := newTempRoot(t)
 	fm := makeFrontmatter(map[string]interface{}{
-		"id":     "task-9",
-		"parent": "epic-1",
+		"id":     "9",
+		"parent": "1",
 		"tags":   []string{"frontend", "auth"},
 	})
 	created, err := CreateTask(root, fm, "")
@@ -305,7 +305,7 @@ func TestWriteTaskPreservesBodyAndOptionalFields(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if reloaded.Parent != "epic-1" || len(reloaded.Tags) != 2 || reloaded.Tags[0] != "frontend" {
+	if reloaded.Parent != "1" || len(reloaded.Tags) != 2 || reloaded.Tags[0] != "frontend" {
 		t.Fatalf("reloaded = %+v", reloaded)
 	}
 	if !strings.Contains(reloaded.Body, "custom note") {
@@ -333,10 +333,10 @@ func TestArchiveSectionGroupsDoneTasks(t *testing.T) {
 		t.Fatal(err)
 	}
 	content := string(raw)
-	if !strings.Contains(content, "## Archive\n\n<!-- lokan:task-1 -->") {
+	if !strings.Contains(content, "## Archive\n\n<!-- lokan:1 -->") {
 		t.Fatalf("done task not under Archive section:\n%s", content)
 	}
-	if strings.Contains(content, "## Active\n\n<!-- lokan:task-1 -->") {
+	if strings.Contains(content, "## Active\n\n<!-- lokan:1 -->") {
 		t.Fatalf("done task still under Active:\n%s", content)
 	}
 
@@ -344,8 +344,8 @@ func TestArchiveSectionGroupsDoneTasks(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(summaries) != 1 || summaries[0].ID != "task-1" {
-		t.Fatalf("summaries = %+v, want task-1", summaries)
+	if len(summaries) != 1 || summaries[0].ID != "1" {
+		t.Fatalf("summaries = %+v, want 1", summaries)
 	}
 }
 
@@ -368,7 +368,7 @@ func TestWriteTaskUnarchivesOnReopen(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(raw), "## Active\n\n<!-- lokan:task-1 -->") {
+	if !strings.Contains(string(raw), "## Active\n\n<!-- lokan:1 -->") {
 		t.Fatalf("reopened task not back under Active:\n%s", raw)
 	}
 }
@@ -386,7 +386,7 @@ func TestConcurrentCreateNoLostUpdates(t *testing.T) {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
-			fm := makeFrontmatter(map[string]interface{}{"id": fmt.Sprintf("task-%d", i), "title": fmt.Sprintf("T%d", i)})
+			fm := makeFrontmatter(map[string]interface{}{"id": fmt.Sprintf("%d", i), "title": fmt.Sprintf("T%d", i)})
 			if _, err := CreateTask(root, fm, ""); err != nil {
 				errs <- err
 			}
@@ -417,14 +417,14 @@ func TestRejectsInvalidFrontmatterFiles(t *testing.T) {
 		front string
 	}{
 		{"missing id", "title: X\ntype: task\nstatus: todo\npriority: medium\ncreated: 2024-01-01\nupdated: 2024-01-01\n"},
-		{"bad type", "id: task-1\ntitle: X\ntype: banana\nstatus: todo\npriority: medium\ncreated: 2024-01-01\nupdated: 2024-01-01\n"},
-		{"bad status", "id: task-1\ntitle: X\ntype: task\nstatus: whenever\npriority: medium\ncreated: 2024-01-01\nupdated: 2024-01-01\n"},
-		{"bad priority", "id: task-1\ntitle: X\ntype: task\nstatus: todo\npriority: urgent\ncreated: 2024-01-01\nupdated: 2024-01-01\n"},
+		{"bad type", "id: \"1\"\ntitle: X\ntype: banana\nstatus: todo\npriority: medium\ncreated: 2024-01-01\nupdated: 2024-01-01\n"},
+		{"bad status", "id: \"1\"\ntitle: X\ntype: task\nstatus: whenever\npriority: medium\ncreated: 2024-01-01\nupdated: 2024-01-01\n"},
+		{"bad priority", "id: \"1\"\ntitle: X\ntype: task\nstatus: todo\npriority: urgent\ncreated: 2024-01-01\nupdated: 2024-01-01\n"},
 		{"numeric id", "id: 42\ntitle: X\ntype: task\nstatus: todo\npriority: medium\ncreated: 2024-01-01\nupdated: 2024-01-01\n"},
-		{"non-string parent", "id: task-1\ntitle: X\ntype: task\nstatus: todo\npriority: medium\nparent: 42\ncreated: 2024-01-01\nupdated: 2024-01-01\n"},
-		{"non-array tags", "id: task-1\ntitle: X\ntype: task\nstatus: todo\npriority: medium\ntags: not-an-array\ncreated: 2024-01-01\nupdated: 2024-01-01\n"},
-		{"non-string tag element", "id: task-1\ntitle: X\ntype: task\nstatus: todo\npriority: medium\ntags: [1, 2]\ncreated: 2024-01-01\nupdated: 2024-01-01\n"},
-		{"non-array related", "id: task-1\ntitle: X\ntype: task\nstatus: todo\npriority: medium\nrelated: foo\ncreated: 2024-01-01\nupdated: 2024-01-01\n"},
+		{"non-string parent", "id: \"1\"\ntitle: X\ntype: task\nstatus: todo\npriority: medium\nparent: 42\ncreated: 2024-01-01\nupdated: 2024-01-01\n"},
+		{"non-array tags", "id: \"1\"\ntitle: X\ntype: task\nstatus: todo\npriority: medium\ntags: not-an-array\ncreated: 2024-01-01\nupdated: 2024-01-01\n"},
+		{"non-string tag element", "id: \"1\"\ntitle: X\ntype: task\nstatus: todo\npriority: medium\ntags: [1, 2]\ncreated: 2024-01-01\nupdated: 2024-01-01\n"},
+		{"non-array related", "id: \"1\"\ntitle: X\ntype: task\nstatus: todo\npriority: medium\nrelated: foo\ncreated: 2024-01-01\nupdated: 2024-01-01\n"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -439,15 +439,15 @@ func TestRejectsInvalidFrontmatterFiles(t *testing.T) {
 
 func TestAcceptsValidFrontmatterWithOptionalFields(t *testing.T) {
 	raw := "---\n" +
-		"id: task-1\ntitle: X\ntype: subtask\nstatus: in-progress\npriority: high\n" +
-		"parent: task-2\nrelated: [a, b]\ndocs: [d1]\ntags: [t1]\n" +
+		"id: \"1\"\ntitle: X\ntype: subtask\nstatus: in-progress\npriority: high\n" +
+		"parent: \"2\"\nrelated: [a, b]\ndocs: [d1]\ntags: [t1]\n" +
 		"created: \"2024-01-01\"\nupdated: \"2024-01-01\"\n" +
 		"---\n# Body\n"
 	summary, err := parseFile(raw, "/tmp/x.md")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if summary.Parent != "task-2" || len(summary.Related) != 2 || len(summary.Docs) != 1 || len(summary.Tags) != 1 {
+	if summary.Parent != "2" || len(summary.Related) != 2 || len(summary.Docs) != 1 || len(summary.Tags) != 1 {
 		t.Fatalf("summary = %+v", summary)
 	}
 }

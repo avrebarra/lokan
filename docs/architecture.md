@@ -64,9 +64,8 @@ status, priority, parent?, related?, docs?, tags?, created, updated` — plus
   markdown body), grouped into `## Active` and `## Archive` (done/cancelled).
 - Mutations rewrite the document atomically (temp + rename) under a
   `board.md.lock` guard, so concurrent writers cannot lose updates.
-- IDs are **type-prefixed with a shared counter**: `epic-1`, `task-2`,
-  `bug-3`. The counter lives in `config.json`. (Decoupling type from the ID
-  is planned — see roadmap.)
+- IDs are **plain counter values** (`1`, `2`, `3`), shared across all types.
+  The counter lives in `config.json`.
 - **Explicit init only (DECIDED 2026-08-13):** no lazy auto-init. Every
   command except `init`/`help` errors with `not a lokan project — run lokan init`.
 
