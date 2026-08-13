@@ -134,8 +134,8 @@ export default function DetailModal({ task, subtasks, onClose, onAdvance, onSave
         {/* body: fields, notes, subtasks */}
         <div className="overflow-y-auto px-5 pb-5">
           <div className="mt-4 grid grid-cols-2 border-t border-border max-[900px]:grid-cols-1">
-            <div className="flex items-baseline justify-between gap-4 border-b border-border py-2.5 text-[11px] uppercase">
-              <span className="text-muted">status</span>
+            <div className="flex items-baseline gap-6 border-b border-border py-2.5 text-[11px] uppercase">
+              <span className="w-20 flex-none text-muted">status</span>
               {editing ? (
                 <div className="w-1/2 min-w-0">
                   <select
@@ -157,8 +157,8 @@ export default function DetailModal({ task, subtasks, onClose, onAdvance, onSave
                 </span>
               )}
             </div>
-            <div className="flex items-baseline justify-between gap-4 border-b border-border py-2.5 text-[11px] uppercase">
-              <span className="text-muted">type</span>
+            <div className="flex items-baseline gap-6 border-b border-border py-2.5 text-[11px] uppercase">
+              <span className="w-20 flex-none text-muted">type</span>
               {editing ? (
                 <div className="w-1/2 min-w-0">
                   <select
@@ -180,8 +180,8 @@ export default function DetailModal({ task, subtasks, onClose, onAdvance, onSave
                 </span>
               )}
             </div>
-            <div className="flex items-baseline justify-between gap-4 border-b border-border py-2.5 text-[11px] uppercase">
-              <span className="text-muted">priority</span>
+            <div className="flex items-baseline gap-6 border-b border-border py-2.5 text-[11px] uppercase">
+              <span className="w-20 flex-none text-muted">priority</span>
               {editing ? (
                 <div className="w-1/2 min-w-0">
                   <select
@@ -203,8 +203,8 @@ export default function DetailModal({ task, subtasks, onClose, onAdvance, onSave
                 </span>
               )}
             </div>
-            <div className="flex items-baseline justify-between gap-4 border-b border-border py-2.5 text-[11px] uppercase">
-              <span className="text-muted">parent</span>
+            <div className="flex items-baseline gap-6 border-b border-border py-2.5 text-[11px] uppercase">
+              <span className="w-20 flex-none text-muted">parent</span>
               {editing ? (
                 <div className="w-1/2 min-w-0">
                   <input
@@ -222,20 +222,20 @@ export default function DetailModal({ task, subtasks, onClose, onAdvance, onSave
                 </span>
               )}
             </div>
-            <div className="flex items-baseline justify-between gap-4 border-b border-border py-2.5 text-[11px] uppercase">
-              <span className="text-muted">created</span>
+            <div className="flex items-baseline gap-6 border-b border-border py-2.5 text-[11px] uppercase">
+              <span className="w-20 flex-none text-muted">created</span>
               <span className="text-right text-xs normal-case [overflow-wrap:anywhere]">
                 {task.created}
               </span>
             </div>
-            <div className="flex items-baseline justify-between gap-4 border-b border-border py-2.5 text-[11px] uppercase">
-              <span className="text-muted">updated</span>
+            <div className="flex items-baseline gap-6 border-b border-border py-2.5 text-[11px] uppercase">
+              <span className="w-20 flex-none text-muted">updated</span>
               <span className="text-right text-xs normal-case [overflow-wrap:anywhere]">
                 {task.updated}
               </span>
             </div>
-            <div className="flex items-baseline justify-between gap-4 border-b border-border py-2.5 text-[11px] uppercase">
-              <span className="text-muted">tags</span>
+            <div className="flex items-baseline gap-6 border-b border-border py-2.5 text-[11px] uppercase">
+              <span className="w-20 flex-none text-muted">tags</span>
               {editing ? (
                 <div className="w-1/2 min-w-0">
                   <input
@@ -253,8 +253,8 @@ export default function DetailModal({ task, subtasks, onClose, onAdvance, onSave
                 </span>
               )}
             </div>
-            <div className="flex items-baseline justify-between gap-4 border-b border-border py-2.5 text-[11px] uppercase">
-              <span className="text-muted">related</span>
+            <div className="flex items-baseline gap-6 border-b border-border py-2.5 text-[11px] uppercase">
+              <span className="w-20 flex-none text-muted">related</span>
               <span className="text-right text-xs normal-case [overflow-wrap:anywhere]">
                 {task.related?.join(', ') ?? '—'}
               </span>
@@ -275,7 +275,7 @@ export default function DetailModal({ task, subtasks, onClose, onAdvance, onSave
             task.body && (
               <>
                 <h3 className="mt-6 border-t border-fg pt-3 text-[11px] uppercase">notes</h3>
-                <p className="mt-3.5 text-[13px] leading-[1.55]">{task.body}</p>
+                <p className="mt-3.5 whitespace-pre-wrap text-[13px] leading-[1.55]">{task.body}</p>
               </>
             )
           )}
@@ -286,7 +286,7 @@ export default function DetailModal({ task, subtasks, onClose, onAdvance, onSave
               </h3>
               {subtasks.map((st) => (
                 <div
-                  className="flex items-baseline justify-between gap-4 border-b border-border py-[9px] text-xs"
+                  className="flex items-baseline justify-between gap-6 border-b border-border py-[9px] text-xs"
                   key={st.id}
                 >
                   <span>{st.title}</span>
