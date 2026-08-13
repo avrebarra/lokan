@@ -17,12 +17,13 @@ The rebuild is functionally complete. Make it distributable.
 
 The task files and CLI are meant to be operated by AI agents, not just humans.
 
-- [ ] **AI agent ergonomics** — a documented interface (or small integration)
-      so agents can interact with the task files and data and operate the
-      kanban easily (list, create, advance, update via stable commands/format)
-- [ ] **AI-readable `list` output** — a compact, token-efficient output mode
-      (e.g. `--json` or a minimal plain format) so agents can read the board
-      without consuming large tables
+- [x] **AI agent ergonomics** — DONE (2026-08-13): agent interface documented
+      in `docs/api.md` — full state via `.lokan/board.md`, mutations via the
+      stable CLI (create/edit), output discipline (stdout/stderr, exit 0/1)
+- [x] **AI-readable `list` output** — DONE (2026-08-13): `lokan list --md`
+      emits compact markdown (status groups, one line per task) — markdown
+      chosen over JSON after assessment: LLMs read it more token-efficiently
+      and the board file is already markdown
 
 ## Phase 3 — Kanban depth
 
