@@ -33,6 +33,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/task/", s.handleTask)
 	mux.HandleFunc("POST /api/create", s.handleCreate)
 	mux.HandleFunc("POST /api/update", s.handleUpdate)
+	mux.HandleFunc("POST /api/move", s.handleMove)
 	mux.HandleFunc("POST /api/seed", s.handleSeed)
 	return mux
 }
@@ -212,6 +213,58 @@ func (s *Server) handleUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"task": task})
+}
+
+type moveRequest struct {
+	ID       string       `json:"id"`
+	Status   types.Status `json:"status"`
+	BeforeID string       `json:"beforeId"`
+}
+
+func (s *Server) handleMove(w http.ResponseWriter, r *http.Request) {
+	// decode the request body
+	var req moveRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	// validate the target lane and the anchor task against the board
+	if !contains(types.Statuses, req.Status) {
+		writeError(w, http.StatusBadRequest, fmt.Sprintf("Invalid status: %s", req.Status))
+		return
+	}
+	summaries, err := store.LoadAllSummaries(s.root)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	foundID := false
+	foundBefore := false
+	for _, t := range summaries {
+		if t.ID == req.ID {
+			foundID = true
+		}
+		if t.ID == req.BeforeID && req.BeforeID != "" && t.Status == req.Status {
+			foundBefore = true
+		}
+	}
+	if !foundID {
+		writeError(w, http.StatusNotFound, fmt.Sprintf("task not found: %s", req.ID))
+		return
+	}
+	if req.BeforeID != "" && !foundBefore {
+		writeError(w, http.StatusBadRequest, "beforeId must be a task in the target lane")
+		return
+	}
+
+	// apply the move and respond
+	moved, err := store.MoveTask(s.root, req.ID, req.Status, req.BeforeID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"task": moved})
 }
 
 func (s *Server) handleSeed(w http.ResponseWriter, r *http.Request) {

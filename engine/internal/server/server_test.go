@@ -181,6 +181,102 @@ func TestUpdateStatus(t *testing.T) {
 	assertStoredField(t, root, "1", func(t types.Task) bool { return t.Status == types.StatusDone })
 }
 
+// ---------------------------------------------------------------------------
+// POST /api/move
+// ---------------------------------------------------------------------------
+
+func taskIDs(t *testing.T, h http.Handler) []string {
+	t.Helper()
+	rec := doRequest(t, h, "GET", "/api/tasks", nil)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", rec.Code)
+	}
+	var resp struct {
+		Tasks []types.TaskSummary `json:"tasks"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	ids := make([]string, len(resp.Tasks))
+	for i, t := range resp.Tasks {
+		ids[i] = t.ID
+	}
+	return ids
+}
+
+func TestMoveReordersWithinLane(t *testing.T) {
+	root := newTestProject(t)
+	h := New(root).Handler()
+	createTestTask(t, root, "1", "Alpha", types.StatusTodo, types.PriorityMedium)
+	createTestTask(t, root, "2", "Beta", types.StatusTodo, types.PriorityMedium)
+	createTestTask(t, root, "3", "Gamma", types.StatusTodo, types.PriorityMedium)
+
+	rec := doRequest(t, h, "POST", "/api/move", map[string]string{"id": "1", "status": "todo", "beforeId": "3"})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200 (%s)", rec.Code, rec.Body.String())
+	}
+	if got, want := taskIDs(t, h), []string{"2", "1", "3"}; !slices.Equal(got, want) {
+		t.Fatalf("order = %v, want %v", got, want)
+	}
+}
+
+func TestMoveAcrossLanes(t *testing.T) {
+	root := newTestProject(t)
+	h := New(root).Handler()
+	createTestTask(t, root, "1", "Alpha", types.StatusTodo, types.PriorityMedium)
+	createTestTask(t, root, "2", "Beta", types.StatusTodo, types.PriorityMedium)
+
+	rec := doRequest(t, h, "POST", "/api/move", map[string]string{"id": "1", "status": "done", "beforeId": ""})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200 (%s)", rec.Code, rec.Body.String())
+	}
+	if got, want := taskIDs(t, h), []string{"2", "1"}; !slices.Equal(got, want) {
+		t.Fatalf("order = %v, want %v", got, want)
+	}
+	var resp struct {
+		Task types.Task `json:"task"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatal(err)
+	}
+	if resp.Task.Status != types.StatusDone {
+		t.Fatalf("status = %s, want done", resp.Task.Status)
+	}
+}
+
+func TestMoveInvalidStatus(t *testing.T) {
+	root := newTestProject(t)
+	createTestTask(t, root, "1", "Alpha", types.StatusTodo, types.PriorityMedium)
+
+	rec := doRequest(t, New(root).Handler(), "POST", "/api/move", map[string]string{"id": "1", "status": "bogus"})
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want 400", rec.Code)
+	}
+	assertError(t, rec, "Invalid status: bogus")
+}
+
+func TestMoveUnknownTask(t *testing.T) {
+	root := newTestProject(t)
+	createTestTask(t, root, "1", "Alpha", types.StatusTodo, types.PriorityMedium)
+
+	rec := doRequest(t, New(root).Handler(), "POST", "/api/move", map[string]string{"id": "99", "status": "todo"})
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("status = %d, want 404", rec.Code)
+	}
+	assertError(t, rec, "task not found: 99")
+}
+
+func TestMoveAnchorMustBeInTargetLane(t *testing.T) {
+	root := newTestProject(t)
+	createTestTask(t, root, "1", "Alpha", types.StatusTodo, types.PriorityMedium)
+
+	rec := doRequest(t, New(root).Handler(), "POST", "/api/move", map[string]string{"id": "1", "status": "done", "beforeId": "1"})
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want 400", rec.Code)
+	}
+	assertError(t, rec, "beforeId must be a task in the target lane")
+}
+
 func TestUpdateInvalidStatus(t *testing.T) {
 	root := newTestProject(t)
 	createTestTask(t, root, "1", "Alpha", types.StatusTodo, types.PriorityMedium)
