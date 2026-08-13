@@ -18,6 +18,7 @@ func newListCmd() *cli.Command {
 			&cli.StringFlag{Name: "type", Usage: "Filter by type: epic, task, subtask, bug"},
 			&cli.StringFlag{Name: "status", Usage: "Filter by status: todo, in-progress, backlog, done, cancelled"},
 			&cli.StringFlag{Name: "priority", Usage: "Filter by priority: critical, high, medium, low"},
+			&cli.BoolFlag{Name: "md", Usage: "Output compact markdown (agent-friendly)"},
 		},
 		Action: func(c *cli.Context) error {
 			// only a bare invocation is valid
@@ -41,7 +42,12 @@ func newListCmd() *cli.Command {
 			})
 			sorted := query.SortByPriority(filtered)
 
-			fmt.Fprintln(c.App.Writer, renderTable(sorted))
+			// render as markdown or the aligned table
+			if c.Bool("md") {
+				fmt.Fprintln(c.App.Writer, renderMarkdownBoard(sorted))
+			} else {
+				fmt.Fprintln(c.App.Writer, renderTable(sorted))
+			}
 			return nil
 		},
 	}
