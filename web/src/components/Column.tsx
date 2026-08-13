@@ -9,6 +9,7 @@ interface Props {
   status: Status
   rows: TaskSummary[]
   subtaskCount: Map<string, number>
+  movedId: string | null
   onSelect: (id: string) => void
   onMove: (id: string, status: Status, beforeId?: string) => void
 }
@@ -24,6 +25,7 @@ export default function Column({
   status,
   rows,
   subtaskCount,
+  movedId,
   onSelect,
   onMove,
 }: Props) {
@@ -45,8 +47,11 @@ export default function Column({
     const containerTop = el.getBoundingClientRect().top
     let index = rows.length
     let top = el.offsetHeight
-    for (let i = 0; i < el.querySelectorAll('button').length; i++) {
-      const r = el.querySelectorAll('button')[i].getBoundingClientRect()
+    // row buttons only — cards carry a data-row marker so the copy button
+    // and other affordances don't shift the insertion index
+    const rowButtons = el.querySelectorAll('button[data-row]')
+    for (let i = 0; i < rowButtons.length; i++) {
+      const r = rowButtons[i].getBoundingClientRect()
       if (e.clientY < r.top + r.height * 0.7) {
         index = i
         top = r.top - containerTop
@@ -104,6 +109,7 @@ export default function Column({
               key={row.id}
               task={row}
               subtaskCount={subtaskCount.get(row.id) ?? 0}
+              moved={row.id === movedId}
               onClick={() => onSelect(row.id)}
             />
           ))
