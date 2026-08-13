@@ -32,8 +32,8 @@ export default function Column({
   const rowsRef = useRef<HTMLDivElement>(null)
   // accent bar on the in-progress column head
   const headClass = modifier
-    ? 'mb-1 flex items-baseline justify-between border-t-8 border-accent pt-3 text-[13px] font-normal uppercase text-fg'
-    : 'mb-1 flex items-baseline justify-between border-t-8 border-fg pt-3 text-[13px] font-normal uppercase'
+    ? 'mb-1 flex items-baseline justify-between border-t-8 border-accent pl-2.5 pt-3 text-[13px] font-normal uppercase text-fg'
+    : 'mb-1 flex items-baseline justify-between border-t-8 border-fg pl-2.5 pt-3 text-[13px] font-normal uppercase'
 
   // allow the drop and track the insertion point from the pointer vs rows
   const handleDragOver = (e: DragEvent) => {
@@ -47,7 +47,7 @@ export default function Column({
     let top = el.offsetHeight
     for (let i = 0; i < el.querySelectorAll('button').length; i++) {
       const r = el.querySelectorAll('button')[i].getBoundingClientRect()
-      if (e.clientY < r.top + r.height / 2) {
+      if (e.clientY < r.top + r.height * 0.7) {
         index = i
         top = r.top - containerTop
         break
@@ -76,7 +76,7 @@ export default function Column({
 
   return (
     <section
-      className="flex flex-col"
+      className="flex flex-col overflow-hidden"
       aria-label={label}
       onDragEnter={handleDragOver}
       onDragOver={handleDragOver}
