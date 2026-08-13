@@ -88,18 +88,14 @@ Easy docs items are done; implementation items are parked for later.
       (`findRoot` walks to `.lokan/config.json`). Add `--board <file>` or allow
       any `<!-- lokan:<id> -->` file to be opened as a board, so a single
       `roadmap.md` can be managed by the tool itself.
-- [ ] **G6 — Concurrent human+agent edit safety** — engine lock is process-level,
-      not editor-aware; a human editing `board.md` raw while an agent/UI runs can
-      be overwritten. Add mtime/reload guard + document the safe pattern.
-- [ ] **G7 — Parser warnings** — unparseable `<!-- lokan:<id> -->` blocks are
-      silently skipped (data-loss risk). Warn instead of swallowing.
-- [ ] **G8 — Distribution** — `dist/lokan` not on PATH (no `go install`/release
-      despite Phase 1); remove the stale `dist/kanlo` sibling (confusing which is
-      canonical).
-- [ ] **G9 — Next-actionable query** — `list` filters but won't surface `todo`
-      items with no blocking in-progress parent. Add `lokan next`.
-- [ ] **G10 — Surface `related`/`docs`/`tags`** — modeled but unused by
-      `list`/UI/API filters; wire them up for roadmap cross-linking.
+- [x] **G7 — Parser warnings** — DONE (2026-08-13): already implemented —
+      `parseBoard` logs `Warning: skipping invalid task block` to stderr
+      (`engine/internal/store/format.go`); docs gotcha corrected to match.
+- [ ] **G10 — Surface `related`/`docs`/`tags`** — fields already modeled and
+      shown in `lokan get`, but `list` (table + `--md`) hides them and no
+      `--tag` filter is exposed (query layer already supports tags). Add a
+      `--tag` filter and show tags in `--md` output so roadmap cross-links are
+      visible at a glance.
 - [ ] **G11 — Dogfood the roadmap** — `docs/roadmap.md` is a hand-written
       checklist, not a lokan board. Once G1 lands, author it in board format so
       lokan manages its own roadmap (gated on G1).

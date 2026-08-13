@@ -66,9 +66,13 @@ exit code 1 with a stderr message; re-read and retry.
 - **Counter only increments.** IDs are plain counters (`1`, `2`, …) and never
   reused, even after a task is archived or deleted.
 - **Type change keeps the ID.** Changing a task's `type` does not change its id.
-- **Bad blocks are skipped, silently.** If a `<!-- lokan:<id> -->` block fails
-  to parse (broken YAML, missing marker), the engine skips it — your data can
-  disappear from the board without an error. Keep `board.md` well-formed; prefer
-  the CLI/UI over hand-editing.
+- **Bad blocks are skipped with a warning.** If a `<!-- lokan:<id> -->` block
+  fails to parse (broken YAML, missing marker), the engine skips it and prints
+  `Warning: skipping invalid task block` to stderr. The task still won't appear
+  on the board — keep `board.md` well-formed; prefer the CLI/UI over
+  hand-editing.
+- **Concurrent edits: git is the guard.** The engine lock only serializes lokan
+  processes. A human raw-editing `board.md` while an agent runs the CLI is
+  out-of-band; keep the repo committed and reconcile conflicts with git.
 - **Explicit init.** Every command except `init`/`help` errors with
   `not a lokan project — run lokan init` when no `.lokan/` exists.
