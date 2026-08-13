@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"testing"
 
@@ -239,6 +240,105 @@ func TestUpdateTitle(t *testing.T) {
 		t.Fatalf("task title = %q, want Renamed Alpha", resp.Task.Title)
 	}
 	assertStoredField(t, root, "1", func(t types.Task) bool { return t.Title == "Renamed Alpha" })
+}
+
+func TestUpdateType(t *testing.T) {
+	root := newTestProject(t)
+	createTestTask(t, root, "1", "Alpha", types.StatusTodo, types.PriorityMedium)
+
+	rec := doRequest(t, New(root).Handler(), "POST", "/api/update", map[string]string{
+		"id": "1", "field": "type", "value": "bug",
+	})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", rec.Code)
+	}
+	var resp struct {
+		Task types.Task `json:"task"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if resp.Task.Type != types.TypeBug {
+		t.Fatalf("task type = %q, want bug", resp.Task.Type)
+	}
+	if resp.Task.ID != "1" {
+		t.Fatalf("task id changed to %q, want 1", resp.Task.ID)
+	}
+	assertStoredField(t, root, "1", func(t types.Task) bool { return t.Type == types.TypeBug })
+}
+
+func TestUpdateInvalidType(t *testing.T) {
+	root := newTestProject(t)
+	createTestTask(t, root, "1", "Alpha", types.StatusTodo, types.PriorityMedium)
+
+	rec := doRequest(t, New(root).Handler(), "POST", "/api/update", map[string]string{
+		"id": "1", "field": "type", "value": "bogus",
+	})
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want 400", rec.Code)
+	}
+	assertError(t, rec, "Invalid type: bogus")
+}
+
+func TestUpdateParent(t *testing.T) {
+	root := newTestProject(t)
+	createTestTask(t, root, "1", "Alpha", types.StatusTodo, types.PriorityMedium)
+
+	rec := doRequest(t, New(root).Handler(), "POST", "/api/update", map[string]string{
+		"id": "1", "field": "parent", "value": "2",
+	})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", rec.Code)
+	}
+	assertStoredField(t, root, "1", func(t types.Task) bool { return t.Parent == "2" })
+
+	rec = doRequest(t, New(root).Handler(), "POST", "/api/update", map[string]string{
+		"id": "1", "field": "parent", "value": "",
+	})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", rec.Code)
+	}
+	assertStoredField(t, root, "1", func(t types.Task) bool { return t.Parent == "" })
+}
+
+func TestUpdateTags(t *testing.T) {
+	root := newTestProject(t)
+	createTestTask(t, root, "1", "Alpha", types.StatusTodo, types.PriorityMedium)
+
+	rec := doRequest(t, New(root).Handler(), "POST", "/api/update", map[string]string{
+		"id": "1", "field": "tags", "value": " alpha, beta ,, gamma ",
+	})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", rec.Code)
+	}
+	want := []string{"alpha", "beta", "gamma"}
+	assertStoredField(t, root, "1", func(t types.Task) bool {
+		return slices.Equal(t.Tags, want)
+	})
+}
+
+func TestUpdateBody(t *testing.T) {
+	root := newTestProject(t)
+	createTestTask(t, root, "1", "Alpha", types.StatusTodo, types.PriorityMedium)
+
+	rec := doRequest(t, New(root).Handler(), "POST", "/api/update", map[string]string{
+		"id": "1", "field": "body", "value": "Round trip notes\nwith a second line",
+	})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", rec.Code)
+	}
+	var resp struct {
+		Task types.Task `json:"task"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if resp.Task.Body != "Round trip notes\nwith a second line\n" {
+		t.Fatalf("task body = %q, want the round-tripped notes with a trailing newline", resp.Task.Body)
+	}
+	assertStoredField(t, root, "1", func(t types.Task) bool {
+		return t.Body == "Round trip notes\nwith a second line"
+	})
 }
 
 // ---------------------------------------------------------------------------

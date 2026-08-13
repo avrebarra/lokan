@@ -181,6 +181,26 @@ func (s *Server) handleUpdate(w http.ResponseWriter, r *http.Request) {
 		task.Priority = types.Priority(req.Value)
 	case "title":
 		task.Title = req.Value
+	case "type":
+		if !contains(types.TaskTypes, types.TaskType(req.Value)) {
+			writeError(w, http.StatusBadRequest, fmt.Sprintf("Invalid type: %s", req.Value))
+			return
+		}
+		task.Type = types.TaskType(req.Value)
+	case "parent":
+		task.Parent = req.Value
+	case "tags":
+		tags := []string{}
+		for _, tag := range strings.Split(req.Value, ",") {
+			if tag = strings.TrimSpace(tag); tag != "" {
+				tags = append(tags, tag)
+			}
+		}
+		task.Tags = tags
+	case "body":
+		// bodies must end with a newline so the next board section doesn't
+		// glue onto the last line of the serialized block
+		task.Body = strings.TrimRight(req.Value, "\n") + "\n"
 	default:
 		writeError(w, http.StatusBadRequest, fmt.Sprintf("Unknown field: %s", req.Field))
 		return

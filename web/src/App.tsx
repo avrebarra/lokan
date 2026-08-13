@@ -6,6 +6,7 @@ import { nextStatus } from './format'
 import Topline from './components/Topline'
 import Board from './components/Board'
 import DetailModal from './components/DetailModal'
+import type { TaskFieldChange } from './components/DetailModal'
 import CreateModal from './components/CreateModal'
 
 export default function App() {
@@ -54,6 +55,16 @@ export default function App() {
     await refresh()
   }
 
+  // apply edited fields one at a time, close the modal, reload
+  const handleSaveChanges = async (changes: TaskFieldChange[]) => {
+    if (!selected) return
+    for (const change of changes) {
+      await updateTask(selected.id, change.field, change.value)
+    }
+    setSelected(null)
+    await refresh()
+  }
+
   // create a task, close the modal, reload
   const handleCreate = async (input: CreateTaskInput) => {
     await createTask(input)
@@ -92,6 +103,7 @@ export default function App() {
           subtasks={selectedSubtasks}
           onClose={closeDetail}
           onAdvance={handleAdvance}
+          onSave={handleSaveChanges}
         />
       )}
       {creating && <CreateModal onClose={() => setCreating(false)} onCreate={handleCreate} />}

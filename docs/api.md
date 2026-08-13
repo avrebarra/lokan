@@ -93,13 +93,17 @@ Failure: 500 `{ "error": "<message>" }`
 
 ### POST /api/update
 
-Request body: `{ "id": string, "field": "status"|"priority"|"title", "value": string }`
+Request body: `{ "id": string, "field": "status"|"priority"|"title"|"type"|"parent"|"tags"|"body", "value": string }`
 
 Validation:
 
 - `status` → must be in STATUSES, else 400 `{ "error": "Invalid status: <v>" }`
 - `priority` → must be in PRIORITIES, else 400 `{ "error": "Invalid priority: <v>" }`
 - `title` → free-form string
+- `type` → must be in TASK_TYPES, else 400 `{ "error": "Invalid type: <v>" }`
+- `parent` → free-form string (empty clears)
+- `tags` → comma-separated string; split on `,`, trimmed, empties dropped
+- `body` → free-form string (normalized to end with a trailing newline on write)
 - other field → 400 `{ "error": "Unknown field: <f>" }`
 
 Success: `{ "task": Task }`

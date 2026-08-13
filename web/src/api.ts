@@ -37,7 +37,7 @@ export async function fetchTask(id: string): Promise<FetchTaskResult> {
 
 export interface UpdateTaskInput {
   id: string
-  field: 'status' | 'priority' | 'title'
+  field: 'status' | 'priority' | 'title' | 'parent' | 'tags' | 'type' | 'body'
   value: string
 }
 
