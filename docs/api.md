@@ -54,13 +54,18 @@ critical | high | medium | low
 | created  | YYYY-MM-DD | yes      | set once on create          |
 | updated  | YYYY-MM-DD | yes      | auto-updated on every write |
 
-`Task` = frontmatter + `body` (raw markdown) + `filePath` (virtual task path).
-`TaskSummary` = frontmatter + `filePath` (no body).
+`Task` = frontmatter + `body` (raw markdown) + `filePath` (virtual task path) +
+`lineStart`/`lineEnd` (1-based line range of the block in `board.md`).
+`TaskSummary` = frontmatter + `filePath` + `lineStart`/`lineEnd` (no body).
 
 > `filePath` is a **virtual path** — all tasks live in one file
 > (`.lokan/board.md`) as `<!-- lokan:<id> -->`-delimited blocks. The reported
 > path (`<root>/.lokan/tasks/<id>.md`) is stable per task and is how the
 > engine addresses a block; it is not a real file on disk.
+>
+> `lineStart`/`lineEnd` address the block's location in `.lokan/board.md`,
+> e.g. `lineStart: 5, lineEnd: 20` = "`.lokan/board.md` lines 5–20". An agent
+> can use the id + line range to locate a task directly in the board file.
 
 ## Endpoints
 

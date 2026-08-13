@@ -115,6 +115,8 @@ func parseBoard(raw string, statuses []types.StatusDef) []types.Task {
 	var tasks []types.Task
 	var block []string
 	blockID := ""
+	blockStart := 0
+	blockEnd := 0
 
 	flush := func() {
 		if blockID == "" {
@@ -136,24 +138,44 @@ func parseBoard(raw string, statuses []types.StatusDef) []types.Task {
 		if err != nil {
 			log.Printf("Warning: skipping invalid task block: %s", blockID)
 		} else {
+			// record the block's extent in the board file (1-based lines)
+			parsed.LineStart = blockStart
+			parsed.LineEnd = blockEnd
+			if parsed.LineEnd < parsed.LineStart {
+				parsed.LineEnd = parsed.LineStart
+			}
 			tasks = append(tasks, *parsed)
 		}
 		block = nil
 		blockID = ""
 	}
 
-	for _, line := range strings.Split(raw, "\n") {
+	for i, line := range strings.Split(raw, "\n") {
 		if id, ok := markerID(line); ok {
 			flush()
 			blockID = id
+			blockStart = i + 1
+			blockEnd = i + 1
 			continue
 		}
 		if blockID != "" {
 			block = append(block, line)
+			// extend the end only over content lines, so the reported range
+			// stays tight (no trailing blanks or section headers)
+			if strings.TrimSpace(line) != "" && !isSectionHeader(line) {
+				blockEnd = i + 1
+			}
 		}
 	}
 	flush()
 	return tasks
+}
+
+// isSectionHeader reports whether a line is a board layout header, which is
+// trimmed from blocks and excluded from their reported line ranges.
+func isSectionHeader(line string) bool {
+	line = strings.TrimSpace(line)
+	return line == sectionActive || line == sectionArchive || line == boardHeader
 }
 
 // serializeBoard renders tasks back to a single board document, grouping

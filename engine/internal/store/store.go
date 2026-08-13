@@ -69,7 +69,12 @@ func LoadAllSummaries(root string) ([]types.TaskSummary, error) {
 	}
 	summaries := make([]types.TaskSummary, len(tasks))
 	for i, t := range tasks {
-		summaries[i] = types.TaskSummary{TaskFrontmatter: t.TaskFrontmatter, FilePath: VirtualPath(root, t.ID)}
+		summaries[i] = types.TaskSummary{
+			TaskFrontmatter: t.TaskFrontmatter,
+			FilePath:        VirtualPath(root, t.ID),
+			LineStart:       t.LineStart,
+			LineEnd:         t.LineEnd,
+		}
 	}
 	return summaries, nil
 }
@@ -83,7 +88,12 @@ func FindByID(root string, id string) (types.TaskSummary, error) {
 	}
 	for _, t := range tasks {
 		if t.ID == id {
-			return types.TaskSummary{TaskFrontmatter: t.TaskFrontmatter, FilePath: VirtualPath(root, t.ID)}, nil
+			return types.TaskSummary{
+				TaskFrontmatter: t.TaskFrontmatter,
+				FilePath:        VirtualPath(root, t.ID),
+				LineStart:       t.LineStart,
+				LineEnd:         t.LineEnd,
+			}, nil
 		}
 	}
 	return summary, fmt.Errorf("%w: %s", ErrNotFound, id)
