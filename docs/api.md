@@ -164,6 +164,25 @@ Output discipline for agents:
 - exit code 0 on success, 1 on any failure (missing project, not found, validation)
 - human `list`/`get` output remains available and is agent-readable too
 
+## Agent write contract
+
+The interface above is read/write-safe only when agents follow this contract:
+
+- **Read** the board by opening `.lokan/board.md` or running `lokan list --md`.
+  Both always reflect current state.
+- **Mutate only via CLI/API.** Never hand-rewrite `.lokan/board.md`. The engine
+  owns the file format — markers, block ordering, `## Archive` placement, and
+  the `updated` timestamp — and rewrites it atomically under `board.md.lock`.
+- **Treat these fields as engine-owned:** `id`, `created`, `updated`. Do not set
+  or edit them; the engine assigns/refreshes them on every write.
+- **Surfaces to expect:**
+  - success → exit code 0, result on stdout
+  - failure (missing project, task not found, validation) → exit code 1, message
+    on stderr. Re-read state and retry; do not blindly re-issue.
+- **Concurrency:** the lock guards engine-vs-engine writes, not an external text
+  editor. Use the CLI so the engine serializes; don't mutate concurrently with a
+  human hand-editing `board.md`.
+
 ## Embedding
 
 The built Vite app (from `web/`) is copied to `engine/web/dist/` by the build

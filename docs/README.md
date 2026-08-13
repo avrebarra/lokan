@@ -6,6 +6,7 @@ Deep reference for lokan. One line per area — open what you need.
 | -------------------------------------------- | ----------------------------------------------------------------- |
 | [`architecture.md`](./architecture.md)       | Stack, repo layout, storage model, build chain, design language   |
 | [`api.md`](./api.md)                         | Frozen HTTP API contract — domain types, endpoints, errors        |
+| [`guides.md`](./guides.md)                   | How-to for humans + agents — daily loop, roadmap modeling, AI+human collaboration, gotchas |
 | [`roadmap.md`](./roadmap.md)                 | Future plans                                                      |
 | [`review.md`](./review.md)                   | Design invariants + test coverage priorities from the code review |
 | [`design/tokens.md`](./design/tokens.md)     | Frozen design spec — colors, type, components, contrast rules     |

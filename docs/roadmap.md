@@ -57,3 +57,43 @@ Assessments to run; each item is a proposal, not a commitment.
       mapped into `@theme`, all components converted to utilities,
       `styles.css` removed
 - [ ] **Protobuf** — assess Protobuf instead of HTTP RESTful for the API
+
+## Phase 5 — Dual-use hardening (AI + human)
+
+Assessment (2026-08-13): lokan already works for humans and agents, but the gap
+is documentation plus a few safety/ergonomics gaps that block *clean* dual use.
+Easy docs items are done; implementation items are parked for later.
+
+### Docs (done)
+
+- [x] **`docs/guides.md`** — DONE (2026-08-13): human daily loop, roadmap
+      modeling (phases=epic, items=task), agent conventions, AI+human
+      collaboration model, and common gotchas (auto-archive, lock, counter,
+      type-keeps-id, silent block-skip)
+- [x] **Agent write contract in `api.md`** — DONE (2026-08-13): agents read via
+      `board.md`/`list --md`, mutate only via CLI/API, never hand-rewrite
+      `board.md`; `id`/`created`/`updated` engine-owned; exit 0/1 discipline
+- [x] **Auto-archive + gotchas documented** — DONE (2026-08-13): see `guides.md`
+- [x] **`guides.md` registered in `docs/README.md`** — DONE (2026-08-13)
+
+### Implementation (later)
+
+- [ ] **G1 — Configurable board path** — board is hardcoded to `.lokan/board.md`
+      (`findRoot` walks to `.lokan/config.json`). Add `--board <file>` or allow
+      any `<!-- lokan:<id> -->` file to be opened as a board, so a single
+      `roadmap.md` can be managed by the tool itself.
+- [ ] **G6 — Concurrent human+agent edit safety** — engine lock is process-level,
+      not editor-aware; a human editing `board.md` raw while an agent/UI runs can
+      be overwritten. Add mtime/reload guard + document the safe pattern.
+- [ ] **G7 — Parser warnings** — unparseable `<!-- lokan:<id> -->` blocks are
+      silently skipped (data-loss risk). Warn instead of swallowing.
+- [ ] **G8 — Distribution** — `dist/lokan` not on PATH (no `go install`/release
+      despite Phase 1); remove the stale `dist/kanlo` sibling (confusing which is
+      canonical).
+- [ ] **G9 — Next-actionable query** — `list` filters but won't surface `todo`
+      items with no blocking in-progress parent. Add `lokan next`.
+- [ ] **G10 — Surface `related`/`docs`/`tags`** — modeled but unused by
+      `list`/UI/API filters; wire them up for roadmap cross-linking.
+- [ ] **G11 — Dogfood the roadmap** — `docs/roadmap.md` is a hand-written
+      checklist, not a lokan board. Once G1 lands, author it in board format so
+      lokan manages its own roadmap (gated on G1).
