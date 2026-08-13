@@ -40,6 +40,10 @@ func ReadConfig(root string) (types.LokanConfig, error) {
 	if err := json.Unmarshal(raw, &cfg); err != nil {
 		return cfg, fmt.Errorf("parse %s: %w", ConfigPath(root), err)
 	}
+	// projects without a configured lane set use the built-in defaults
+	if len(cfg.Statuses) == 0 {
+		cfg.Statuses = types.DefaultStatusDefs()
+	}
 	return cfg, nil
 }
 

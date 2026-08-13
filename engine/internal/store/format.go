@@ -11,12 +11,12 @@ import (
 )
 
 // parseFile reads only the frontmatter of a raw task file into a summary.
-func parseFile(raw string, filePath string) (*types.TaskSummary, error) {
+func parseFile(raw string, filePath string, statuses []types.StatusDef) (*types.TaskSummary, error) {
 	fmStr, _, ok := splitFrontmatter(raw)
 	if !ok {
 		return nil, errNoFrontmatter
 	}
-	fm, err := parseFrontmatter(fmStr)
+	fm, err := parseFrontmatter(fmStr, statuses)
 	if err != nil {
 		return nil, err
 	}
@@ -24,12 +24,12 @@ func parseFile(raw string, filePath string) (*types.TaskSummary, error) {
 }
 
 // parseFullFile reads frontmatter plus the markdown body into a full task.
-func parseFullFile(raw string, filePath string) (*types.Task, error) {
+func parseFullFile(raw string, filePath string, statuses []types.StatusDef) (*types.Task, error) {
 	fmStr, body, ok := splitFrontmatter(raw)
 	if !ok {
 		return nil, errNoFrontmatter
 	}
-	fm, err := parseFrontmatter(fmStr)
+	fm, err := parseFrontmatter(fmStr, statuses)
 	if err != nil {
 		return nil, err
 	}
@@ -88,15 +88,30 @@ const (
 	markerPrefix   = "<!-- lokan:"
 )
 
-// isArchived reports whether a task belongs in the Archive section.
-func isArchived(status types.Status) bool {
-	return status == types.StatusDone || status == types.StatusCancelled
+// isArchived reports whether a task belongs in the Archive section, per the
+// configured lane set. Unknown statuses default to active.
+func isArchived(status types.Status, statuses []types.StatusDef) bool {
+	for _, s := range statuses {
+		if s.ID == status {
+			return s.Archived
+		}
+	}
+	return false
+}
+
+// statusIDs extracts the configured lane ids for enum validation.
+func statusIDs(statuses []types.StatusDef) []types.Status {
+	ids := make([]types.Status, len(statuses))
+	for i, s := range statuses {
+		ids[i] = s.ID
+	}
+	return ids
 }
 
 // parseBoard splits a board document into task blocks. Each task block starts
 // with a "<!-- lokan:<id> -->" marker; blocks that fail to parse are skipped
 // with a warning. Section headers and blank lines between blocks are dropped.
-func parseBoard(raw string) []types.Task {
+func parseBoard(raw string, statuses []types.StatusDef) []types.Task {
 	var tasks []types.Task
 	var block []string
 	blockID := ""
@@ -117,7 +132,7 @@ func parseBoard(raw string) []types.Task {
 			}
 			break
 		}
-		parsed, err := parseFullFile(strings.Join(block, "\n"), blockID)
+		parsed, err := parseFullFile(strings.Join(block, "\n"), blockID, statuses)
 		if err != nil {
 			log.Printf("Warning: skipping invalid task block: %s", blockID)
 		} else {
@@ -143,10 +158,10 @@ func parseBoard(raw string) []types.Task {
 
 // serializeBoard renders tasks back to a single board document, grouping
 // active tasks under "## Active" and finished ones under "## Archive".
-func serializeBoard(tasks []types.Task) (string, error) {
+func serializeBoard(tasks []types.Task, statuses []types.StatusDef) (string, error) {
 	var active, archived []types.Task
 	for _, t := range tasks {
-		if isArchived(t.Status) {
+		if isArchived(t.Status, statuses) {
 			archived = append(archived, t)
 		} else {
 			active = append(active, t)
@@ -211,7 +226,7 @@ func splitFrontmatter(raw string) (fm string, body string, ok bool) {
 
 // parseFrontmatter validates and converts YAML into a TaskFrontmatter.
 // Optional fields are strictly typed (Issue 6); invalid files are rejected.
-func parseFrontmatter(fmStr string) (types.TaskFrontmatter, error) {
+func parseFrontmatter(fmStr string, statuses []types.StatusDef) (types.TaskFrontmatter, error) {
 	var fm types.TaskFrontmatter
 
 	// unmarshal the yaml and confirm a mapping root
@@ -234,7 +249,7 @@ func parseFrontmatter(fmStr string) (types.TaskFrontmatter, error) {
 		"created":  func(n *yaml.Node) error { return scalarString(n, &fm.Created) },
 		"updated":  func(n *yaml.Node) error { return scalarString(n, &fm.Updated) },
 		"type":     func(n *yaml.Node) error { return enumString(n, &fm.Type, types.TaskTypes) },
-		"status":   func(n *yaml.Node) error { return enumString(n, &fm.Status, types.Statuses) },
+		"status":   func(n *yaml.Node) error { return enumString(n, &fm.Status, statusIDs(statuses)) },
 		"priority": func(n *yaml.Node) error { return enumString(n, &fm.Priority, types.Priorities) },
 		"parent":   func(n *yaml.Node) error { return scalarString(n, &fm.Parent) },
 		"tags":     func(n *yaml.Node) error { return stringArray(n, &fm.Tags) },
