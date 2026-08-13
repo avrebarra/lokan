@@ -1,4 +1,4 @@
-import type { Task, TaskSummary, Priority, TaskType } from './types'
+import type { Status, Task, TaskSummary, Priority, TaskType } from './types'
 
 // fetch wrapper: json in/out, error body extracted as Error
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
@@ -49,6 +49,19 @@ export async function updateTask(
   return req<UpdateTaskResult>('/api/update', {
     method: 'POST',
     body: JSON.stringify({ id, field, value }),
+  })
+}
+
+// move a task to a lane and/or position: beforeId anchors the landing spot,
+// empty appends at the end of the lane
+export async function moveTask(
+  id: string,
+  status: Status,
+  beforeId: string,
+): Promise<UpdateTaskResult> {
+  return req<UpdateTaskResult>('/api/move', {
+    method: 'POST',
+    body: JSON.stringify({ id, status, beforeId }),
   })
 }
 

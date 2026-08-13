@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { createTask, fetchTask, fetchTasks, updateTask } from './api'
+import { createTask, fetchTask, fetchTasks, moveTask, updateTask } from './api'
 import type { CreateTaskInput } from './api'
-import type { Task, TaskSummary, TaskType } from './types'
+import type { Status, Task, TaskSummary, TaskType } from './types'
 import { nextStatus } from './format'
 import Topline from './components/Topline'
 import Board from './components/Board'
@@ -46,6 +46,21 @@ export default function App() {
   }
 
   const closeDetail = () => setSelected(null)
+
+  // move a task to a lane and/or position: dropping back into its own slot
+  // (before itself, after itself, or at its own end) is a no-op
+  const handleMove = async (id: string, status: Status, beforeId?: string) => {
+    const task = tasks.find((t) => t.id === id)
+    if (!task) return
+    if (task.status === status) {
+      const lane = tasks.filter((t) => t.status === status)
+      const from = lane.findIndex((t) => t.id === id)
+      if (beforeId === id || lane[from + 1]?.id === beforeId) return
+      if (beforeId === '' && from === lane.length - 1) return
+    }
+    await moveTask(id, status, beforeId ?? '')
+    await refresh()
+  }
 
   // advance selected task's status, close the modal, reload
   const handleAdvance = async () => {
@@ -96,7 +111,7 @@ export default function App() {
         onToggleTheme={toggleTheme}
         onCreate={() => setCreating({})}
       />
-      <Board tasks={tasks} subtaskCount={subtaskCount} onSelect={openTask} />
+      <Board tasks={tasks} subtaskCount={subtaskCount} onSelect={openTask} onMove={handleMove} />
       {selected && (
         <DetailModal
           task={selected}
