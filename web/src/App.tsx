@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { createTask, fetchTask, fetchTasks, updateTask } from './api'
 import type { CreateTaskInput } from './api'
-import type { Task, TaskSummary } from './types'
+import type { Task, TaskSummary, TaskType } from './types'
 import { nextStatus } from './format'
 import Topline from './components/Topline'
 import Board from './components/Board'
@@ -13,7 +13,7 @@ export default function App() {
   // board state: tasks, selection, modals, theme
   const [tasks, setTasks] = useState<TaskSummary[]>([])
   const [selected, setSelected] = useState<Task | null>(null)
-  const [creating, setCreating] = useState(false)
+  const [creating, setCreating] = useState<{ parent?: string; type?: TaskType } | null>(null)
   const [theme, setTheme] = useState<'light' | 'dark'>(() =>
     document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light',
   )
@@ -68,7 +68,7 @@ export default function App() {
   // create a task, close the modal, reload
   const handleCreate = async (input: CreateTaskInput) => {
     await createTask(input)
-    setCreating(false)
+    setCreating(null)
     await refresh()
   }
 
@@ -94,7 +94,7 @@ export default function App() {
         updatedAt={updatedAt}
         theme={theme}
         onToggleTheme={toggleTheme}
-        onCreate={() => setCreating(true)}
+        onCreate={() => setCreating({})}
       />
       <Board tasks={tasks} subtaskCount={subtaskCount} onSelect={openTask} />
       {selected && (
@@ -104,9 +104,17 @@ export default function App() {
           onClose={closeDetail}
           onAdvance={handleAdvance}
           onSave={handleSaveChanges}
+          onAddSubtask={() => setCreating({ parent: selected.id, type: 'subtask' })}
         />
       )}
-      {creating && <CreateModal onClose={() => setCreating(false)} onCreate={handleCreate} />}
+      {creating && (
+        <CreateModal
+          onClose={() => setCreating(null)}
+          onCreate={handleCreate}
+          initialParent={creating.parent}
+          initialType={creating.type}
+        />
+      )}
     </div>
   )
 }

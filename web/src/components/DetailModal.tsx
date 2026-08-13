@@ -15,6 +15,7 @@ interface Props {
   onClose: () => void
   onAdvance: () => void
   onSave: (changes: TaskFieldChange[]) => void
+  onAddSubtask?: () => void
 }
 
 // shared utility strings for the bordered micro-tag + ghost button + form controls
@@ -34,7 +35,7 @@ interface Draft {
   body: string
 }
 
-export default function DetailModal({ task, subtasks, onClose, onAdvance, onSave }: Props) {
+export default function DetailModal({ task, subtasks, onClose, onAdvance, onSave, onAddSubtask }: Props) {
   // edit mode + draft form state
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState<Draft | null>(null)
@@ -87,6 +88,9 @@ export default function DetailModal({ task, subtasks, onClose, onAdvance, onSave
     setEditing(false)
     setDraft(null)
   }
+
+  // subtasks are only allowed under task/bug parents (see types.go AllowedParents)
+  const canHaveSubtasks = task.type === 'task' || task.type === 'bug'
 
   return (
     <div
@@ -311,7 +315,11 @@ export default function DetailModal({ task, subtasks, onClose, onAdvance, onSave
               <button className={buttonClass} onClick={startEdit}>
                 edit
               </button>
-              <button className={buttonClass}>+ subtask</button>
+              {canHaveSubtasks && onAddSubtask && (
+                <button className={buttonClass} onClick={onAddSubtask}>
+                  + subtask
+                </button>
+              )}
             </>
           )}
         </div>

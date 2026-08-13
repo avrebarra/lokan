@@ -5,6 +5,8 @@ import type { Priority, TaskType } from '../types'
 interface Props {
   onClose: () => void
   onCreate: (input: CreateTaskInput) => void
+  initialParent?: string
+  initialType?: TaskType
 }
 
 // shared utility strings for the ghost button + form controls
@@ -13,12 +15,12 @@ const buttonClass =
 const fieldClass =
   'min-h-8 w-full border border-border bg-bg px-2.5 py-[9px] text-xs text-fg [border-radius:0] focus:border-fg focus:outline-none'
 
-export default function CreateModal({ onClose, onCreate }: Props) {
+export default function CreateModal({ onClose, onCreate, initialParent, initialType }: Props) {
   // form state for the new task fields
   const [title, setTitle] = useState('')
-  const [type, setType] = useState<TaskType>('task')
+  const [type, setType] = useState<TaskType>(initialType ?? 'task')
   const [priority, setPriority] = useState<Priority>('medium')
-  const [parent, setParent] = useState('')
+  const [parent, setParent] = useState(initialParent ?? '')
 
   // close on escape
   useEffect(() => {
@@ -88,6 +90,7 @@ export default function CreateModal({ onClose, onCreate }: Props) {
                 <option value="task">task</option>
                 <option value="bug">bug</option>
                 <option value="epic">epic</option>
+                <option value="subtask">subtask</option>
               </select>
             </div>
             <div className="mb-4 flex flex-col gap-1.5">

@@ -29,10 +29,10 @@ The task files and CLI are meant to be operated by AI agents, not just humans.
 The board is read + status-advance only. Natural next steps.
 
 - [x] Task detail editing from the UI (edit fields in modal, not just advance) — DONE (2026-08-13)
-- [ ] Backlog/cancelled columns or filtering UI
+- [x] Backlog/cancelled columns or filtering UI — DONE (2026-08-13)
 - [ ] Drag-and-drop column moves (deferred by design — status click is the
       interaction contract; revisit if it becomes annoying)
-- [ ] Subtask creation from the UI
+- [x] Subtask creation from the UI — DONE (2026-08-13)
 
 ## Phase 4 — Storage & stack evolution
 
