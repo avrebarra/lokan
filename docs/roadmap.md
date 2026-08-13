@@ -44,7 +44,9 @@ Assessments to run; each item is a proposal, not a commitment.
 - [x] **Single-file storage** — DONE (2026-08-13): storage is one
       `.lokan/board.md` (Active/Archive sections, `<!-- lokan:<id> -->`
       blocks) parsed and rewritten atomically, with this app as editor/viewer
-- [ ] **Switch CLI framework** — from cobra to urfave/cli
+- [x] **Switch CLI framework** — DONE (2026-08-13): urfave/cli v2 adopted —
+      all commands ported (init create get list edit subtasks ui), cobra
+      dropped, CLI output/exit-code contract preserved
 - [x] **Tailwind CSS** — DONE (2026-08-13): Tailwind v4 adopted — tokens
       mapped into `@theme`, all components converted to utilities,
       `styles.css` removed

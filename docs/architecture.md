@@ -20,14 +20,14 @@ in one static binary. All tasks live in one git-friendly `.lokan/board.md`
 
 | Layer    | Technology                                              | Why                                                          |
 | -------- | ------------------------------------------------------- | ------------------------------------------------------------ |
-| Engine   | Go 1.26, stdlib `net/http`, cobra CLI                   | Single static binary, trivial distribution                   |
+| Engine   | Go 1.26, stdlib `net/http`, urfave/cli                   | Single static binary, trivial distribution                   |
 | Storage  | Single markdown board file + YAML frontmatter (yaml.v3) | Git-diffable, editor-editable, human-readable                |
 | Frontend | Vite + React 18 + TypeScript + Tailwind CSS             | Design tokens mapped into Tailwind `@theme`, utility styling |
 | Fonts    | Geist Sans + Geist Mono (Google Fonts)                  | shiprank design system heritage                              |
 | Build    | `runtask` (root) → `go:embed`                           | One command produces the final binary                        |
 
-Stack evolution is tracked in [`roadmap.md`](./roadmap.md) (urfave/cli,
-Protobuf are planned assessments).
+Stack evolution is tracked in [`roadmap.md`](./roadmap.md) (Protobuf is a
+planned assessment).
 
 ## Repository Layout
 
@@ -37,7 +37,7 @@ lokan/
   dist/                   # built binary: dist/lokan (gitignored)
   docs/                   # architecture, API contract, roadmap, design
   engine/                 # Go module github.com/avressatelier/lokan
-    cmd/lokan/            # cobra CLI: init create get list edit subtasks ui
+    cmd/lokan/            # urfave/cli: init create get list edit subtasks ui
     internal/
       types/              # enums, Task/TaskSummary/TaskFrontmatter, ALLOWED_PARENTS
       id/                 # config read/write, atomic NextCounter (lock file)

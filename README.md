@@ -67,7 +67,7 @@ POST /api/seed      { created }
 ./runtask e2e        # full smoke: build + init + create + list + ui + API
 ```
 
-Layout: `engine/` (Go: cobra CLI, core store/id/query, HTTP server, embedded
+Layout: `engine/` (Go: urfave/cli, core store/id/query, HTTP server, embedded
 web) · `web/` (Vite + React + TS, design system in `docs/design/`). The build
 copies `web/dist` into `engine/web/dist` and embeds it via `go:embed`.
 
