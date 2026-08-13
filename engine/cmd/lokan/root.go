@@ -12,6 +12,7 @@ type rootKey struct{}
 
 // findRoot walks up from dir looking for a directory with .lokan/config.json.
 func findRoot(dir string) (string, error) {
+	// walk up until the project config is found or the fs root is hit
 	for {
 		if _, err := os.Stat(filepath.Join(dir, ".lokan", "config.json")); err == nil {
 			return dir, nil
@@ -33,6 +34,7 @@ func newRootCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			// init and help work without a project; resolve root for the rest
 			switch cmd.Name() {
 			case "init", "help":
 				return nil
@@ -50,6 +52,8 @@ func newRootCmd() *cobra.Command {
 		},
 	}
 	root.CompletionOptions.DisableDefaultCmd = true
+
+	// register the command tree
 	root.AddCommand(newInitCmd())
 	root.AddCommand(newCreateCmd())
 	root.AddCommand(newGetCmd())

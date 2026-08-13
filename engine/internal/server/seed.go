@@ -272,6 +272,7 @@ func SeedDemoData(root string) (int, error) {
 
 // seedTask allocates an id via the project counter and writes one demo task.
 func seedTask(root string, fm types.TaskFrontmatter) (string, error) {
+	// allocate id + filename from the counter
 	counter, err := id.NextCounter(root)
 	if err != nil {
 		return "", err
@@ -280,6 +281,8 @@ func seedTask(root string, fm types.TaskFrontmatter) (string, error) {
 	fm.Created = today()
 	fm.Updated = today()
 	filename := id.GenerateFilename(fm.Type, counter, fm.Title)
+
+	// write the task file
 	if _, err := store.CreateTask(root, fm, filename, ""); err != nil {
 		return "", err
 	}
@@ -289,6 +292,7 @@ func seedTask(root string, fm types.TaskFrontmatter) (string, error) {
 // CreateTask creates a single task via the project counter and returns it.
 // Used by the POST /api/create endpoint.
 func CreateTask(root, title string, taskType types.TaskType, priority types.Priority, parent string) (*types.Task, error) {
+	// build the frontmatter, optionally setting the parent
 	fm := types.TaskFrontmatter{
 		Type:     taskType,
 		Title:    title,
@@ -298,6 +302,8 @@ func CreateTask(root, title string, taskType types.TaskType, priority types.Prio
 	if parent != "" {
 		fm.Parent = parent
 	}
+
+	// create via the counter, then reload the full task
 	id, err := seedTask(root, fm)
 	if err != nil {
 		return nil, err

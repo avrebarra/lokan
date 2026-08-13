@@ -37,6 +37,7 @@ func parseFullFile(raw string, filePath string) (*types.Task, error) {
 
 // serializeTask renders a task back to markdown with YAML frontmatter.
 func serializeTask(task types.Task) (string, error) {
+	// copy core fields, omitting empty optionals
 	fm := types.TaskFrontmatter{
 		ID:       task.ID,
 		Title:    task.Title,
@@ -59,6 +60,7 @@ func serializeTask(task types.Task) (string, error) {
 		fm.Tags = task.Tags
 	}
 
+	// marshal the frontmatter and wrap it around the body
 	raw, err := yaml.Marshal(fm)
 	if err != nil {
 		return "", fmt.Errorf("serialize frontmatter: %w", err)
@@ -68,6 +70,7 @@ func serializeTask(task types.Task) (string, error) {
 
 // buildInitialBody scaffolds the default markdown body for a new task.
 func buildInitialBody(title string, body string) string {
+	// prepend a provided body, trimmed, then add the standard sections
 	content := ""
 	if body != "" {
 		content = strings.TrimRight(body, " \t\n") + "\n"
@@ -77,10 +80,13 @@ func buildInitialBody(title string, body string) string {
 
 // splitFrontmatter extracts the YAML block and body from a task file.
 func splitFrontmatter(raw string) (fm string, body string, ok bool) {
+	// normalize CRLF, then require the leading --- fence
 	raw = strings.ReplaceAll(raw, "\r\n", "\n")
 	if !strings.HasPrefix(raw, "---\n") {
 		return "", "", false
 	}
+
+	// cut at the closing fence
 	rest := raw[len("---\n"):]
 	end := strings.Index(rest, "\n---\n")
 	if end < 0 {
@@ -93,6 +99,8 @@ func splitFrontmatter(raw string) (fm string, body string, ok bool) {
 // Optional fields are strictly typed (Issue 6); invalid files are rejected.
 func parseFrontmatter(fmStr string) (types.TaskFrontmatter, error) {
 	var fm types.TaskFrontmatter
+
+	// unmarshal the yaml and confirm a mapping root
 	var doc yaml.Node
 	if err := yaml.Unmarshal([]byte(fmStr), &doc); err != nil {
 		return fm, fmt.Errorf("parse frontmatter yaml: %w", err)
@@ -105,6 +113,7 @@ func parseFrontmatter(fmStr string) (types.TaskFrontmatter, error) {
 		return fm, errInvalidFrontmatter
 	}
 
+	// field handlers: scalar strings, enums, and string arrays
 	fields := map[string]func(*yaml.Node) error{
 		"id":       func(n *yaml.Node) error { return scalarString(n, &fm.ID) },
 		"title":    func(n *yaml.Node) error { return scalarString(n, &fm.Title) },
@@ -119,6 +128,7 @@ func parseFrontmatter(fmStr string) (types.TaskFrontmatter, error) {
 		"docs":     func(n *yaml.Node) error { return stringArray(n, &fm.Docs) },
 	}
 
+	// apply handlers per key, tracking which fields were seen
 	seen := make(map[string]bool, len(root.Content)/2)
 	for i := 0; i+1 < len(root.Content); i += 2 {
 		key := root.Content[i].Value
@@ -132,6 +142,7 @@ func parseFrontmatter(fmStr string) (types.TaskFrontmatter, error) {
 		}
 	}
 
+	// require every mandatory field to be present
 	for _, required := range []string{"id", "title", "type", "status", "priority", "created", "updated"} {
 		if !seen[required] {
 			return fm, fmt.Errorf("%w: missing required field %q", errInvalidFrontmatter, required)

@@ -13,6 +13,7 @@ interface ColumnSpec {
   modifier?: string
 }
 
+// column layout: statuses bucketed per column, modifier drives styling
 const COLUMNS: ColumnSpec[] = [
   { label: 'todo', statuses: ['todo', 'backlog', 'cancelled'] },
   { label: 'in-progress', statuses: ['in-progress'], modifier: 'in-progress' },
@@ -20,6 +21,7 @@ const COLUMNS: ColumnSpec[] = [
 ]
 
 export default function Board({ tasks, subtaskCount, onSelect }: Props) {
+  // subtasks live under their parents, not as board rows
   const visible = tasks.filter((t) => t.type !== 'subtask')
   return (
     <main className="board">

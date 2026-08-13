@@ -46,15 +46,19 @@ func ReadConfig(root string) (types.LokanConfig, error) {
 
 // WriteConfig atomically persists the config via temp-file-then-rename.
 func WriteConfig(root string, cfg types.LokanConfig) error {
+	// ensure the config dir exists
 	if err := os.MkdirAll(filepath.Dir(ConfigPath(root)), 0o755); err != nil {
 		return err
 	}
+
+	// marshal the config with a trailing newline
 	raw, err := json.MarshalIndent(cfg, "", "  ")
 	if err != nil {
 		return err
 	}
 	raw = append(raw, '\n')
 
+	// write to a temp file, then atomically rename into place
 	tmp, err := os.CreateTemp(filepath.Dir(ConfigPath(root)), ".config-*.tmp")
 	if err != nil {
 		return err
@@ -77,6 +81,7 @@ func WriteConfig(root string, cfg types.LokanConfig) error {
 // The read-modify-write is guarded by an exclusive lock file so concurrent
 // callers cannot hand out duplicate counters (Issue 1).
 func NextCounter(root string) (int, error) {
+	// acquire the exclusive lock file, retrying until timeout
 	lockPath := ConfigPath(root) + ".lock"
 	deadline := time.Now().Add(lockTimeout)
 	for {
@@ -97,6 +102,7 @@ func NextCounter(root string) (int, error) {
 		time.Sleep(lockRetryDelay)
 	}
 
+	// read-modify-write the counter under the held lock
 	cfg, err := ReadConfig(root)
 	if err != nil {
 		return 0, err
@@ -111,9 +117,12 @@ func NextCounter(root string) (int, error) {
 // GenerateSlug lowercases a title, hyphenates non-alphanumeric runs, trims
 // edge hyphens, and truncates at a word boundary below 50 characters.
 func GenerateSlug(title string) string {
+	// normalize to a lowercase hyphenated slug
 	slug := strings.ToLower(title)
 	slug = nonAlnum.ReplaceAllString(slug, "-")
 	slug = strings.Trim(slug, "-")
+
+	// truncate at a word boundary past 50 chars
 	if len(slug) > 50 {
 		slug = trailingWord.ReplaceAllString(slug[:50], "")
 	}

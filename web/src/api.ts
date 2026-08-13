@@ -1,10 +1,12 @@
 import type { Task, TaskSummary, Priority, TaskType } from './types'
 
+// fetch wrapper: json in/out, error body extracted as Error
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, {
     headers: { 'Content-Type': 'application/json' },
     ...init,
   })
+  // surface the server error message instead of a generic failure
   if (!res.ok) {
     const body = await res.json().catch(() => null)
     throw new Error(body?.error ?? `request failed: ${res.status}`)

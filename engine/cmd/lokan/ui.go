@@ -35,6 +35,7 @@ func runUI(cmd *cobra.Command, args []string) error {
 	}
 	root := cmdRoot(cmd)
 
+	// build the http server over the embedded api
 	url := fmt.Sprintf("http://localhost:%d", port)
 	httpServer := &http.Server{
 		Addr:    fmt.Sprintf(":%d", port),
@@ -51,6 +52,7 @@ func runUI(cmd *cobra.Command, args []string) error {
 		errCh <- httpServer.ListenAndServe()
 	}()
 
+	// wait for a shutdown signal or a fatal listen error
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
 	defer signal.Stop(stop)

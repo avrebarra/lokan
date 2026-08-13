@@ -18,6 +18,8 @@ func newListCmd() *cobra.Command {
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			root := cmdRoot(cmd)
+
+			// load, filter, sort the board
 			all, err := store.LoadAllSummaries(root)
 			if err != nil {
 				return err
@@ -28,6 +30,7 @@ func newListCmd() *cobra.Command {
 				Priority: types.Priority(filterPriority),
 			})
 			sorted := query.SortByPriority(filtered)
+
 			fmt.Fprintln(cmd.OutOrStdout(), renderTable(sorted))
 			return nil
 		},

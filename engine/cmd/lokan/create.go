@@ -21,6 +21,8 @@ func newCreateCmd() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			title := args[0]
+
+			// validate type and priority enums
 			t := types.TaskType(taskType)
 			if !contains(types.TaskTypes, t) {
 				return cliErrorf("Invalid type %q. Must be one of: %s", taskType, joinTypes())
@@ -30,6 +32,7 @@ func newCreateCmd() *cobra.Command {
 				return cliErrorf("Invalid priority %q. Must be one of: %s", priority, joinPriorities())
 			}
 
+			// resolve and validate the parent, if given
 			root := cmdRoot(cmd)
 			if parent != "" {
 				parentSummary, err := store.FindByID(root, parent)
@@ -41,6 +44,7 @@ func newCreateCmd() *cobra.Command {
 				}
 			}
 
+			// allocate id/filename from the counter and write the task file
 			counter, err := id.NextCounter(root)
 			if err != nil {
 				return err
@@ -63,6 +67,8 @@ func newCreateCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
+
+			// print the created task with a project-relative path
 			rel, err := filepath.Rel(root, task.FilePath)
 			if err != nil {
 				rel = task.FilePath

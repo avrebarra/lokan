@@ -21,6 +21,8 @@ func newEditCmd() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			taskID := args[0]
+
+			// validate flag enums before touching the store
 			if newStatus != "" && !contains(types.Statuses, types.Status(newStatus)) {
 				return cliErrorf("Invalid status %q. Must be one of: %s", newStatus, joinStatuses())
 			}
@@ -28,6 +30,7 @@ func newEditCmd() *cobra.Command {
 				return cliErrorf("Invalid priority %q. Must be one of: %s", newPriority, joinPriorities())
 			}
 
+			// load the target task
 			root := cmdRoot(cmd)
 			summary, err := store.FindByID(root, taskID)
 			if err != nil {
@@ -62,11 +65,13 @@ func newEditCmd() *cobra.Command {
 				task.Title = newTitle
 			}
 
+			// nothing to do — report and bail early
 			if len(changes) == 0 {
 				fmt.Fprintf(cmd.OutOrStdout(), "No changes for %s.\n", taskID)
 				return nil
 			}
 
+			// rename the file when the title changed, then persist
 			if titleChanged {
 				// Issue 2: derive counter from the existing filename basename,
 				// not from the user-supplied id
@@ -84,6 +89,7 @@ func newEditCmd() *cobra.Command {
 				return err
 			}
 
+			// print the change list
 			fmt.Fprintf(cmd.OutOrStdout(), "Updated %s\n", taskID)
 			for _, c := range changes {
 				fmt.Fprintf(cmd.OutOrStdout(), "  %s\n", c)

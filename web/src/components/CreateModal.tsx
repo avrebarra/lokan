@@ -8,11 +8,13 @@ interface Props {
 }
 
 export default function CreateModal({ onClose, onCreate }: Props) {
+  // form state for the new task fields
   const [title, setTitle] = useState('')
   const [type, setType] = useState<TaskType>('task')
   const [priority, setPriority] = useState<Priority>('medium')
   const [parent, setParent] = useState('')
 
+  // close on escape
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
@@ -21,6 +23,7 @@ export default function CreateModal({ onClose, onCreate }: Props) {
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
 
+  // build the create payload from the form, ignoring empty title
   const submit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!title.trim()) return
@@ -57,7 +60,11 @@ export default function CreateModal({ onClose, onCreate }: Props) {
             </div>
             <div className="create-field">
               <label htmlFor="create-type">type</label>
-              <select id="create-type" value={type} onChange={(e) => setType(e.target.value as TaskType)}>
+              <select
+                id="create-type"
+                value={type}
+                onChange={(e) => setType(e.target.value as TaskType)}
+              >
                 <option value="task">task</option>
                 <option value="bug">bug</option>
                 <option value="epic">epic</option>

@@ -21,11 +21,15 @@ func newInitCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
+
+			// already initialized — report and bail
 			configPath := id.ConfigPath(root)
 			if _, err := os.Stat(configPath); err == nil {
 				fmt.Fprintf(cmd.OutOrStdout(), "Already a lokan project. Config: %s\n", configPath)
 				return nil
 			}
+
+			// write config with a fresh counter, scaffold the tasks dir
 			if err := id.WriteConfig(root, types.LokanConfig{Counter: 0, Version: "1"}); err != nil {
 				return err
 			}
@@ -40,6 +44,8 @@ func newInitCmd() *cobra.Command {
 					return err
 				}
 			}
+
+			// report the created paths
 			fmt.Fprintf(cmd.OutOrStdout(), "Initialized lokan project.\n")
 			fmt.Fprintf(cmd.OutOrStdout(), "  Config: %s\n", configPath)
 			fmt.Fprintf(cmd.OutOrStdout(), "  Tasks:  %s\n", tasksDir)

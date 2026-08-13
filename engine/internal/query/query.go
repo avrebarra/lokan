@@ -11,6 +11,7 @@ import (
 func FilterTasks(tasks []types.TaskSummary, opts types.QueryOptions) []types.TaskSummary {
 	var out []types.TaskSummary
 	for _, t := range tasks {
+		// skip on any active filter mismatch (AND semantics)
 		if opts.Type != "" && t.Type != opts.Type {
 			continue
 		}
@@ -83,6 +84,7 @@ func statusSlice(tasks []types.TaskSummary, opts *types.QueryOptions, statuses .
 // unknown. Cycle-safe: any id already on the current path is skipped, so
 // corrupt parent graphs cannot infinite-loop (Issue 4).
 func BuildTree(tasks []types.TaskSummary, rootID string) *types.TreeNode {
+	// locate the root task
 	var root *types.TaskSummary
 	for i := range tasks {
 		if tasks[i].ID == rootID {
@@ -93,11 +95,14 @@ func BuildTree(tasks []types.TaskSummary, rootID string) *types.TreeNode {
 	if root == nil {
 		return nil
 	}
+
+	// build recursively, seeding the seen set with the root
 	node := buildNode(tasks, *root, map[string]bool{rootID: true})
 	return &node
 }
 
 func buildNode(tasks []types.TaskSummary, task types.TaskSummary, seen map[string]bool) types.TreeNode {
+	// gather children, skipping ids already on the path (cycle guard)
 	node := types.TreeNode{Task: task}
 	for _, child := range GetChildren(tasks, task.ID) {
 		if seen[child.ID] {
@@ -120,8 +125,11 @@ var priorityOrder = map[types.Priority]int{
 // SortByPriority sorts by priority (critical first), tie-breaking on created.
 // The input slice is not mutated.
 func SortByPriority(tasks []types.TaskSummary) []types.TaskSummary {
+	// copy to avoid mutating the caller's slice
 	out := make([]types.TaskSummary, len(tasks))
 	copy(out, tasks)
+
+	// sort by priority rank, then by created date
 	sort.Slice(out, func(i, j int) bool {
 		pi := priorityOf(out[i].Priority)
 		pj := priorityOf(out[j].Priority)

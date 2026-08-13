@@ -25,6 +25,7 @@ func New(root string) *Server {
 
 // Handler returns the HTTP handler implementing the frozen API contract.
 func (s *Server) Handler() http.Handler {
+	// register the static app, assets, and api routes
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /", s.serveIndex)
 	mux.HandleFunc("GET /assets/", s.serveAssets)
@@ -37,10 +38,13 @@ func (s *Server) Handler() http.Handler {
 }
 
 func (s *Server) serveIndex(w http.ResponseWriter, r *http.Request) {
+	// only the root path serves the app
 	if r.URL.Path != "/" {
 		writeError(w, http.StatusNotFound, "Not Found")
 		return
 	}
+
+	// serve the embedded index.html
 	index, err := web.FS.ReadFile("dist/index.html")
 	if err != nil {
 		writeError(w, http.StatusNotFound, "Not Found")
@@ -52,6 +56,7 @@ func (s *Server) serveIndex(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) serveAssets(w http.ResponseWriter, r *http.Request) {
+	// serve bundled assets from the embedded dist
 	sub, err := fs.Sub(web.FS, "dist")
 	if err != nil {
 		writeError(w, http.StatusNotFound, "Not Found")
@@ -61,6 +66,7 @@ func (s *Server) serveAssets(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleTasks(w http.ResponseWriter, r *http.Request) {
+	// load all summaries and respond, defaulting to an empty list
 	tasks, err := store.LoadAllSummaries(s.root)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
@@ -76,6 +82,7 @@ func (s *Server) handleTasks(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleTask(w http.ResponseWriter, r *http.Request) {
+	// extract the id from the path, then load full detail
 	id := strings.TrimPrefix(r.URL.Path, "/api/task/")
 	if id == "" {
 		writeError(w, http.StatusBadRequest, "Missing id")
@@ -102,11 +109,14 @@ type createRequest struct {
 }
 
 func (s *Server) handleCreate(w http.ResponseWriter, r *http.Request) {
+	// decode the request body
 	var req createRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
+
+	// validate title and enums before creating
 	if req.Title == "" {
 		writeError(w, http.StatusBadRequest, "Missing title")
 		return
@@ -119,6 +129,8 @@ func (s *Server) handleCreate(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, fmt.Sprintf("Invalid priority: %s", req.Priority))
 		return
 	}
+
+	// create and respond with the new task
 	task, err := CreateTask(s.root, req.Title, req.Type, req.Priority, req.Parent)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
@@ -134,11 +146,14 @@ type updateRequest struct {
 }
 
 func (s *Server) handleUpdate(w http.ResponseWriter, r *http.Request) {
+	// decode the request body
 	var req updateRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+
+	// load the target task
 	summary, err := store.FindByID(s.root, req.ID)
 	if err != nil {
 		writeError(w, http.StatusNotFound, err.Error())
@@ -150,6 +165,7 @@ func (s *Server) handleUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// apply the requested field with enum validation
 	switch req.Field {
 	case "status":
 		if !contains(types.Statuses, types.Status(req.Value)) {
@@ -170,6 +186,7 @@ func (s *Server) handleUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// persist and respond
 	if err := store.WriteTask(task); err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return

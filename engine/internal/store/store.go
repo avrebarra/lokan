@@ -26,6 +26,8 @@ func TasksDir(root string) string {
 // that fail to parse (with a warning).
 func LoadAllSummaries(root string) ([]types.TaskSummary, error) {
 	dir := TasksDir(root)
+
+	// read the tasks dir, tolerating a missing dir as empty
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
@@ -34,6 +36,7 @@ func LoadAllSummaries(root string) ([]types.TaskSummary, error) {
 		return nil, err
 	}
 
+	// parse each .md file, skipping invalid ones
 	var summaries []types.TaskSummary
 	for _, entry := range entries {
 		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".md") {
@@ -93,6 +96,8 @@ func WriteTask(task types.Task) error {
 func RenameTask(task types.Task, newFilename string) (types.Task, error) {
 	dir := filepath.Dir(task.FilePath)
 	newPath := filepath.Join(dir, newFilename)
+
+	// serialize the task to its new path, then remove the old file
 	updated := task
 	updated.FilePath = newPath
 	raw, err := serializeTask(updated)
@@ -112,6 +117,8 @@ func RenameTask(task types.Task, newFilename string) (types.Task, error) {
 func CreateTask(root string, fm types.TaskFrontmatter, filename string, body string) (types.Task, error) {
 	var task types.Task
 	dir := TasksDir(root)
+
+	// ensure the tasks dir, assemble the task, serialize it
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return task, err
 	}
@@ -124,6 +131,8 @@ func CreateTask(root string, fm types.TaskFrontmatter, filename string, body str
 	if err != nil {
 		return task, err
 	}
+
+	// write the task file
 	if err := os.WriteFile(task.FilePath, []byte(raw), 0o644); err != nil {
 		return task, err
 	}

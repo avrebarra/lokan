@@ -9,6 +9,7 @@ import DetailModal from './components/DetailModal'
 import CreateModal from './components/CreateModal'
 
 export default function App() {
+  // board state: tasks, selection, modals, theme
   const [tasks, setTasks] = useState<TaskSummary[]>([])
   const [selected, setSelected] = useState<Task | null>(null)
   const [creating, setCreating] = useState(false)
@@ -17,16 +18,19 @@ export default function App() {
   )
   const [updatedAt, setUpdatedAt] = useState<Date>(new Date())
 
+  // reload board from the api and stamp the refresh time
   const refresh = useCallback(async () => {
     const { tasks } = await fetchTasks()
     setTasks(tasks)
     setUpdatedAt(new Date())
   }, [])
 
+  // initial load on mount
   useEffect(() => {
     void refresh()
   }, [refresh])
 
+  // persist theme to the dom dataset + localStorage
   useEffect(() => {
     document.documentElement.dataset.theme = theme
     localStorage.setItem('lokan-theme', theme)
@@ -34,6 +38,7 @@ export default function App() {
 
   const toggleTheme = () => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))
 
+  // fetch full detail for the modal
   const openTask = async (id: string) => {
     const { task } = await fetchTask(id)
     setSelected(task)
@@ -41,6 +46,7 @@ export default function App() {
 
   const closeDetail = () => setSelected(null)
 
+  // advance selected task's status, close the modal, reload
   const handleAdvance = async () => {
     if (!selected) return
     await updateTask(selected.id, 'status', nextStatus(selected.status))
@@ -48,12 +54,14 @@ export default function App() {
     await refresh()
   }
 
+  // create a task, close the modal, reload
   const handleCreate = async (input: CreateTaskInput) => {
     await createTask(input)
     setCreating(false)
     await refresh()
   }
 
+  // count children per parent for the row badges
   const subtaskCount = useMemo(() => {
     const counts = new Map<string, number>()
     for (const t of tasks) {
@@ -62,6 +70,7 @@ export default function App() {
     return counts
   }, [tasks])
 
+  // children of the selected task for the modal list
   const selectedSubtasks = useMemo(
     () => (selected ? tasks.filter((t) => t.parent === selected.id) : []),
     [selected, tasks],

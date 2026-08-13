@@ -4,6 +4,7 @@ import App from './App'
 import './tokens.css'
 import './styles.css'
 
+// resolve theme: stored preference, else system, before first render
 const stored = localStorage.getItem('lokan-theme')
 const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
 document.documentElement.dataset.theme = stored ?? (prefersDark ? 'dark' : 'light')

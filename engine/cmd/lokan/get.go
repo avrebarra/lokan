@@ -13,6 +13,7 @@ func newGetCmd() *cobra.Command {
 		Short: "Show a task by ID",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			// resolve the task then print its full detail
 			root := cmdRoot(cmd)
 			summary, err := store.FindByID(root, args[0])
 			if err != nil {

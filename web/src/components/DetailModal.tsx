@@ -10,6 +10,7 @@ interface Props {
 }
 
 export default function DetailModal({ task, subtasks, onClose, onAdvance }: Props) {
+  // close on escape
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
@@ -18,6 +19,7 @@ export default function DetailModal({ task, subtasks, onClose, onAdvance }: Prop
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
 
+  // derived display values for the header + advance button
   const crit = task.priority === 'critical'
   const next = nextStatus(task.status)
 
@@ -25,12 +27,15 @@ export default function DetailModal({ task, subtasks, onClose, onAdvance }: Prop
     <div className="detail-layer" role="dialog" aria-modal="true" aria-label="task detail">
       <div className="detail-backdrop" onClick={onClose} />
       <div className="detail-panel">
+        {/* header: title, id, tags */}
         <div className="detail-head">
           <div>
             <h2>{task.title}</h2>
             <div className="detail-idline">
               <span className="detail-id">{task.id}</span>
-              <span className={crit ? 'detail-tag crit' : 'detail-tag'}>{priorityTag(task.priority)}</span>
+              <span className={crit ? 'detail-tag crit' : 'detail-tag'}>
+                {priorityTag(task.priority)}
+              </span>
               <span className="detail-tag">{task.type}</span>
             </div>
           </div>
@@ -38,6 +43,7 @@ export default function DetailModal({ task, subtasks, onClose, onAdvance }: Prop
             × close
           </button>
         </div>
+        {/* body: fields, notes, subtasks */}
         <div className="detail-body">
           <div className="detail-fields">
             <div className="detail-field">
@@ -93,6 +99,7 @@ export default function DetailModal({ task, subtasks, onClose, onAdvance }: Prop
             </>
           )}
         </div>
+        {/* actions: advance + placeholders for edit/subtask */}
         <div className="detail-actions">
           <button className="button" onClick={onAdvance}>
             advance → {next}

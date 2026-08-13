@@ -14,6 +14,7 @@ func newSubtasksCmd() *cobra.Command {
 		Short: "List direct children of a task",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			// verify the task exists, then gather + sort its children
 			id := args[0]
 			root := cmdRoot(cmd)
 			if _, err := store.FindByID(root, id); err != nil {
@@ -24,6 +25,8 @@ func newSubtasksCmd() *cobra.Command {
 				return err
 			}
 			children := query.SortByPriority(query.GetChildren(all, id))
+
+			// report children, or a friendly empty message
 			if len(children) == 0 {
 				fmt.Fprintf(cmd.OutOrStdout(), "No subtasks for %s.\n", id)
 				return nil

@@ -12,6 +12,8 @@ func renderTable(tasks []types.TaskSummary) string {
 	if len(tasks) == 0 {
 		return "No tasks found."
 	}
+
+	// build rows and compute per-column widths
 	headers := []string{"ID", "TYPE", "STATUS", "PRIORITY", "TITLE"}
 	rows := make([][]string, len(tasks))
 	for i, t := range tasks {
@@ -28,6 +30,8 @@ func renderTable(tasks []types.TaskSummary) string {
 			}
 		}
 	}
+
+	// local helpers for padding and line assembly
 	pad := func(s string, w int) string {
 		if len(s) < w {
 			return s + strings.Repeat(" ", w-len(s))
@@ -46,6 +50,7 @@ func renderTable(tasks []types.TaskSummary) string {
 		sep[i] = strings.Repeat("─", w)
 	}
 
+	// render header, separator, and rows
 	var b strings.Builder
 	b.WriteString(line(headers))
 	b.WriteString("\n")

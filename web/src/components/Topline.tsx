@@ -16,7 +16,11 @@ export default function Topline({ taskCount, updatedAt, theme, onToggleTheme, on
         <span className="meta-line">
           {taskCount} tasks · updated {time}
         </span>
-        <button className="theme-toggle" onClick={onToggleTheme} aria-label={`switch to ${target} theme`}>
+        <button
+          className="theme-toggle"
+          onClick={onToggleTheme}
+          aria-label={`switch to ${target} theme`}
+        >
           {target}
         </button>
         <button className="button accent" onClick={onCreate}>
