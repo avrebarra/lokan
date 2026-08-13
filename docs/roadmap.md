@@ -18,7 +18,7 @@ The rebuild is functionally complete. Make it distributable.
 The task files and CLI are meant to be operated by AI agents, not just humans.
 
 - [x] **AI agent ergonomics** — DONE (2026-08-13): agent interface documented
-      in `docs/api.md` — full state via `.lokan/board.md`, mutations via the
+      in `docs/api.md` — full state via `docs/board.md`, mutations via the
       stable CLI (create/edit), output discipline (stdout/stderr, exit 0/1)
 - [x] **AI-readable `list` output** — DONE (2026-08-13): `lokan list --md`
       emits compact markdown (status groups, one line per task) — markdown
@@ -37,7 +37,7 @@ The board is read + status-advance only. Natural next steps.
 - [x] Subtask creation from the UI — DONE (2026-08-13)
 - [x] **Config page** — customize the available lanes (add/rename/remove
       statuses) and bulk operations: clear archived, clear all tickets —
-      DONE (2026-08-13): lanes live in `config.json` as an ordered
+      DONE (2026-08-13): lanes live in the board's config block as an ordered
       `statuses` list (id + archived flag); config modal in the UI
       (add/rename/remove + archived toggle); renames rewrite `board.md`,
       removed lanes move tasks to the leftmost lane; `POST /api/clear` +
@@ -54,7 +54,7 @@ Assessments to run; each item is a proposal, not a commitment.
       (`1`, `2`) instead of type-prefixed (`epic-1`, `task-2`), so changing
       a task's type doesn't change its ID
 - [x] **Single-file storage** — DONE (2026-08-13): storage is one
-      `.lokan/board.md` (Active/Archive sections, `<!-- lokan:<id> -->`
+      `docs/board.md` (Active/Archive sections, `<!-- lokan:<id> -->`
       blocks) parsed and rewritten atomically, with this app as editor/viewer
 - [x] **Switch CLI framework** — DONE (2026-08-13): urfave/cli v2 adopted —
       all commands ported (init create get list edit subtasks ui), cobra
@@ -84,22 +84,20 @@ Easy docs items are done; implementation items are parked for later.
 
 ### Implementation (later)
 
-- [ ] **G1 — Configurable board path** — board is hardcoded to `.lokan/board.md`
-      (`findRoot` walks to `.lokan/config.json`). Add `--board <file>` or allow
-      any `<!-- lokan:<id> -->` file to be opened as a board, so a single
-      `roadmap.md` can be managed by the tool itself.
-- [ ] **G6 — Concurrent human+agent edit safety** — engine lock is process-level,
-      not editor-aware; a human editing `board.md` raw while an agent/UI runs can
-      be overwritten. Add mtime/reload guard + document the safe pattern.
-- [ ] **G7 — Parser warnings** — unparseable `<!-- lokan:<id> -->` blocks are
-      silently skipped (data-loss risk). Warn instead of swallowing.
-- [ ] **G8 — Distribution** — `dist/lokan` not on PATH (no `go install`/release
-      despite Phase 1); remove the stale `dist/kanlo` sibling (confusing which is
-      canonical).
-- [ ] **G9 — Next-actionable query** — `list` filters but won't surface `todo`
-      items with no blocking in-progress parent. Add `lokan next`.
-- [ ] **G10 — Surface `related`/`docs`/`tags`** — modeled but unused by
-      `list`/UI/API filters; wire them up for roadmap cross-linking.
+- [x] **G1 — Configurable board path** — DONE (2026-08-13): every command
+      targets a board explicitly via `--board <file>` — no discovery, no
+      default path. A board is self-contained: a `<!-- lokan:config -->`
+      block (counter, version, statuses) sits at the top, and any markdown
+      file with that marker can be one. `lokan init --board <file>` creates a
+      fresh board — a single `roadmap.md` can be managed by the tool itself.
+- [x] **G7 — Parser warnings** — DONE (2026-08-13): already implemented —
+      `parseBoard` logs `Warning: skipping invalid task block` to stderr
+      (`engine/internal/store/format.go`); docs gotcha corrected to match.
+- [ ] **G10 — Surface `related`/`docs`/`tags`** — fields already modeled and
+      shown in `lokan get`, but `list` (table + `--md`) hides them and no
+      `--tag` filter is exposed (query layer already supports tags). Add a
+      `--tag` filter and show tags in `--md` output so roadmap cross-links are
+      visible at a glance.
 - [ ] **G11 — Dogfood the roadmap** — `docs/roadmap.md` is a hand-written
-      checklist, not a lokan board. Once G1 lands, author it in board format so
-      lokan manages its own roadmap (gated on G1).
+      checklist, not a lokan board. G1 landed (board is configurable), so
+      author it in board format and let lokan manage its own roadmap.
