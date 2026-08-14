@@ -63,6 +63,10 @@ Assessments to run; each item is a proposal, not a commitment.
       mapped into `@theme`, all components converted to utilities,
       `styles.css` removed
 - [ ] **Protobuf** — assess Protobuf instead of HTTP RESTful for the API
+- [ ] **Hide engine markup when rendered** — a task block's YAML frontmatter
+      and lokan markers show when the board markdown is rendered (e.g. GitHub);
+      make the lokan code invisible in rendered output (comment-wrapped
+      blocks, `<details>`, etc.) while staying parseable by the engine
 
 ## Phase 5 — Dual-use hardening (AI + human)
 
