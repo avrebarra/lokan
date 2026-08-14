@@ -82,7 +82,7 @@ func buildInitialBody(title string, body string) string {
 // board document layout: one file holding every task block, grouped into
 // Active (open statuses) and Archive (done/cancelled) sections.
 const (
-	boardHeader      = "# Kanlo Board"
+	boardHeader      = "# Lokan Board"
 	sectionActive    = "## Active"
 	sectionArchive   = "## Archive"
 	markerPrefix     = "<!-- lokan:"

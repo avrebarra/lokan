@@ -177,7 +177,7 @@ func TestLoadAllSummariesReturnsAll(t *testing.T) {
 
 func TestLoadAllSummariesSkipsInvalid(t *testing.T) {
 	board := newTempBoard(t)
-	raw := "# Kanlo Board\n\n## Active\n\n" +
+	raw := "# Lokan Board\n\n## Active\n\n" +
 		"<!-- lokan:1 -->\n" +
 		"---\nid: \"1\"\ntitle: Valid\ntype: task\nstatus: todo\npriority: medium\ncreated: \"2024-01-01\"\nupdated: \"2024-01-01\"\n---\n# Valid\n\n" +
 		"<!-- lokan:bad -->\n" +
@@ -203,7 +203,7 @@ func TestLoadAllSummariesEmptyBoard(t *testing.T) {
 	if err := os.MkdirAll(filepath.Dir(board), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(board, []byte("# Kanlo Board\n\n## Active\n\n## Archive\n"), 0o644); err != nil {
+	if err := os.WriteFile(board, []byte("# Lokan Board\n\n## Active\n\n## Archive\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	summaries, err := LoadAllSummaries(board)
