@@ -2,75 +2,194 @@
 
 Markdown task manager — kanban-focused. Go engine + React frontend in a single binary.
 
-The whole project lives in one git-friendly markdown board file: a
-`<!-- lokan:config -->` block (counter, version, lanes) plus task blocks. Every
-command takes the board as its first positional argument — no discovery, no
-default path. No database. Fork of `@onmyway133/nod`, rebuilt in Go.
+<img src="docs/screenshot.jpg" alt="lokan kanban board" style="max-width: 600px" />
+
+## Features
+
+- **One file, plain markdown** — the whole board is a git-friendly `.md` file. Diffable, greppable, reviewable in PRs.
+- **No database** — state is the file; every command targets it explicitly (`lokan <cmd> <board>`). No discovery, no default path, no sync.
+- **Two interfaces, one board** — humans get a terminal-aesthetic web UI + CLI; AI agents get the same file and a compact `list --md` view. Both mutate through the same Go engine.
+- **One binary** — Go engine with the React app embedded. `go build` and it's done.
+- **Configurable lanes** — statuses live in the board's config block: add, rename, archive lanes, bulk-clear.
+- **Frozen contracts** — HTTP API and design tokens are versioned docs (`docs/api.md`, `docs/design/tokens.md`); drift needs a doc update first.
+
+Fork of `@onmyway133/nod`, rebuilt in Go.
+
+## Install
+
+Prebuilt binaries via GitHub releases:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/avressatelier/lokan/main/install.sh | sh
+```
+
+The binary goes to `~/.local/bin` (override with `LOKAN_INSTALL_DIR`).
+Alternatives:
+
+- **Releases page** — download the `tar.gz` for your platform from
+  [releases](https://github.com/avressatelier/lokan/releases), extract, and
+  put the binary on your `PATH`.
+- **Build from source** — needs Go ≥ 1.26 + Node ≥ 18 + Ruby; see
+  [Development](#development).
 
 ## Quick start
 
 ```sh
-./runtask build          # one command: vite build → embed → go build → dist/lokan
-./dist/lokan init docs/board.md              # create a board (explicit — required first)
-./dist/lokan create docs/board.md -t task "Fix counter race"   # new task
-./dist/lokan list docs/board.md                                # board summary
-./dist/lokan edit docs/board.md 1 --status in-progress  # update fields
-./dist/lokan subtasks docs/board.md 1                   # children of a task
-./dist/lokan ui docs/board.md                            # open the web UI
+lokan init docs/board.md                          # create a board — required first
+lokan create docs/board.md -t task --priority high "Fix counter race"
+lokan list docs/board.md
 ```
 
-All commands except `init`/`help` take the board path as their first argument
-and error when the file is missing or lacks the lokan config marker.
+```text
+ID  TYPE  STATUS       PRIORITY  TITLE
+─────────────────────────────────────────────────────────────
+1   task  in-progress  high      Fix counter race
+2   bug   backlog      medium    Drag ghost on narrow screens
+3   task  backlog      low       Write README
+```
+
+```sh
+lokan edit docs/board.md 1 --status done    # move lanes / update fields
+lokan subtasks docs/board.md 1              # children of a task
+lokan ui docs/board.md                      # web UI — prints the URL (default localhost:7777)
+```
+
+Every command except `init`/`help` takes the board as its first positional
+argument, and errors when the file is missing or lacks the lokan config marker:
+
+```text
+$ lokan list nope.md
+error: not a lokan board: /abs/path/nope.md (run lokan init nope.md)
+```
+
+## How the board works
+
+The board file is the whole state: a `<!-- lokan:config -->` block (counter,
+version, lanes) followed by `<!-- lokan:<id> -->` task blocks, grouped into
+Active / Archive sections. Archived lanes (`done`, `cancelled` by default) live
+under `## Archive`; everything else under `## Active`.
+
+<!-- prettier-ignore -->
+```markdown
+<!-- lokan:config -->
+counter: 3
+version: "1"
+statuses:
+    - id: backlog
+    - id: todo
+    - id: in-progress
+    - id: done
+      archived: true
+    - id: cancelled
+      archived: true
+
+# Lokan Board
+
+## Active
+
+<!-- lokan:1 -->
+---
+id: "1"
+title: Fix counter race
+type: task
+status: in-progress
+priority: high
+created: "2026-08-13"
+updated: "2026-08-13"
+---
+# Fix counter race
+
+Body markdown — notes, links, anything. `created`/`updated` are engine-owned.
+
+## Archive
+
+<!-- lokan:2 -->
+---
+id: "2"
+title: Submit route approval to FAA and JCAB
+type: task
+status: done
+priority: high
+created: "2026-08-13"
+updated: "2026-08-13"
+---
+# Submit route approval to FAA and JCAB
+```
+
+IDs are plain counters (`1`, `2`, …) shared across all types and never reused.
+The engine rewrites the file atomically under `<board>.lock` — never hand-edit
+a live board; use the CLI or API.
 
 ## Commands
 
-| command         | description                                                           |
-| --------------- | --------------------------------------------------------------------- |
-| `init`          | create a board — `<board>` (required)                               |
-| `create`        | new task — `--type` (task/bug/epic/subtask), `--priority`, `--parent` |
-| `get <id>`      | full task (frontmatter + body)                                        |
-| `list`          | all tasks as a table, filterable by `--status/--type/--priority`      |
-| `edit <id>`     | `--status/--priority/--title/--parent` (empty string clears parent)   |
-| `subtasks <id>` | direct children, indented                                             |
-| `ui`            | serve the web UI (default port 7777)                                  |
-
-IDs are plain counter values (`1`, `2`, `3`), shared across all types.
+| command                  | description                                                                                 |
+| ------------------------ | ------------------------------------------------------------------------------------------- |
+| `init <board>`           | create a board                                                                              |
+| `create <board> <title>` | new task — `--type` (task/bug/epic/subtask), `--priority`, `--parent`, `--tag` (repeatable) |
+| `get <board> <id>`       | full task (frontmatter + body)                                                              |
+| `list <board>`           | tasks as a table — filter `--status/--type/--priority`; `--md` for compact agent markdown   |
+| `edit <board> <id>`      | `--status/--priority/--title/--parent` (empty string clears parent)                         |
+| `subtasks <board> <id>`  | direct children, indented                                                                   |
+| `clear <board>`          | bulk delete — `--archived` or `--all`                                                       |
+| `ui <board>`             | serve the web UI — `--port/-p` (default 7777)                                               |
 
 ## Web UI
 
-`lokan ui` serves the embedded React app on `localhost:7777` and opens your
-browser. Brutalist-terminal aesthetic: monochrome, mono
-labels, rows with hairline separators, a single yellow accent on the
-in-progress column. Light is the default; dark is opt-in via the toggle.
+`lokan ui <board>` serves the embedded React app and prints the URL
+(`localhost:7777`). Brutalist-terminal aesthetic: monochrome, mono labels,
+rows with hairline separators, one yellow accent on the in-progress column.
+Light is the default; dark is opt-in.
 
-Board: one column per configured lane (narrow screens stack vertically).
-Click a row for detail (fields, notes, subtasks); drag rows between lanes.
-`+ new task` creates directly from the UI; `config` edits lanes (add/rename/
-remove, archived flag) and bulk-clears archived or all tasks.
+One column per configured lane (narrow screens stack vertically). Click a row
+for detail (fields, notes, subtasks); drag rows between lanes. `+ new task`
+creates from the UI; `config` edits lanes (add/rename/remove, archived flag)
+and bulk-clears archived or all tasks.
 
 ## API
 
-JSON API for the UI, contract frozen in `docs/api.md`:
+JSON API for the UI — contract frozen in `docs/api.md`:
 
-```
-GET  /              embedded app
-GET  /api/tasks     { tasks: [TaskSummary], statuses: [StatusDef], root }
-GET  /api/task/:id  { task: Task }
-POST /api/create    { title, type, priority, parent? } → { task }
-POST /api/update    { id, field, value } → { task }
-POST /api/move      { id, status, beforeId? } → { task }
-POST /api/config/statuses  { statuses: [{ id, archived }...] } → { statuses, moved }
-POST /api/clear     { scope: "archived"|"all" } → { deleted }
-POST /api/seed      { created }
-```
+| endpoint                    | purpose                                                         |
+| --------------------------- | --------------------------------------------------------------- |
+| `GET /`                     | embedded app                                                    |
+| `GET /api/tasks`            | `{ tasks, statuses, root }` — everything the board renders      |
+| `GET /api/task/:id`         | full task                                                       |
+| `POST /api/create`          | new task `{ title, type, priority, parent? }` → `{ task }`      |
+| `POST /api/update`          | `{ id, field, value }` → `{ task }`                             |
+| `POST /api/move`            | `{ id, status, beforeId? }` → `{ task }` (position within lane) |
+| `POST /api/config/statuses` | replace lane set → `{ statuses, moved }`                        |
+| `POST /api/clear`           | `{ scope: "archived"\|"all" }` → `{ deleted }`                  |
+| `POST /api/seed`            | demo data → `{ created }`                                       |
+
+Errors are uniform: 400 validation, 404 not found / unknown route, 500
+internal — body always `{ "error": "<message>" }`.
+
+CLI discipline: stdout carries results, stderr carries errors only; exit code
+0 on success, 1 on any failure (`error: task not found: 99`).
 
 ## Development
 
+Building from source needs the toolchain:
+
+| Tool      | Why                                                   | Install             |
+| --------- | ----------------------------------------------------- | ------------------- |
+| Go ≥ 1.26 | engine (`engine/`)                                    | `brew install go`   |
+| Node ≥ 18 | web build — Vite + TypeScript (`web/`)                | `brew install node` |
+| Ruby      | `./runtask` task runner (stdlib only, macOS ships it) | `brew install ruby` |
+
 ```sh
-./runtask web dev    # Vite dev server with HMR + mock API server
-./runtask test       # engine Go tests
-./runtask e2e        # full smoke: build + init + create + list + ui + API
+./runtask build       # vite build → embed → go build → dist/lokan
+./runtask web dev     # Vite dev server with HMR + mock API server
+./runtask test        # engine Go tests
+./runtask e2e         # full smoke: build + init + create + list + ui + API
+./runtask preview     # build + demo board + UI, no install
+./runtask bump patch  # cut a release: tag next version + push (see docs/release.md)
 ```
+
+`./runtask build` produces `dist/lokan` — the dev-built binary, same commands
+as the installed one. Release binaries come from tagged commits; the pipeline
+(GoReleaser + GitHub Actions + `install.sh`) is documented in
+[`docs/release.md`](docs/release.md).
 
 Layout: `engine/` (Go: urfave/cli, core store/id/query, HTTP server, embedded
 web) · `web/` (Vite + React + TS, design system in `docs/design/`). The build
@@ -79,5 +198,13 @@ copies `web/dist` into `engine/web/dist` and embeds it via `go:embed`.
 ## Design
 
 `docs/design/tokens.md` is the frozen design spec (colors, type, components,
-contrast rules). `docs/design/mockup.html` is the approved visual contract.
-Deviations need approval — see `docs/api.md` for the API contract.
+contrast rules); `docs/design/mockup.html` is the approved visual contract.
+Deviations need approval.
+
+## Contributing
+
+Docs follow the contracts in `docs/` (`api.md`, `design/tokens.md`,
+`guides.md`) — when code moves, docs move with it. Run `./runtask test` and
+`./runtask e2e` before opening a PR. Full doc index: [`docs/README.md`](docs/README.md).
+
+MIT — see [`LICENSE`](LICENSE).
