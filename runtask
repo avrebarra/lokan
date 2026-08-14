@@ -21,6 +21,11 @@ COMMANDS = {
   %w[test]      => c("Run engine Go tests") { run "cd #{SCRIPT_DIR}/engine && go test ./..." },
   %w[e2e]       => c("End-to-end smoke: init, create, list, ui, API") { cmd_e2e },
   %w[preview]   => c("Build artifacts, run app on scratch project with demo data (no install)") { cmd_preview },
+  %w[bump]       => c("Bump patch version → git tag → push (release routine)")        { bump("patch") },
+  %w[bump patch] => c("Bump patch version → git tag → push (release routine)")        { bump("patch") },
+  %w[bump minor] => c("Bump minor version → git tag → push (release routine)")        { bump("minor") },
+  %w[bump major] => c("Bump major version → git tag → push (release routine)")        { bump("major") },
+  %w[bump dry]   => c("Preview the next version tag without tagging")                 { bump(nil, dry: true) },
   %w[web dev]   => c("Start Vite dev server + mock API (interactive UI)") { cmd_web_dev },
   %w[web mock]  => c("Run the mock API server only (port 8787)") { cmd_web_mock },
   %w[web build] => c("Build the web frontend only") { run "cd #{SCRIPT_DIR}/web && npm run build" },
@@ -147,6 +152,43 @@ def cmd_e2e
     end
   end
   FileUtils.remove_entry(tmp) rescue nil
+  true
+end
+
+# bump the next release tag from the latest git tag (vX.Y.Z), then tag + push.
+# The tag is the version — see docs/release.md. Bare `bump` bumps patch.
+def bump(level, dry: false)
+  level ||= "patch"
+
+  # read the highest existing version tag, falling back to v0.0.0 before the
+  # first release (version-sorted — describe mispicks with multi-tag commits)
+  tag = `git tag -l "v*" --sort=-version:refname | head -1`.strip
+  tag = "v0.0.0" if tag.empty?
+  major, minor, patch = tag.delete_prefix("v").split(".").map(&:to_i)
+
+  # compute the next version for the requested level
+  case level
+  when "major" then major += 1; minor = 0; patch = 0
+  when "minor" then minor += 1; patch = 0
+  else patch += 1
+  end
+  next_tag = "v#{major}.#{minor}.#{patch}"
+
+  if dry
+    puts "current tag: #{tag}"
+    puts "next tag:    #{next_tag} (#{level})"
+    return true
+  end
+
+  # a release ships the current tree — refuse to tag over uncommitted work
+  unless `git status --porcelain`.strip.empty?
+    bail "working tree is dirty — commit before bumping"
+  end
+
+  puts "bumping: #{tag} → #{next_tag} (#{level})"
+  run "git tag #{next_tag}"
+  run "git push origin #{next_tag}"
+  puts "released #{next_tag} — GitHub Actions builds it (see docs/release.md)"
   true
 end
 
