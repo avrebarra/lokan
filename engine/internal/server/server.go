@@ -9,9 +9,9 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/avressatelier/lokan/internal/store"
-	"github.com/avressatelier/lokan/internal/types"
-	"github.com/avressatelier/lokan/web"
+	"github.com/avrebarra/lokan/internal/store"
+	"github.com/avrebarra/lokan/internal/types"
+	"github.com/avrebarra/lokan/web"
 )
 
 // Server serves the lokan API for a single project root.

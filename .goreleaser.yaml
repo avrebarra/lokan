@@ -27,5 +27,5 @@ checksum:
 
 release:
   github:
-    owner: avressatelier
+    owner: avrebarra
     name: lokan

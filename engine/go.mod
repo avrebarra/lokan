@@ -1,4 +1,4 @@
-module github.com/avressatelier/lokan
+module github.com/avrebarra/lokan
 
 go 1.26.1
 

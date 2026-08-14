@@ -5,8 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/avressatelier/lokan/internal/store"
-	"github.com/avressatelier/lokan/internal/types"
+	"github.com/avrebarra/lokan/internal/store"
+	"github.com/avrebarra/lokan/internal/types"
 	"github.com/urfave/cli/v2"
 )
 

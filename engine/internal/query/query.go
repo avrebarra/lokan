@@ -3,7 +3,7 @@ package query
 import (
 	"sort"
 
-	"github.com/avressatelier/lokan/internal/types"
+	"github.com/avrebarra/lokan/internal/types"
 )
 
 // FilterTasks applies QueryOptions with AND semantics; zero-valued options

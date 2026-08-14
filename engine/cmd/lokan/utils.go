@@ -4,8 +4,8 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/avressatelier/lokan/internal/store"
-	"github.com/avressatelier/lokan/internal/types"
+	"github.com/avrebarra/lokan/internal/store"
+	"github.com/avrebarra/lokan/internal/types"
 )
 
 // joinStatuses renders the configured lane ids as a comma-separated list.

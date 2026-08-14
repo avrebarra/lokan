@@ -13,21 +13,19 @@ Markdown task manager — kanban-focused. Go engine + React frontend in a single
 - **Configurable lanes** — statuses live in the board's config block: add, rename, archive lanes, bulk-clear.
 - **Frozen contracts** — HTTP API and design tokens are versioned docs (`docs/api.md`, `docs/design/tokens.md`); drift needs a doc update first.
 
-Fork of `@onmyway133/nod`, rebuilt in Go.
-
 ## Install
 
 Prebuilt binaries via GitHub releases:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/avressatelier/lokan/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/avrebarra/lokan/main/install.sh | sh
 ```
 
 The binary goes to `~/.local/bin` (override with `LOKAN_INSTALL_DIR`).
 Alternatives:
 
 - **Releases page** — download the `tar.gz` for your platform from
-  [releases](https://github.com/avressatelier/lokan/releases), extract, and
+  [releases](https://github.com/avrebarra/lokan/releases), extract, and
   put the binary on your `PATH`.
 - **Build from source** — needs Go ≥ 1.26 + Node ≥ 18 + Ruby; see
   [Development](#development).

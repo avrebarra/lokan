@@ -4,8 +4,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/avressatelier/lokan/internal/store"
-	"github.com/avressatelier/lokan/internal/types"
+	"github.com/avrebarra/lokan/internal/store"
+	"github.com/avrebarra/lokan/internal/types"
 )
 
 // SeedDemoData creates the demo airline tasks and returns how many tasks were

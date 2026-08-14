@@ -1,10 +1,10 @@
 #!/bin/sh
 # install.sh — install lokan from GitHub releases. No Go, no build.
-# Usage: curl -fsSL https://raw.githubusercontent.com/avressatelier/lokan/main/install.sh | sh
+# Usage: curl -fsSL https://raw.githubusercontent.com/avrebarra/lokan/main/install.sh | sh
 set -e
 
 BIN="lokan"
-REPO="avressatelier/lokan"
+REPO="avrebarra/lokan"
 DEST="${LOKAN_INSTALL_DIR:-$HOME/.local/bin}"
 
 # detect OS + arch and map to goreleaser asset names

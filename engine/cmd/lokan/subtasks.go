@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 
-	"github.com/avressatelier/lokan/internal/query"
-	"github.com/avressatelier/lokan/internal/store"
+	"github.com/avrebarra/lokan/internal/query"
+	"github.com/avrebarra/lokan/internal/store"
 	"github.com/urfave/cli/v2"
 )
 

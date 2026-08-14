@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/avressatelier/lokan/internal/types"
+	"github.com/avrebarra/lokan/internal/types"
 )
 
 func makeFrontmatter(overrides map[string]interface{}) types.TaskFrontmatter {

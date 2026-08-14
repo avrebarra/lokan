@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/avressatelier/lokan/internal/types"
+	"github.com/avrebarra/lokan/internal/types"
 )
 
 func makeTask(id string, mut func(*types.TaskSummary)) types.TaskSummary {

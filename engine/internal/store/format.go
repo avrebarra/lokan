@@ -6,7 +6,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/avressatelier/lokan/internal/types"
+	"github.com/avrebarra/lokan/internal/types"
 	"gopkg.in/yaml.v3"
 )
 

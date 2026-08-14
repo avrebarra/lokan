@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/avressatelier/lokan/internal/store"
-	"github.com/avressatelier/lokan/internal/types"
+	"github.com/avrebarra/lokan/internal/store"
+	"github.com/avrebarra/lokan/internal/types"
 )
 
 // runCLI executes the CLI with args from within dir, returning exit code,

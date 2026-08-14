@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/avressatelier/lokan/internal/server"
+	"github.com/avrebarra/lokan/internal/server"
 	"github.com/urfave/cli/v2"
 )
 

@@ -38,7 +38,7 @@ lokan/
   runtask                 # task runner: build / test / e2e / web dev
   dist/                   # built binary: dist/lokan (gitignored)
   docs/                   # architecture, API contract, roadmap, design
-  engine/                 # Go module github.com/avressatelier/lokan
+  engine/                 # Go module github.com/avrebarra/lokan
     cmd/lokan/            # urfave/cli: init create get list edit subtasks clear ui
     internal/
       types/              # enums, Task/TaskSummary/TaskFrontmatter, ALLOWED_PARENTS

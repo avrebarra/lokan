@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/avressatelier/lokan/internal/types"
+	"github.com/avrebarra/lokan/internal/types"
 )
 
 const (

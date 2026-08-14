@@ -34,7 +34,7 @@ mirrors `git-workpool`'s release routine: tag → GitHub Actions → GoReleaser 
 Users install from `latest`:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/avressatelier/lokan/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/avrebarra/lokan/main/install.sh | sh
 ```
 
 `install.sh` maps the machine's OS/arch to the matching asset, extracts the

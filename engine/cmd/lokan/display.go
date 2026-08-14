@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/avressatelier/lokan/internal/store"
-	"github.com/avressatelier/lokan/internal/types"
+	"github.com/avrebarra/lokan/internal/store"
+	"github.com/avrebarra/lokan/internal/types"
 )
 
 // renderTable renders tasks as a compact aligned table.
