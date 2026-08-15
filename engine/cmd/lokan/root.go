@@ -59,7 +59,7 @@ func reorderFlags(args []string) []string {
 			positional = append(positional, a)
 		case isValueFlag(a):
 			flags = append(flags, a)
-			if !strings.Contains(a, "=") && i+1 < len(args) {
+			if !strings.Contains(a, "=") && i+1 < len(args) && !isValueFlag(args[i+1]) {
 				flags = append(flags, args[i+1])
 				i++
 			}

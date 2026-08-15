@@ -19,6 +19,7 @@ func newListCmd() *cli.Command {
 			&cli.StringFlag{Name: "type", Usage: "Filter by type: epic, task, subtask, bug"},
 			&cli.StringFlag{Name: "status", Usage: "Filter by status: todo, in-progress, backlog, done, cancelled"},
 			&cli.StringFlag{Name: "priority", Usage: "Filter by priority: critical, high, medium, low"},
+			&cli.StringSliceFlag{Name: "tag", Usage: "Filter by tag (comma-separated or repeatable, AND semantics)"},
 			&cli.BoolFlag{Name: "md", Usage: "Output compact markdown (agent-friendly)"},
 		},
 		Action: func(c *cli.Context) error {
@@ -49,6 +50,7 @@ func newListCmd() *cli.Command {
 				Type:     types.TaskType(c.String("type")),
 				Status:   types.Status(c.String("status")),
 				Priority: types.Priority(c.String("priority")),
+				Tags:     c.StringSlice("tag"),
 			})
 			sorted := query.SortByPriority(filtered)
 

@@ -15,10 +15,24 @@ func renderTable(tasks []types.TaskSummary) string {
 	}
 
 	// build rows and compute per-column widths
+	showTags := false
+	for _, t := range tasks {
+		if len(t.Tags) > 0 {
+			showTags = true
+			break
+		}
+	}
 	headers := []string{"ID", "TYPE", "STATUS", "PRIORITY", "TITLE"}
+	if showTags {
+		headers = append(headers, "TAGS")
+	}
 	rows := make([][]string, len(tasks))
 	for i, t := range tasks {
-		rows[i] = []string{t.ID, string(t.Type), string(t.Status), string(t.Priority), t.Title}
+		row := []string{t.ID, string(t.Type), string(t.Status), string(t.Priority), t.Title}
+		if showTags {
+			row = append(row, strings.Join(t.Tags, ","))
+		}
+		rows[i] = row
 	}
 	widths := make([]int, len(headers))
 	for i, h := range headers {
@@ -128,7 +142,11 @@ func renderMarkdownBoard(tasks []types.TaskSummary, statuses []types.StatusDef) 
 		}
 		b.WriteString("\n## " + string(status.ID) + "\n")
 		for _, t := range group {
-			fmt.Fprintf(&b, "- %s [%s] %s\n", t.ID, t.Priority, t.Title)
+			line := fmt.Sprintf("- %s [%s] %s", t.ID, t.Priority, t.Title)
+			if len(t.Tags) > 0 {
+				line += fmt.Sprintf(" (tags: %s)", strings.Join(t.Tags, ","))
+			}
+			b.WriteString(line + "\n")
 		}
 	}
 	return strings.TrimRight(b.String(), "\n")
