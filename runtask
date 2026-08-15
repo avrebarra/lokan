@@ -13,6 +13,7 @@ end
 
 GROUPS = {
   ""    => "General",
+  "dev" => "Dev",
   "web" => "Web (Vite React)",
 }.freeze
 
@@ -20,13 +21,13 @@ COMMANDS = {
   %w[build]     => c("Build the full lokan binary (web + engine)") { cmd_build },
   %w[test]      => c("Run engine Go tests") { run "cd #{SCRIPT_DIR}/engine && go test ./..." },
   %w[e2e]       => c("End-to-end smoke: init, create, list, ui, API") { cmd_e2e },
-  %w[preview]   => c("Build artifacts, run app on scratch project with demo data (no install)") { cmd_preview },
   %w[bump]       => c("Bump patch version → git tag → push (release routine)")        { bump("patch") },
   %w[bump patch] => c("Bump patch version → git tag → push (release routine)")        { bump("patch") },
   %w[bump minor] => c("Bump minor version → git tag → push (release routine)")        { bump("minor") },
   %w[bump major] => c("Bump major version → git tag → push (release routine)")        { bump("major") },
   %w[bump dry]   => c("Preview the next version tag without tagging")                 { bump(nil, dry: true) },
-  %w[web dev]   => c("Start Vite dev server + mock API (interactive UI)") { cmd_web_dev },
+  %w[dev web]    => c("Start Vite dev server + mock API (interactive UI)") { cmd_dev_web },
+  %w[dev engine] => c("Run the built binary on a scratch board with demo data (no rebuild)") { cmd_dev_engine },
   %w[web mock]  => c("Run the mock API server only (port 8787)") { cmd_web_mock },
   %w[web build] => c("Build the web frontend only") { run "cd #{SCRIPT_DIR}/web && npm run build" },
 }.freeze
@@ -57,14 +58,15 @@ def cmd_build
   true
 end
 
-# build web + binary, then run against a scratch project seeded with demo
-# data. Project lives in the OS tmpdir and is reused across runs (existing
-# board is kept; only seeded when empty). Port via LOKAN_PREVIEW_PORT.
-def cmd_preview
-  cmd_build
+# run the real binary against a scratch project seeded with demo data.
+# Requires a built binary (dist/lokan) — run ./runtask build first; no rebuild
+# here. Project lives in the OS tmpdir and is reused across runs (existing
+# board is kept; only seeded when empty). Port via LOKAN_ENGINE_PORT.
+def cmd_dev_engine
   bin = "#{SCRIPT_DIR}/dist/lokan"
-  project = File.join(Dir.tmpdir, "lokan-preview")
-  port = ENV["LOKAN_PREVIEW_PORT"] || "7777"
+  bail("dist/lokan not found — run ./runtask build first") unless File.exist?(bin)
+  project = File.join(Dir.tmpdir, "lokan-engine")
+  port = ENV["LOKAN_ENGINE_PORT"] || "7777"
   Dir.mkdir(project) unless Dir.exist?(project)
 
   Dir.chdir(project) do
@@ -73,12 +75,12 @@ def cmd_preview
     begin
       sleep 1.5
       board = File.read("docs/board.md") rescue ""
-      if !board.include?("<!-- lokan:")
+      if !board.include?("<!-- lokan:1 -->")
         puts "  seeding demo data…"
         system "curl -s -X POST http://localhost:#{port}/api/seed"
         puts ""
       end
-      puts "lokan preview — http://localhost:#{port} (project: #{project})"
+      puts "lokan dev engine — http://localhost:#{port} (project: #{project})"
       puts "Press Ctrl+C to stop."
       Process.wait(pid)
     ensure
@@ -104,7 +106,7 @@ def cmd_web_mock
 end
 
 # start the mock API server + Vite dev server together; kill mock on exit
-def cmd_web_dev
+def cmd_dev_web
   mock = Process.spawn("node mock-server.mjs", chdir: "#{SCRIPT_DIR}/web", out: $stdout, err: $stderr)
   begin
     run "cd #{SCRIPT_DIR}/web && npm run dev"

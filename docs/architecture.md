@@ -35,7 +35,7 @@ planned assessment).
 
 ```
 lokan/
-  runtask                 # task runner: build / test / e2e / web dev
+  runtask                 # task runner: build / test / e2e / dev web / dev engine
   dist/                   # built binary: dist/lokan (gitignored)
   docs/                   # architecture, API contract, roadmap, design
   engine/                 # Go module github.com/avrebarra/lokan
