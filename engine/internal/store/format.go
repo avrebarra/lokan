@@ -62,12 +62,15 @@ func serializeTask(task types.Task) (string, error) {
 	}
 
 	// marshal the frontmatter; the marker line opens the html comment and this
-	// closer hides the yaml in rendered output
+	// closer hides the yaml in rendered output. The yaml is written fenceless
+	// (no --- delimiters) so formatters like prettier 2 treat the comment as
+	// opaque — fences and column-0 list markers get re-parsed as markdown and
+	// leak the markup into rendered output.
 	raw, err := yaml.Marshal(fm)
 	if err != nil {
 		return "", fmt.Errorf("serialize frontmatter: %w", err)
 	}
-	return fmt.Sprintf("---\n%s---\n%s\n%s", raw, commentClose, task.Body), nil
+	return fmt.Sprintf("%s%s\n%s", raw, commentClose, task.Body), nil
 }
 
 // buildInitialBody scaffolds the default markdown body for a new task.
@@ -91,8 +94,9 @@ const (
 	configMarkerLine = markerPrefix + configMarkerID
 	// comment wrapper: the marker line opens one html comment that hides the
 	// engine markup in rendered output (GitHub etc.) while the raw file stays
-	// parseable. Older boards with bare --- fences or a self-closed marker
-	// line are still accepted.
+	// parseable. YAML is written fenceless so formatters (prettier 2) keep
+	// the comment opaque; older boards with --- fences or a self-closed
+	// marker line are still accepted.
 	commentOpen  = "<!--"
 	commentClose = "-->"
 	// DefaultGuideURL is where cold-start readers learn to read this file.
@@ -160,7 +164,7 @@ func parseBoard(raw string, statuses []types.StatusDef) []types.Task {
 			}
 			break
 		}
-		parsed, err := parseFullFile(strings.Join(block, "\n"), blockID, statuses)
+		parsed, err := parseFullFile(strings.Join(block, "\n")+"\n", blockID, statuses)
 		if err != nil {
 			log.Printf("Warning: skipping invalid task block: %s", blockID)
 		} else {
@@ -253,6 +257,11 @@ func serializeBoard(tasks []types.Task, cfg types.LokanConfig) (string, error) {
 	if err := writeSection(sectionActive, active); err != nil {
 		return "", err
 	}
+	// separate the archive section with a blank line so the section header
+	// never glues onto the last active task's body
+	if !strings.HasSuffix(b.String(), "\n\n") {
+		b.WriteString("\n")
+	}
 	if err := writeSection(sectionArchive, archived); err != nil {
 		return "", err
 	}
@@ -282,30 +291,34 @@ func isConfigMarker(line string) bool {
 
 // splitFrontmatter extracts the YAML block and body from a task file.
 func splitFrontmatter(raw string) (fm string, body string, ok bool) {
-	// normalize CRLF, then unwrap comment-wrapped frontmatter (older boards
-	// carry the plain --- fences and are accepted unchanged)
+	// normalize CRLF, then unwrap the v1 comment opener (older boards carry
+	// bare --- fences and are accepted unchanged)
 	raw = strings.ReplaceAll(raw, "\r\n", "\n")
 	if strings.HasPrefix(raw, commentOpen+"\n") {
 		raw = strings.TrimPrefix(raw, commentOpen+"\n")
 	}
 
-	// require the leading --- fence
-	if !strings.HasPrefix(raw, "---\n") {
-		return "", "", false
+	// legacy: fenced frontmatter, cut at the closing fence
+	if strings.HasPrefix(raw, "---\n") {
+		rest := raw[len("---\n"):]
+		end := strings.Index(rest, "\n---\n")
+		if end < 0 {
+			return "", "", false
+		}
+		body = rest[end+len("\n---\n"):]
+		// drop the comment close that follows the fence in wrapped blocks
+		if strings.HasPrefix(body, commentClose+"\n") {
+			body = body[len(commentClose)+1:]
+		}
+		return rest[:end], body, true
 	}
 
-	// cut at the closing fence
-	rest := raw[len("---\n"):]
-	end := strings.Index(rest, "\n---\n")
+	// current: fenceless yaml inside the comment, cut at the comment close
+	end := strings.Index(raw, "\n"+commentClose+"\n")
 	if end < 0 {
 		return "", "", false
 	}
-	body = rest[end+len("\n---\n"):]
-	// drop the comment close that follows the fence in wrapped blocks
-	if strings.HasPrefix(body, commentClose+"\n") {
-		body = body[len(commentClose)+1:]
-	}
-	return rest[:end], body, true
+	return raw[:end], raw[end+len("\n"+commentClose+"\n"):], true
 }
 
 // parseFrontmatter validates and converts YAML into a TaskFrontmatter.

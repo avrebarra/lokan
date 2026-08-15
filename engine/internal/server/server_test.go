@@ -441,7 +441,7 @@ func TestUpdateBody(t *testing.T) {
 		t.Fatalf("task body = %q, want the round-tripped notes with a trailing newline", resp.Task.Body)
 	}
 	assertStoredField(t, board, "1", func(t types.Task) bool {
-		return t.Body == "Round trip notes\nwith a second line"
+		return t.Body == "Round trip notes\nwith a second line\n"
 	})
 }
 

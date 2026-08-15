@@ -104,6 +104,46 @@ func TestCreateTaskWritesBoard(t *testing.T) {
 	}
 }
 
+func TestSectionsNeverGlueOntoTaskBody(t *testing.T) {
+	// successive creates rewrite the whole board (NextCounter + CreateTask);
+	// the Archive section header must stay on its own line, never glued onto
+	// the last active task's body
+	board := newTempBoard(t)
+	for _, title := range []string{"Task one", "Task two", "Task three"} {
+		if _, err := CreateTaskFromInput(board, title, types.TypeTask, types.PriorityMedium, "", nil); err != nil {
+			t.Fatal(err)
+		}
+	}
+	raw, err := os.ReadFile(board)
+	if err != nil {
+		t.Fatal(err)
+	}
+	content := string(raw)
+	if strings.Contains(content, "Work Log## Archive") {
+		t.Fatalf("archive header glued onto task body:\n%s", content)
+	}
+	if !strings.Contains(content, "\n\n## Archive\n") {
+		t.Fatalf("archive section not separated by a blank line:\n%s", content)
+	}
+	// every task still round-trips with its full body
+	summaries, err := LoadAllSummaries(board)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(summaries) != 3 {
+		t.Fatalf("summaries = %d, want 3", len(summaries))
+	}
+	for _, s := range summaries {
+		full, err := LoadTask(VirtualPath(board, s.ID))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !strings.HasSuffix(full.Body, "\n## Work Log\n") {
+			t.Fatalf("task %s body lost its trailing newline: %q", s.ID, full.Body)
+		}
+	}
+}
+
 func TestCreateTaskReturnsFields(t *testing.T) {
 	board := newTempBoard(t)
 	fm := makeFrontmatter(map[string]interface{}{"id": "5", "title": "Big Epic", "type": types.TypeEpic})
@@ -562,34 +602,46 @@ func TestSerializeTaskWrapsFrontmatterInComment(t *testing.T) {
 		t.Fatal(err)
 	}
 	// the marker line opens the html comment and this closer hides the yaml:
-	// the raw block must be fence-wrapped with a trailing --> before the body
-	if !strings.HasPrefix(raw, "---\n") {
-		t.Fatalf("frontmatter not fence-wrapped:\n%s", raw)
+	// the raw block must be fenceless (prettier 2 re-parses --- fences as
+	// markdown) with a trailing --> before the body
+	if strings.HasPrefix(raw, "---\n") {
+		t.Fatalf("frontmatter fence-wrapped, should be fenceless:\n%s", raw)
 	}
-	if !strings.Contains(raw, "---\n"+commentClose+"\n# Test Task") {
+	if !strings.Contains(raw, "id: ") {
+		t.Fatalf("frontmatter missing:\n%s", raw)
+	}
+	if !strings.Contains(raw, commentClose+"\n# Test Task") {
 		t.Fatalf("comment not closed before body:\n%s", raw)
 	}
 }
 
 func TestParseAcceptsCommentWrappedFrontmatter(t *testing.T) {
-	// merged format: marker opens the comment, this closer hides the yaml
-	merged := "---\n" +
-		"id: \"1\"\ntitle: X\ntype: task\nstatus: todo\npriority: medium\n" +
+	// current format: fenceless yaml inside the comment, closed by -->
+	fenceless := "id: \"1\"\ntitle: X\ntype: task\nstatus: todo\npriority: medium\n" +
 		"created: \"2024-01-01\"\nupdated: \"2024-01-01\"\n" +
-		"---\n-->\n# Body\n"
-	summary, err := parseFile(merged, "/tmp/x.md", types.DefaultStatusDefs())
+		"-->\n# Body\n"
+	summary, err := parseFile(fenceless, "/tmp/x.md", types.DefaultStatusDefs())
 	if err != nil {
-		t.Fatalf("merged frontmatter rejected: %v", err)
+		t.Fatalf("fenceless frontmatter rejected: %v", err)
 	}
 	if summary.Title != "X" {
 		t.Fatalf("title = %q, want X", summary.Title)
 	}
-	full, err := parseFullFile(merged, "/tmp/x.md", types.DefaultStatusDefs())
+	full, err := parseFullFile(fenceless, "/tmp/x.md", types.DefaultStatusDefs())
 	if err != nil {
-		t.Fatalf("merged full parse rejected: %v", err)
+		t.Fatalf("fenceless full parse rejected: %v", err)
 	}
 	if full.Body != "# Body\n" {
 		t.Fatalf("body = %q, want # Body", full.Body)
+	}
+
+	// legacy merged format (fenced inside the comment) still parses
+	merged := "---\n" +
+		"id: \"1\"\ntitle: X\ntype: task\nstatus: todo\npriority: medium\n" +
+		"created: \"2024-01-01\"\nupdated: \"2024-01-01\"\n" +
+		"---\n-->\n# Body\n"
+	if _, err := parseFile(merged, "/tmp/x.md", types.DefaultStatusDefs()); err != nil {
+		t.Fatalf("merged frontmatter rejected: %v", err)
 	}
 
 	// legacy bare fences still parse (older boards)
@@ -628,9 +680,12 @@ func TestBoardFileHidesMarkupInComments(t *testing.T) {
 	if !strings.Contains(content, "<!-- lokan:config\n") {
 		t.Fatalf("config marker not merged:\n%s", content)
 	}
-	// task block is one comment opened by its marker
-	if !strings.Contains(content, "<!-- lokan:1\n---\n") {
+	// task block is one comment opened by its marker, fenceless yaml inside
+	if !strings.Contains(content, "<!-- lokan:1\nid:") {
 		t.Fatalf("task marker not merged:\n%s", content)
+	}
+	if strings.Contains(content, "<!-- lokan:1\n---\n") {
+		t.Fatalf("task block fence-wrapped, should be fenceless:\n%s", content)
 	}
 
 	// the wrapped board still round-trips through the engine
