@@ -19,7 +19,11 @@ self-describing — everything you need is inside it:
   `## Work Log`).
 - Blocks group under `## Active` (open statuses) and `## Archive` (lanes with
   `archived: true`). Engine markup sits inside HTML comments, so rendered
-  markdown shows only the human-readable parts.
+  markdown shows only the human-readable parts. The YAML is written fenceless
+  (no `---` delimiters) so markdown formatters like prettier leave the comment
+  blocks untouched instead of re-parsing their content — boards survive
+  prettier 2+ / 3+ intact (prettier may normalize blank lines inside task
+  bodies; that's the visible markdown and harmless).
 - **To read:** the board file (full state) or `lokan list --md <board>` (one
   line per task). **To change:** the `lokan` CLI only — never hand-rewrite
   the file; every mutation rewrites it atomically under a `<board>.lock`.

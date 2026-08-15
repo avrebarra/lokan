@@ -270,8 +270,10 @@ fresh board; any markdown file can become one.
 The board file holds every task as a `<!-- lokan:<id>`-delimited block (YAML
 frontmatter fields above + markdown body), grouped into two sections. The
 marker line opens an HTML comment that hides all engine markup in rendered
-output (e.g. GitHub) while the raw file stays parseable; older boards with
-bare `---` fences or a self-closed marker line are still read:
+output (e.g. GitHub) while the raw file stays parseable. The YAML is written
+fenceless (no `---` delimiters) so markdown formatters like prettier treat the
+comment blocks as opaque instead of re-parsing their content; older boards
+with bare `---` fences or a self-closed marker line are still read:
 
 ```
 <!--
@@ -291,10 +293,8 @@ statuses:
 ## Active
 
 <!-- lokan:1
----
 id: "1"
 ...
----
 -->
 
 ## Archive

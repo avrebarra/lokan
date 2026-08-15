@@ -69,7 +69,9 @@ Assessments to run; each item is a proposal, not a commitment.
       parseable from the raw file; older bare-`---` / self-closed-marker
       boards still parse. Boards open with a descriptive banner comment
       (what lokan is, the format, and the docs reference) so cold-start
-      readers can get oriented without lokan knowledge
+      readers can get oriented without lokan knowledge. YAML is fenceless
+      (no `---` delimiters) so prettier 2+/3+ leave the comment blocks
+      untouched — verified byte-identical on both formatter versions
 
 ## Phase 5 — Dual-use hardening (AI + human)
 

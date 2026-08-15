@@ -94,7 +94,6 @@ statuses:
 ## Active
 
 <!-- lokan:1
----
 id: "1"
 title: Fix counter race
 type: task
@@ -102,7 +101,6 @@ status: in-progress
 priority: high
 created: "2026-08-13"
 updated: "2026-08-13"
----
 -->
 # Fix counter race
 
@@ -111,7 +109,6 @@ Body markdown — notes, links, anything. `created`/`updated` are engine-owned.
 ## Archive
 
 <!-- lokan:2
----
 id: "2"
 title: Submit route approval to FAA and JCAB
 type: task
@@ -119,7 +116,6 @@ status: done
 priority: high
 created: "2026-08-13"
 updated: "2026-08-13"
----
 -->
 # Submit route approval to FAA and JCAB
 ```
