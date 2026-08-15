@@ -49,7 +49,7 @@ ID  TYPE  STATUS       PRIORITY  TITLE
 ```sh
 lokan edit docs/board.md 1 --status done    # move lanes / update fields
 lokan subtasks docs/board.md 1              # children of a task
-lokan ui docs/board.md                      # web UI — prints the URL (default localhost:7777)
+lokan ui docs/board.md                      # web UI — prints the URL (default localhost:17762; auto-picks a free port if taken)
 ```
 
 Every command except `init`/`help` takes the board as its first positional
@@ -129,12 +129,14 @@ a live board; use the CLI or API.
 | `edit <board> <id>`      | `--status/--priority/--title/--parent` (empty string clears parent)                         |
 | `subtasks <board> <id>`  | direct children, indented                                                                   |
 | `clear <board>`          | bulk delete — `--archived` or `--all`                                                       |
-| `ui <board>`             | serve the web UI — `--port/-p` (default 7777)                                               |
+| `ui <board>`             | serve the web UI — `--port/-p` (default 17762; fails if explicit port is taken), `--no-browser` (skip auto-open) |
 
 ## Web UI
 
 `lokan ui <board>` serves the web UI and prints the URL
-(`localhost:7777`). Brutalist-terminal aesthetic: monochrome, mono labels,
+(`localhost:17762`, or a free port if 17762 is taken). An explicit
+`--port` is a hard requirement — it fails if already in use. Brutalist-terminal
+aesthetic: monochrome, mono labels,
 rows with hairline separators, one yellow accent on the in-progress column.
 Light is the default; dark is opt-in.
 
