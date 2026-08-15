@@ -1,6 +1,6 @@
 # lokan
 
-Markdown task manager — kanban-focused. Go engine + React frontend in a single binary.
+Markdown-based task manager — your board is a plain `.md` file.
 
 <img src="docs/screenshot.jpg" alt="lokan kanban board" style="max-width: 600px" />
 
@@ -8,8 +8,8 @@ Markdown task manager — kanban-focused. Go engine + React frontend in a single
 
 - **One file, plain markdown** — the whole board is a git-friendly `.md` file. Diffable, greppable, reviewable in PRs.
 - **No database** — state is the file; every command targets it explicitly (`lokan <cmd> <board>`). No discovery, no default path, no sync.
-- **Two interfaces, one board** — humans get a terminal-aesthetic web UI + CLI; AI agents get the same file and a compact `list --md` view. Both mutate through the same Go engine.
-- **One binary** — Go engine with the React app embedded. `go build` and it's done.
+- **Two interfaces, one board** — humans get a terminal-aesthetic web UI + CLI; AI agents get the same file and a compact `list --md` view. Both read and write the same board.
+- **One binary** — no database, no server to install. Download, run, done.
 - **Configurable lanes** — statuses live in the board's config block: add, rename, archive lanes, bulk-clear.
 - **Frozen contracts** — HTTP API and design tokens are versioned docs (`docs/api.md`, `docs/design/tokens.md`); drift needs a doc update first.
 
@@ -133,7 +133,7 @@ a live board; use the CLI or API.
 
 ## Web UI
 
-`lokan ui <board>` serves the embedded React app and prints the URL
+`lokan ui <board>` serves the web UI and prints the URL
 (`localhost:7777`). Brutalist-terminal aesthetic: monochrome, mono labels,
 rows with hairline separators, one yellow accent on the in-progress column.
 Light is the default; dark is opt-in.
