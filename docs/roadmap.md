@@ -105,3 +105,23 @@ Easy docs items are done; implementation items are parked for later.
 - [ ] **G11 — Dogfood the roadmap** — `docs/roadmap.md` is a hand-written
       checklist, not a lokan board. G1 landed (board is configurable), so
       author it in board format and let lokan manage its own roadmap.
+
+## Phase 6 — Multi-board & dev ergonomics
+
+Assessments from annotation pass (2026-08-15). Each item is a proposal, not a
+commitment.
+
+- [ ] **Multi-board UI without port crashes** — `lokan ui` defaults to port
+      7777; serving a second board while one is already running fails with
+      "address already in use". Auto-pick a free port when the default is
+      taken (or error clearly), so multiple boards can be viewed side-by-side.
+- [ ] **Consolidate dev commands** — drop `./runtask preview` (build + demo
+      board + UI); add `dev web` (rename of `web dev`) and `dev engine`
+      (spin the real binary against a tmp board + demo data, no rebuild).
+      Adjust the README command table accordingly.
+- [ ] **Extract a shared Modal shell** — the four modals (ConfigModal,
+      DetailModal, CreateModal, ConfirmModal) duplicate the backdrop overlay,
+      escape handler, and the same button/field class strings. Extract a
+      shared Modal shell (overlay + escape + header/footer slots) and
+      consolidate the shared class constants. Skip the `ModalXX` rename —
+      pure churn, no value.
