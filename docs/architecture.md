@@ -59,11 +59,17 @@ lokan/
 ```
 
 - **One board file, one block per task:** every task is a
-  `<!-- lokan:<id> -->`-delimited block (YAML frontmatter — `id, title, type,
+  `<!-- lokan:<id>`-delimited block (YAML frontmatter — `id, title, type,
 status, priority, parent?, related?, docs?, tags?, created, updated` — plus
   markdown body), grouped into `## Active` and `## Archive` (done/cancelled).
+  The marker line opens one HTML comment that hides all engine markup when the
+  markdown renders (e.g. GitHub); the engine reads the raw file, so parsing is
+  unaffected. Older boards with bare `---` fences or self-closed markers
+  still parse. A descriptive banner comment opens the file — what lokan is,
+  the file format, and the reference — so cold-start readers understand it
+  without lokan knowledge.
 - **Configurable lanes:** the board's statuses live in the board's
-  `<!-- lokan:config -->` block as an ordered `statuses` array (`id` +
+  `<!-- lokan:config` block as an ordered `statuses` array (`id` +
   `archived` flag). Unconfigured projects
   use the built-in defaults (`backlog, todo, in-progress, done, cancelled`,
   last two archived). All status validation and the Active/Archive split are
@@ -76,8 +82,8 @@ status, priority, parent?, related?, docs?, tags?, created, updated` — plus
   The counter lives in the board's config block.
 - **Explicit board targeting (DECIDED 2026-08-13):** every command takes the
   board as its required first positional argument. There is no discovery and
-  no default path — a markdown file is a board only when its first block is
-  the `<!-- lokan:config -->` marker. `lokan init <file>` creates one;
+   no default path — a markdown file is a board only when its first block is
+   the `<!-- lokan:config` marker. `lokan init <file>` creates one;
   every other command errors when the file is missing or lacks the marker.
 
 ## Build Chain & Embedding

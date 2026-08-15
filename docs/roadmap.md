@@ -63,10 +63,13 @@ Assessments to run; each item is a proposal, not a commitment.
       mapped into `@theme`, all components converted to utilities,
       `styles.css` removed
 - [ ] **Protobuf** — assess Protobuf instead of HTTP RESTful for the API
-- [ ] **Hide engine markup when rendered** — a task block's YAML frontmatter
-      and lokan markers show when the board markdown is rendered (e.g. GitHub);
-      make the lokan code invisible in rendered output (comment-wrapped
-      blocks, `<details>`, etc.) while staying parseable by the engine
+- [x] **Hide engine markup when rendered** — DONE (2026-08-15): each block's
+      marker opens one HTML comment (`<!-- lokan:<id>` … `-->`) so lokan
+      markup is invisible in rendered markdown (GitHub) while staying
+      parseable from the raw file; older bare-`---` / self-closed-marker
+      boards still parse. Boards open with a descriptive banner comment
+      (what lokan is, the format, and the docs reference) so cold-start
+      readers can get oriented without lokan knowledge
 
 ## Phase 5 — Dual-use hardening (AI + human)
 
@@ -90,7 +93,7 @@ Easy docs items are done; implementation items are parked for later.
 
 - [x] **G1 — Configurable board path** — DONE (2026-08-13): every command
       takes the board as its first positional argument — no discovery, no
-      default path. A board is self-contained: a `<!-- lokan:config -->`
+      default path. A board is self-contained: a `<!-- lokan:config`
       block (counter, version, statuses) sits at the top, and any markdown
       file with that marker can be one. `lokan init <file>` creates a
       fresh board — a single `roadmap.md` can be managed by the tool itself.

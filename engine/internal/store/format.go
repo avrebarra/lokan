@@ -61,12 +61,13 @@ func serializeTask(task types.Task) (string, error) {
 		fm.Tags = task.Tags
 	}
 
-	// marshal the frontmatter and wrap it around the body
+	// marshal the frontmatter; the marker line opens the html comment and this
+	// closer hides the yaml in rendered output
 	raw, err := yaml.Marshal(fm)
 	if err != nil {
 		return "", fmt.Errorf("serialize frontmatter: %w", err)
 	}
-	return fmt.Sprintf("---\n%s---\n%s", raw, task.Body), nil
+	return fmt.Sprintf("---\n%s---\n%s\n%s", raw, commentClose, task.Body), nil
 }
 
 // buildInitialBody scaffolds the default markdown body for a new task.
@@ -87,7 +88,30 @@ const (
 	sectionArchive   = "## Archive"
 	markerPrefix     = "<!-- lokan:"
 	configMarkerID   = "config"
-	configMarkerLine = markerPrefix + configMarkerID + " -->"
+	configMarkerLine = markerPrefix + configMarkerID
+	// comment wrapper: the marker line opens one html comment that hides the
+	// engine markup in rendered output (GitHub etc.) while the raw file stays
+	// parseable. Older boards with bare --- fences or a self-closed marker
+	// line are still accepted.
+	commentOpen  = "<!--"
+	commentClose = "-->"
+	// DefaultGuideURL is where cold-start readers learn to read this file.
+	DefaultGuideURL = "https://github.com/avrebarra/lokan/blob/main/docs/guides.md"
+	// boardBanner opens the board: a descriptive comment so anyone finding
+	// the file without lokan knowledge understands what it is, its format,
+	// and where to get help. Keep it free of "-->" so it stays one comment.
+	boardBanner = `This board is a lokan kanban / roadmap — created and managed by lokan,
+a single-file markdown task tool (CLI + web UI).
+
+File format: markdown with a lokan:config block and task blocks marked
+lokan:<id> (YAML frontmatter + markdown body). All engine markup is
+comment-wrapped, so rendered markdown shows only the human-readable part.
+
+Prefer the lokan tool (CLI or UI) for edits — hand-editing is possible
+but the engine rewrites this file atomically on every change.
+
+Tool:        https://github.com/avrebarra/lokan
+Reference:   ` + DefaultGuideURL
 )
 
 // IsArchived reports whether a task belongs in the Archive section, per the
@@ -197,13 +221,20 @@ func serializeBoard(tasks []types.Task, cfg types.LokanConfig) (string, error) {
 	}
 
 	var b strings.Builder
+
+	// descriptive banner opens the board: self-identifies lokan, the format,
+	// and the reference for readers without lokan knowledge
+	b.WriteString(commentOpen + "\n")
+	b.WriteString(boardBanner + "\n")
+	b.WriteString(commentClose + "\n\n")
+
 	cfgRaw, err := yaml.Marshal(cfg)
 	if err != nil {
 		return "", fmt.Errorf("serialize config block: %w", err)
 	}
 	b.WriteString(configMarkerLine + "\n")
 	b.Write(cfgRaw)
-	b.WriteString("\n" + boardHeader + "\n\n")
+	b.WriteString(commentClose + "\n\n" + boardHeader + "\n\n")
 	writeSection := func(title string, section []types.Task) error {
 		b.WriteString(title + "\n")
 		if len(section) == 0 {
@@ -215,7 +246,7 @@ func serializeBoard(tasks []types.Task, cfg types.LokanConfig) (string, error) {
 			if err != nil {
 				return err
 			}
-			fmt.Fprintf(&b, "\n<!-- lokan:%s -->\n%s", t.ID, raw)
+			fmt.Fprintf(&b, "\n<!-- lokan:%s\n%s", t.ID, raw)
 		}
 		return nil
 	}
@@ -228,10 +259,11 @@ func serializeBoard(tasks []types.Task, cfg types.LokanConfig) (string, error) {
 	return b.String(), nil
 }
 
-// markerID extracts the task id from a "<!-- lokan:<id> -->" marker line.
+// markerID extracts the task id from a "<!-- lokan:<id> -->" marker line or
+// the merged "<!-- lokan:<id>" block opener.
 func markerID(line string) (string, bool) {
 	line = strings.TrimSpace(line)
-	if !strings.HasPrefix(line, markerPrefix) || !strings.HasSuffix(line, " -->") {
+	if !strings.HasPrefix(line, markerPrefix) {
 		return "", false
 	}
 	id := strings.TrimSuffix(strings.TrimPrefix(line, markerPrefix), " -->")
@@ -241,10 +273,23 @@ func markerID(line string) (string, bool) {
 	return id, true
 }
 
+// isConfigMarker reports whether a line opens the board's config block
+// (merged "<!-- lokan:config" or legacy self-closed "<!-- lokan:config -->").
+func isConfigMarker(line string) bool {
+	line = strings.TrimSpace(line)
+	return line == configMarkerLine || line == configMarkerLine+" -->"
+}
+
 // splitFrontmatter extracts the YAML block and body from a task file.
 func splitFrontmatter(raw string) (fm string, body string, ok bool) {
-	// normalize CRLF, then require the leading --- fence
+	// normalize CRLF, then unwrap comment-wrapped frontmatter (older boards
+	// carry the plain --- fences and are accepted unchanged)
 	raw = strings.ReplaceAll(raw, "\r\n", "\n")
+	if strings.HasPrefix(raw, commentOpen+"\n") {
+		raw = strings.TrimPrefix(raw, commentOpen+"\n")
+	}
+
+	// require the leading --- fence
 	if !strings.HasPrefix(raw, "---\n") {
 		return "", "", false
 	}
@@ -255,7 +300,12 @@ func splitFrontmatter(raw string) (fm string, body string, ok bool) {
 	if end < 0 {
 		return "", "", false
 	}
-	return rest[:end], rest[end+len("\n---\n"):], true
+	body = rest[end+len("\n---\n"):]
+	// drop the comment close that follows the fence in wrapped blocks
+	if strings.HasPrefix(body, commentClose+"\n") {
+		body = body[len(commentClose)+1:]
+	}
+	return rest[:end], body, true
 }
 
 // parseFrontmatter validates and converts YAML into a TaskFrontmatter.
@@ -362,7 +412,7 @@ func parseConfigBlock(raw string) types.LokanConfig {
 	var cfg types.LokanConfig
 	lines := strings.Split(raw, "\n")
 	for i, line := range lines {
-		if strings.TrimSpace(line) != configMarkerLine {
+		if !isConfigMarker(line) {
 			continue
 		}
 		var yamlLines []string
@@ -371,6 +421,16 @@ func parseConfigBlock(raw string) types.LokanConfig {
 				break
 			}
 			yamlLines = append(yamlLines, l)
+		}
+		// strip the comment wrapper (older boards without one are unchanged)
+		for len(yamlLines) > 0 && strings.TrimSpace(yamlLines[len(yamlLines)-1]) == "" {
+			yamlLines = yamlLines[:len(yamlLines)-1]
+		}
+		if len(yamlLines) > 0 && strings.TrimSpace(yamlLines[len(yamlLines)-1]) == commentClose {
+			yamlLines = yamlLines[:len(yamlLines)-1]
+		}
+		if len(yamlLines) > 0 && strings.TrimSpace(yamlLines[0]) == commentOpen {
+			yamlLines = yamlLines[1:]
 		}
 		_ = yaml.Unmarshal([]byte(strings.Join(yamlLines, "\n")), &cfg)
 		break
