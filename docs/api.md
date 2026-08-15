@@ -69,7 +69,7 @@ critical | high | medium | low
 
 ## Endpoints
 
-Base: served by the embedded web server (default port 7777).
+Base: served by the embedded web server (default port 17762; if taken, a free port is auto-picked and printed). An explicit `--port` fails if already in use.
 
 ### GET /
 

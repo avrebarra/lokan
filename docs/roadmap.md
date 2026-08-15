@@ -114,7 +114,7 @@ Easy docs items are done; implementation items are parked for later.
 Assessments from annotation pass (2026-08-15). Each item is a proposal, not a
 commitment.
 
-- [ ] **Multi-board UI without port crashes** — `lokan ui` defaults to port
+- [x] **Multi-board UI without port crashes** — `lokan ui` defaults to port
       7777; serving a second board while one is already running fails with
       "address already in use". Auto-pick a free port when the default is
       taken (or error clearly), so multiple boards can be viewed side-by-side.
