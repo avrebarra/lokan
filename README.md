@@ -177,10 +177,10 @@ Building from source needs the toolchain:
 
 ```sh
 ./runtask build       # vite build → embed → go build → dist/lokan
-./runtask web dev     # Vite dev server with HMR + mock API server
+./runtask dev web     # Vite dev server with HMR + mock API server
+./runtask dev engine  # run built binary on scratch board + demo data, no rebuild
 ./runtask test        # engine Go tests
 ./runtask e2e         # full smoke: build + init + create + list + ui + API
-./runtask preview     # build + demo board + UI, no install
 ./runtask bump patch  # cut a release: tag next version + push (see docs/release.md)
 ```
 
