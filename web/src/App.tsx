@@ -12,10 +12,10 @@ import type { CreateTaskInput } from './api'
 import type { Status, StatusDef, Task, TaskSummary, TaskType } from './types'
 import Topline from './components/Topline'
 import Board from './components/Board'
-import DetailModal from './components/DetailModal'
-import type { TaskFieldChange } from './components/DetailModal'
-import CreateModal from './components/CreateModal'
-import ConfigModal from './components/ConfigModal'
+import ModalDetail from './components/ModalDetail'
+import type { TaskFieldChange } from './components/ModalDetail'
+import ModalCreate from './components/ModalCreate'
+import ModalConfig from './components/ModalConfig'
 
 export default function App() {
   // board state: tasks, lanes, selection, modals, theme
@@ -157,7 +157,7 @@ export default function App() {
         onMove={handleMove}
       />
       {selected && (
-        <DetailModal
+        <ModalDetail
           task={selected}
           subtasks={selectedSubtasks}
           statuses={statuses}
@@ -167,7 +167,7 @@ export default function App() {
         />
       )}
       {creating && (
-        <CreateModal
+        <ModalCreate
           onClose={() => setCreating(null)}
           onCreate={handleCreate}
           initialParent={creating.parent}
@@ -175,7 +175,7 @@ export default function App() {
         />
       )}
       {configOpen && (
-        <ConfigModal
+        <ModalConfig
           statuses={statuses}
           laneCounts={laneCounts}
           theme={theme}

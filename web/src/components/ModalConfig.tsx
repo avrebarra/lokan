@@ -1,6 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import type { StatusDef } from '../types'
-import ConfirmModal from './ConfirmModal'
+import Modal from './Modal'
+import { buttonClass, confirmClass, fieldClass } from './modal-classes'
+import ModalConfirm from './ModalConfirm'
 
 interface Props {
   statuses: StatusDef[]
@@ -28,17 +30,12 @@ type Confirm =
   | { kind: 'clear-archived' }
   | { kind: 'clear-all' }
 
-// shared utility strings, matching the other modals' styling
-const buttonClass =
-  'inline-flex min-h-8 items-center justify-center border border-fg bg-bg px-2.5 text-[11px] uppercase text-fg transition-colors duration-[120ms] hover:bg-fg hover:text-bg'
 // primary action: accent fill, same as the top-level CTA
 const primaryClass =
   'inline-flex min-h-8 items-center justify-center border border-accent bg-accent px-2.5 text-[11px] font-medium uppercase text-black transition-colors duration-[120ms] hover:border-fg hover:bg-fg hover:text-bg'
 // destructive action: red border + text, red fill on hover
 const dangerClass =
   'inline-flex min-h-8 items-center justify-center border border-danger px-2.5 text-[11px] uppercase text-danger transition-colors duration-[120ms] hover:bg-danger hover:text-bg'
-const fieldClass =
-  'min-h-8 w-full border border-border bg-bg px-2.5 py-[9px] text-xs text-fg [border-radius:0] focus:border-fg focus:outline-none'
 
 function uid(): string {
   return Math.random().toString(36).slice(2)
@@ -49,7 +46,7 @@ function serialize(rows: Row[]): StatusDef[] {
   return rows.map((r) => ({ id: r.id.trim(), archived: r.archived }))
 }
 
-export default function ConfigModal({
+export default function ModalConfig({
   statuses,
   laneCounts,
   theme,
@@ -77,15 +74,6 @@ export default function ConfigModal({
       onClose()
     }
   }
-
-  // escape closes the modal (or the pending confirmation, handled above it)
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !confirm) requestClose()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [confirm, dirty])
 
   // update a row field in place
   const patch = (key: string, changes: Partial<Row>) => {
@@ -150,73 +138,18 @@ export default function ConfigModal({
   })()
 
   return (
-    <div
-      className="fixed inset-0 z-40 flex items-center justify-center p-6"
-      role="dialog"
-      aria-modal="true"
-      aria-label="board config"
-    >
-      <div
-        className="absolute inset-0 cursor-pointer bg-[color-mix(in_srgb,var(--bg)_72%,transparent)]"
-        onClick={requestClose}
-      />
-      <div className="relative z-1 flex max-h-[min(92vh,840px)] w-[min(100%,680px)] flex-col border border-fg bg-bg shadow-[0_24px_80px_color-mix(in_srgb,var(--fg)_18%,transparent)]">
-        {/* header */}
-        <div className="flex items-center justify-between gap-6 border-b border-fg px-5 py-[18px]">
-          <div>
-            <h2 className="font-sans text-2xl font-normal leading-[1.15]">config</h2>
-            <p className="mt-1 text-[11px] uppercase text-muted">lanes · bulk ops</p>
-          </div>
+    <Modal
+      title={
+        <div>
+          <h2 className="font-sans text-2xl font-normal leading-[1.15]">config</h2>
+          <p className="mt-1 text-[11px] uppercase text-muted">lanes · bulk ops</p>
         </div>
-
-        {/* body: theme, then lanes */}
-        <div className="overflow-y-auto px-5 pb-5">
-          <div className="mt-4 border-b border-fg pb-2 text-[11px] uppercase text-muted">theme</div>
-          <div className="flex gap-2 py-2.5">
-            {(['light', 'dark'] as const).map((t) => (
-              <button
-                key={t}
-                className={
-                  theme === t
-                    ? 'inline-flex min-h-8 items-center justify-center border border-fg bg-fg px-2.5 text-[11px] uppercase text-bg transition-colors duration-[120ms] hover:bg-bg hover:text-fg'
-                    : buttonClass
-                }
-                onClick={() => onSetTheme(t)}
-                aria-pressed={theme === t}
-              >
-                {t}
-              </button>
-            ))}
-          </div>
-          <div className="mt-4 border-b border-fg pb-2 text-[11px] uppercase text-muted">lanes</div>
-          {rows.map((row) => (
-            <div key={row.key} className="flex items-center gap-3 py-1">
-              <div className="min-w-0 flex-1">
-                <input
-                  type="text"
-                  value={row.id}
-                  onChange={(e) => patch(row.key, { id: e.target.value })}
-                  aria-label="lane name"
-                  className={fieldClass}
-                />
-              </div>
-              <button
-                className={`${buttonClass} flex-none`}
-                onClick={() => setConfirm({ kind: 'remove', row })}
-              >
-                remove
-              </button>
-            </div>
-          ))}
-          <div className="mt-3 flex items-center justify-between">
-            <button className={buttonClass} onClick={addLane}>
-              + add lane
-            </button>
-            {error && <span className="text-[11px] uppercase text-fg">{error}</span>}
-          </div>
-        </div>
-
-        {/* actions + danger zone */}
+      }
+      onClose={requestClose}
+      ariaLabel="board config"
+      maxWidth="w-[min(100%,680px)]"
+      escapeDisabled={confirm !== null}
+      footer={
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-5 pb-5 pt-4">
           <div className="flex flex-wrap gap-2">
             <button className={primaryClass} onClick={save}>
@@ -235,11 +168,54 @@ export default function ConfigModal({
             </button>
           </div>
         </div>
+      }
+    >
+      {/* body: theme, then lanes */}
+      <div className="overflow-y-auto px-5 pb-5">
+        <div className="mt-4 border-b border-fg pb-2 text-[11px] uppercase text-muted">theme</div>
+        <div className="flex gap-2 py-2.5">
+          {(['light', 'dark'] as const).map((t) => (
+            <button
+              key={t}
+              className={theme === t ? confirmClass : buttonClass}
+              onClick={() => onSetTheme(t)}
+              aria-pressed={theme === t}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+        <div className="mt-4 border-b border-fg pb-2 text-[11px] uppercase text-muted">lanes</div>
+        {rows.map((row) => (
+          <div key={row.key} className="flex items-center gap-3 py-1">
+            <div className="min-w-0 flex-1">
+              <input
+                type="text"
+                value={row.id}
+                onChange={(e) => patch(row.key, { id: e.target.value })}
+                aria-label="lane name"
+                className={fieldClass}
+              />
+            </div>
+            <button
+              className={`${buttonClass} flex-none`}
+              onClick={() => setConfirm({ kind: 'remove', row })}
+            >
+              remove
+            </button>
+          </div>
+        ))}
+        <div className="mt-3 flex items-center justify-between">
+          <button className={buttonClass} onClick={addLane}>
+            + add lane
+          </button>
+          {error && <span className="text-[11px] uppercase text-fg">{error}</span>}
+        </div>
       </div>
 
       {/* confirmation layer above the config panel */}
       {confirmCopy && confirm && (
-        <ConfirmModal
+        <ModalConfirm
           title={confirmCopy.title}
           message={confirmCopy.message}
           confirmLabel={confirmCopy.confirmLabel}
@@ -263,6 +239,6 @@ export default function ConfigModal({
           }}
         />
       )}
-    </div>
+    </Modal>
   )
 }
