@@ -37,7 +37,8 @@ func newInitCmd() *cli.Command {
 				return err
 			}
 
-			// write the self-contained board: config block + empty sections
+			// write the self-contained board: banner + config block +
+			// empty sections
 			raw, err := store.InitialBoard(types.LokanConfig{
 				Counter:  0,
 				Version:  "1",

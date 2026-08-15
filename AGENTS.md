@@ -6,9 +6,10 @@ dual use — humans and AI agents operate the same board.
 ## Architecture in Brief
 
 **The board file is the whole state.** A board is a markdown file whose first
-block is a `<!-- lokan:config -->` block (counter, version, lanes), followed
-by `<!-- lokan:<id> -->` task blocks (YAML frontmatter + markdown body)
-grouped into Active / Archive sections. Every command takes the board as its
+block is a `<!-- lokan:config` block (counter, version, lanes), followed
+by `<!-- lokan:<id>` task blocks (YAML frontmatter + markdown body)
+grouped into Active / Archive sections. A banner comment at the top explains
+the format to cold-start readers. Every command takes the board as its
 first positional argument — there is no discovery or default path.
 Read the board file directly for full state.
 
@@ -41,7 +42,7 @@ implement the same contract.
   task, grouped by status). Full state = the board file.
 - **Engine-owned fields:** `id`, `created`, `updated` — never invent or
   rewrite them. IDs are plain counters (`1`, `2`, …) and never reused.
-- **Statuses are configurable lanes** in the board's `<!-- lokan:config -->`
+- **Statuses are configurable lanes** in the board's `<!-- lokan:config`
   block; tasks in archived lanes live under `## Archive`.
 - **Type change keeps the id.** Changing `type` never changes a task's id.
 - **Build & test:** `./runtask test` (Go) · `./runtask web build` (TS) ·

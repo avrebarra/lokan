@@ -62,14 +62,21 @@ error: not a lokan board: /abs/path/nope.md (run lokan init nope.md)
 
 ## How the board works
 
-The board file is the whole state: a `<!-- lokan:config -->` block (counter,
-version, lanes) followed by `<!-- lokan:<id> -->` task blocks, grouped into
-Active / Archive sections. Archived lanes (`done`, `cancelled` by default) live
+The board file is the whole state: a banner comment explaining the format,
+a `<!-- lokan:config` block (counter, version, lanes), and
+`<!-- lokan:<id>` task blocks, grouped into Active / Archive sections.
+Archived lanes (`done`, `cancelled` by default) live
 under `## Archive`; everything else under `## Active`.
 
 <!-- prettier-ignore -->
 ```markdown
-<!-- lokan:config -->
+<!--
+This board is a lokan kanban / roadmap — created and managed by lokan.
+Format: lokan:config block + lokan:<id> task blocks.
+Reference: https://github.com/avrebarra/lokan/blob/main/docs/guides.md
+-->
+
+<!-- lokan:config
 counter: 3
 version: "1"
 statuses:
@@ -80,12 +87,13 @@ statuses:
       archived: true
     - id: cancelled
       archived: true
+-->
 
 # Lokan Board
 
 ## Active
 
-<!-- lokan:1 -->
+<!-- lokan:1
 ---
 id: "1"
 title: Fix counter race
@@ -95,13 +103,14 @@ priority: high
 created: "2026-08-13"
 updated: "2026-08-13"
 ---
+-->
 # Fix counter race
 
 Body markdown — notes, links, anything. `created`/`updated` are engine-owned.
 
 ## Archive
 
-<!-- lokan:2 -->
+<!-- lokan:2
 ---
 id: "2"
 title: Submit route approval to FAA and JCAB
@@ -111,6 +120,7 @@ priority: high
 created: "2026-08-13"
 updated: "2026-08-13"
 ---
+-->
 # Submit route approval to FAA and JCAB
 ```
 

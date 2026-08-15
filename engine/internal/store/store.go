@@ -31,8 +31,9 @@ func validationErrorf(format string, args ...any) error {
 	return &ValidationError{msg: fmt.Sprintf(format, args...)}
 }
 
-// IsBoard reports whether path exists and its first non-blank line is the
-// lokan config marker — the only thing that makes a file a board.
+// IsBoard reports whether path exists and its leading content is a lokan
+// board: an optional banner comment (<!-- ... -->) followed by the config
+// marker — the only thing that makes a file a board.
 func IsBoard(path string) bool {
 	f, err := os.Open(path)
 	if err != nil {
@@ -41,9 +42,17 @@ func IsBoard(path string) bool {
 	defer f.Close()
 	sc := bufio.NewScanner(f)
 	for sc.Scan() {
-		if line := strings.TrimSpace(sc.Text()); line != "" {
-			return line == configMarkerLine
+		line := strings.TrimSpace(sc.Text())
+		if line == "" {
+			continue
 		}
+		// skip the descriptive banner comment, if present
+		if line == commentOpen {
+			for sc.Scan() && strings.TrimSpace(sc.Text()) != commentClose {
+			}
+			continue
+		}
+		return isConfigMarker(line)
 	}
 	return false
 }

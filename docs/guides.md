@@ -3,6 +3,28 @@
 Practical how-to for humans and AI agents. The API contract (`api.md`) is the
 frozen source of truth for types/endpoints; this doc is the *workflow* layer.
 
+## Reading a board file (cold-start)
+
+Found a `board.md` with no lokan knowledge configured? The file is
+self-describing — everything you need is inside it:
+
+- It opens with a banner comment explaining what the file is (a lokan
+  kanban/roadmap), its format, and where to read the reference. The board
+  file's raw markdown IS the whole state — read it directly.
+- After the banner, a `<!-- lokan:config ... -->` block holds the engine
+  config (counter, format version, lane definitions). Each task is a
+  `<!-- lokan:<id> ... -->` block: YAML frontmatter (`id`, `title`, `type`,
+  `status`, `priority`, `parent?`, `related?`, `docs?`, `tags?`, `created`,
+  `updated`) followed by the markdown body (`# Title`, `## Notes`,
+  `## Work Log`).
+- Blocks group under `## Active` (open statuses) and `## Archive` (lanes with
+  `archived: true`). Engine markup sits inside HTML comments, so rendered
+  markdown shows only the human-readable parts.
+- **To read:** the board file (full state) or `lokan list --md <board>` (one
+  line per task). **To change:** the `lokan` CLI only — never hand-rewrite
+  the file; every mutation rewrites it atomically under a `<board>.lock`.
+  `id`/`created`/`updated` are engine-owned.
+
 ## Human workflow (daily loop)
 
 1. `lokan init <board>` — create a board (one self-contained markdown
@@ -69,7 +91,7 @@ exit code 1 with a stderr message; re-read and retry.
 - **Counter only increments.** IDs are plain counters (`1`, `2`, …) and never
   reused, even after a task is archived or deleted.
 - **Type change keeps the ID.** Changing a task's `type` does not change its id.
-- **Bad blocks are skipped with a warning.** If a `<!-- lokan:<id> -->` block
+- **Bad blocks are skipped with a warning.** If a `<!-- lokan:<id>` block
   fails to parse (broken YAML, missing marker), the engine skips it and prints
   `Warning: skipping invalid task block` to stderr. The task still won't appear
   on the board — keep the board file well-formed; prefer the CLI/UI over

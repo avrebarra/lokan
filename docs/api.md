@@ -59,7 +59,7 @@ critical | high | medium | low
 `TaskSummary` = frontmatter + `filePath` + `lineStart`/`lineEnd` (no body).
 
 > `filePath` is a **virtual path** — all tasks live in one file
-> (`docs/board.md`) as `<!-- lokan:<id> -->`-delimited blocks. The reported
+> (`docs/board.md`) as `<!-- lokan:<id>`-delimited blocks. The reported
 > path (`<board>#<id>`) is stable per task and is how the
 > engine addresses a block; it is not a real file on disk.
 >
@@ -258,31 +258,48 @@ and embedded via `//go:embed all:dist` (package `engine/web`). `GET /` serves
     board.md          a board: config block + all task blocks
 ```
 
-A board is a markdown file whose first block is the `<!-- lokan:config -->`
-marker (YAML: `counter`, `version`, `statuses`) followed by task blocks.
-Every command takes the board as its first positional argument — there is no
-discovery and no default path. `lokan init <file>` creates a fresh
-board; any markdown file can become one.
+A board is a markdown file that opens with a descriptive banner comment
+(what lokan is, the file format, and a reference to the docs), followed by
+the `<!-- lokan:config` block (YAML: `counter`, `version`, `statuses`) and the
+task blocks. Every command takes the board as its first positional argument —
+there is no discovery and no default path. `lokan init <file>` creates a
+fresh board; any markdown file can become one.
 
-The board file holds every task as a `<!-- lokan:<id> -->`-delimited block (YAML
-frontmatter fields above + blank line + markdown body), grouped into two
-sections:
+The board file holds every task as a `<!-- lokan:<id>`-delimited block (YAML
+frontmatter fields above + markdown body), grouped into two sections. The
+marker line opens an HTML comment that hides all engine markup in rendered
+output (e.g. GitHub) while the raw file stays parseable; older boards with
+bare `---` fences or a self-closed marker line are still read:
 
 ```
+<!--
+This board is a lokan kanban / roadmap — created and managed by lokan...
+Reference:   https://github.com/avrebarra/lokan/blob/main/docs/guides.md
+-->
+
+<!-- lokan:config
+counter: 0
+version: "1"
+statuses:
+    - id: backlog
+-->
+
 # Lokan Board
 
 ## Active
 
-<!-- lokan:1 -->
+<!-- lokan:1
 ---
 id: "1"
 ...
 ---
+-->
 
 ## Archive
 
-<!-- lokan:2 -->
+<!-- lokan:2
 ...
+-->
 ```
 
 `## Archive` holds tasks whose lane has `archived: true`; everything else

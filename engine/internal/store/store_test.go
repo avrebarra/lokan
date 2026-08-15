@@ -345,10 +345,10 @@ func TestArchiveSectionGroupsDoneTasks(t *testing.T) {
 		t.Fatal(err)
 	}
 	content := string(raw)
-	if !strings.Contains(content, "## Archive\n\n<!-- lokan:1 -->") {
+	if !strings.Contains(content, "## Archive\n\n<!-- lokan:1\n") {
 		t.Fatalf("done task not under Archive section:\n%s", content)
 	}
-	if strings.Contains(content, "## Active\n\n<!-- lokan:1 -->") {
+	if strings.Contains(content, "## Active\n\n<!-- lokan:1\n") {
 		t.Fatalf("done task still under Active:\n%s", content)
 	}
 
@@ -380,7 +380,7 @@ func TestWriteTaskUnarchivesOnReopen(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(raw), "## Active\n\n<!-- lokan:1 -->") {
+	if !strings.Contains(string(raw), "## Active\n\n<!-- lokan:1\n") {
 		t.Fatalf("reopened task not back under Active:\n%s", raw)
 	}
 }
@@ -545,6 +545,150 @@ func TestAcceptsValidFrontmatterWithOptionalFields(t *testing.T) {
 	}
 	if summary.Parent != "2" || len(summary.Related) != 2 || len(summary.Docs) != 1 || len(summary.Tags) != 1 {
 		t.Fatalf("summary = %+v", summary)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// frontmatter hiding (comment-wrapped, invisible in rendered output)
+// ---------------------------------------------------------------------------
+
+func TestSerializeTaskWrapsFrontmatterInComment(t *testing.T) {
+	task := types.Task{
+		TaskFrontmatter: makeFrontmatter(nil),
+		Body:            "# Test Task\n\n## Notes\n\n\n## Work Log\n",
+	}
+	raw, err := serializeTask(task)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// the marker line opens the html comment and this closer hides the yaml:
+	// the raw block must be fence-wrapped with a trailing --> before the body
+	if !strings.HasPrefix(raw, "---\n") {
+		t.Fatalf("frontmatter not fence-wrapped:\n%s", raw)
+	}
+	if !strings.Contains(raw, "---\n"+commentClose+"\n# Test Task") {
+		t.Fatalf("comment not closed before body:\n%s", raw)
+	}
+}
+
+func TestParseAcceptsCommentWrappedFrontmatter(t *testing.T) {
+	// merged format: marker opens the comment, this closer hides the yaml
+	merged := "---\n" +
+		"id: \"1\"\ntitle: X\ntype: task\nstatus: todo\npriority: medium\n" +
+		"created: \"2024-01-01\"\nupdated: \"2024-01-01\"\n" +
+		"---\n-->\n# Body\n"
+	summary, err := parseFile(merged, "/tmp/x.md", types.DefaultStatusDefs())
+	if err != nil {
+		t.Fatalf("merged frontmatter rejected: %v", err)
+	}
+	if summary.Title != "X" {
+		t.Fatalf("title = %q, want X", summary.Title)
+	}
+	full, err := parseFullFile(merged, "/tmp/x.md", types.DefaultStatusDefs())
+	if err != nil {
+		t.Fatalf("merged full parse rejected: %v", err)
+	}
+	if full.Body != "# Body\n" {
+		t.Fatalf("body = %q, want # Body", full.Body)
+	}
+
+	// legacy bare fences still parse (older boards)
+	legacy := "---\n" +
+		"id: \"1\"\ntitle: X\ntype: task\nstatus: todo\npriority: medium\n" +
+		"created: \"2024-01-01\"\nupdated: \"2024-01-01\"\n" +
+		"---\n# Body\n"
+	if _, err := parseFile(legacy, "/tmp/x.md", types.DefaultStatusDefs()); err != nil {
+		t.Fatalf("legacy frontmatter rejected: %v", err)
+	}
+
+	// v1 wrapped (separate <!-- opener line) also still parses
+	wrapped := "<!--\n---\n" +
+		"id: \"1\"\ntitle: X\ntype: task\nstatus: todo\npriority: medium\n" +
+		"created: \"2024-01-01\"\nupdated: \"2024-01-01\"\n" +
+		"---\n-->\n# Body\n"
+	if _, err := parseFile(wrapped, "/tmp/x.md", types.DefaultStatusDefs()); err != nil {
+		t.Fatalf("v1 wrapped frontmatter rejected: %v", err)
+	}
+}
+
+func TestBoardFileHidesMarkupInComments(t *testing.T) {
+	board := newTempBoard(t)
+	mustCreate(t, board, makeFrontmatter(map[string]interface{}{"id": "1"}))
+
+	raw, err := os.ReadFile(board)
+	if err != nil {
+		t.Fatal(err)
+	}
+	content := string(raw)
+	// descriptive banner opens the board, identifying lokan + the reference
+	if !strings.HasPrefix(content, commentOpen+"\n"+boardBanner+"\n"+commentClose+"\n\n") {
+		t.Fatalf("board banner missing:\n%s", content)
+	}
+	// config block is one comment opened by its marker
+	if !strings.Contains(content, "<!-- lokan:config\n") {
+		t.Fatalf("config marker not merged:\n%s", content)
+	}
+	// task block is one comment opened by its marker
+	if !strings.Contains(content, "<!-- lokan:1\n---\n") {
+		t.Fatalf("task marker not merged:\n%s", content)
+	}
+
+	// the wrapped board still round-trips through the engine
+	summaries, err := LoadAllSummaries(board)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(summaries) != 1 || summaries[0].ID != "1" {
+		t.Fatalf("summaries = %+v, want task 1", summaries)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// board banner (descriptive opening comment)
+// ---------------------------------------------------------------------------
+
+func TestInitialBoardCarriesBanner(t *testing.T) {
+	board := newTempBoard(t)
+	raw, err := os.ReadFile(board)
+	if err != nil {
+		t.Fatal(err)
+	}
+	content := string(raw)
+	if !strings.HasPrefix(content, commentOpen+"\n"+boardBanner+"\n") {
+		t.Fatalf("board banner missing:\n%s", content)
+	}
+	if !strings.Contains(content, "Reference:   "+DefaultGuideURL) {
+		t.Fatalf("banner missing reference url:\n%s", content)
+	}
+}
+
+func TestIsBoardAcceptsBannerAndMergedMarker(t *testing.T) {
+	dir := t.TempDir()
+	board := filepath.Join(dir, "board.md")
+	raw := "<!--\nbanner text\n-->\n\n<!-- lokan:config\ncounter: 0\n-->\n\n# Lokan Board\n\n## Active\n\n## Archive\n"
+	if err := os.WriteFile(board, []byte(raw), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if !IsBoard(board) {
+		t.Fatalf("banner + merged-marker board not recognized")
+	}
+
+	// a banner without a config marker is not a board
+	plain := filepath.Join(dir, "plain.md")
+	if err := os.WriteFile(plain, []byte("<!--\nbanner only\n-->\n\n# Notes\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if IsBoard(plain) {
+		t.Fatalf("banner-only file misrecognized as a board")
+	}
+
+	// legacy self-closed marker still recognized
+	legacy := filepath.Join(dir, "legacy.md")
+	if err := os.WriteFile(legacy, []byte("<!-- lokan:config -->\ncounter: 0\n# Lokan Board\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if !IsBoard(legacy) {
+		t.Fatalf("legacy marker board not recognized")
 	}
 }
 
@@ -807,7 +951,8 @@ func TestBoardTracksBlockLineNumbers(t *testing.T) {
 	lines := strings.Split(string(raw), "\n")
 	markerOf := func(id string) int {
 		for i, l := range lines {
-			if strings.TrimSpace(l) == "<!-- lokan:"+id+" -->" {
+			trimmed := strings.TrimSpace(l)
+			if trimmed == "<!-- lokan:"+id || trimmed == "<!-- lokan:"+id+" -->" {
 				return i + 1
 			}
 		}
