@@ -100,11 +100,12 @@ Easy docs items are done; implementation items are parked for later.
 - [x] **G7 — Parser warnings** — DONE (2026-08-13): already implemented —
       `parseBoard` logs `Warning: skipping invalid task block` to stderr
       (`engine/internal/store/format.go`); docs gotcha corrected to match.
-- [ ] **G10 — Surface `related`/`docs`/`tags`** — fields already modeled and
-      shown in `lokan get`, but `list` (table + `--md`) hides them and no
-      `--tag` filter is exposed (query layer already supports tags). Add a
-      `--tag` filter and show tags in `--md` output so roadmap cross-links are
-      visible at a glance.
+- [x] **G10 — Surface `related`/`docs`/`tags`** — DONE (2026-08-15): `--tag`
+      filter added to `list` (comma-separated, AND semantics via the existing
+      query layer); tags shown in `--md` output (`(tags: a,b)`) and a TAGS
+      column in the table when present; `docs/api.md` lean-view contract
+      updated. (The `related`/`docs` fields remain surfaced via `lokan get`
+      only — no list exposure yet.)
 - [ ] **G11 — Dogfood the roadmap** — `docs/roadmap.md` is a hand-written
       checklist, not a lokan board. G1 landed (board is configurable), so
       author it in board format and let lokan manage its own roadmap.
@@ -114,17 +115,21 @@ Easy docs items are done; implementation items are parked for later.
 Assessments from annotation pass (2026-08-15). Each item is a proposal, not a
 commitment.
 
-- [x] **Multi-board UI without port crashes** — `lokan ui` defaults to port
-      7777; serving a second board while one is already running fails with
-      "address already in use". Auto-pick a free port when the default is
-      taken (or error clearly), so multiple boards can be viewed side-by-side.
-- [ ] **Consolidate dev commands** — drop `./runtask preview` (build + demo
-      board + UI); add `dev web` (rename of `web dev`) and `dev engine`
-      (spin the real binary against a tmp board + demo data, no rebuild).
-      Adjust the README command table accordingly.
-- [ ] **Extract a shared Modal shell** — the four modals (ConfigModal,
-      DetailModal, CreateModal, ConfirmModal) duplicate the backdrop overlay,
-      escape handler, and the same button/field class strings. Extract a
-      shared Modal shell (overlay + escape + header/footer slots) and
-      consolidate the shared class constants. Skip the `ModalXX` rename —
-      pure churn, no value.
+- [x] **Multi-board UI without port crashes** — DONE (2026-08-15): `lokan ui`
+      defaults to port 17762; when the default port is taken a free port is
+      auto-picked (printed in the URL), so multiple boards can be viewed
+      side-by-side. An explicit `--port` is a hard requirement and fails with
+      a clear error if already in use. `ui` also auto-opens the browser
+      (`--no-browser` to skip).
+- [x] **Consolidate dev commands** — DONE (2026-08-15): `./runtask preview`
+      dropped; `dev web` (renamed from `web dev`, Vite + mock API) and
+      `dev engine` (real binary against a tmp board + demo data, no rebuild,
+      clean error when `dist/lokan` is missing) added; README command table
+      and `docs/architecture.md` updated. Also fixed the preview seed-check
+      bug that never seeded (`<!-- lokan: -->` always matched the config
+      block).
+- [x] **Extract a shared Modal shell** — DONE (2026-08-15): shared `Modal.tsx`
+      (overlay + escape + header/footer slots, `escapeDisabled`, `z`, `role`,
+      `maxWidth`, `ariaLabel`) plus `modal-classes.ts` consolidating the
+      duplicated `buttonClass`/`fieldClass`/`confirmClass` strings; all four
+      modals refactored onto it. The `ModalXX` rename was skipped per plan.
