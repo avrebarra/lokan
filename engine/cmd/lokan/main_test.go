@@ -491,6 +491,66 @@ func TestListFilters(t *testing.T) {
 	}
 }
 
+func TestListTags(t *testing.T) {
+	root := initProject(t)
+	mustCreate(t, root, "a")
+	mustCreate(t, root, "b")
+	if code, _, stderr := runBoard(t, root, "create", "--tag", "roadmap,g10", "tagged"); code != 0 {
+		t.Fatalf("create failed: %s", stderr)
+	}
+
+	code, stdout, stderr := runBoard(t, root, "list", "--md", "--tag", "roadmap")
+	if code != 0 {
+		t.Fatalf("list failed: %s", stderr)
+	}
+	if !strings.Contains(stdout, "- 3 [medium] tagged (tags: roadmap,g10)") || strings.Contains(stdout, "- 1 [") || strings.Contains(stdout, "- 2 [") {
+		t.Fatalf("stdout = %q", stdout)
+	}
+
+	code, stdout, _ = runBoard(t, root, "list", "--md", "--tag", "roadmap,g10")
+	if code != 0 {
+		t.Fatalf("list failed")
+	}
+	if !strings.Contains(stdout, "- 3 [medium] tagged") {
+		t.Fatalf("stdout = %q", stdout)
+	}
+
+	code, stdout, _ = runBoard(t, root, "list", "--md", "--tag", "roadmap,nope")
+	if code != 0 {
+		t.Fatalf("list failed")
+	}
+	if strings.Contains(stdout, "tagged") {
+		t.Fatalf("stdout = %q", stdout)
+	}
+}
+
+func TestListTagDisplay(t *testing.T) {
+	root := initProject(t)
+	mustCreate(t, root, "a")
+	if code, _, stderr := runBoard(t, root, "create", "--tag", "x", "--tag", "y", "tagged"); code != 0 {
+		t.Fatalf("create failed: %s", stderr)
+	}
+
+	code, stdout, stderr := runBoard(t, root, "list", "--md")
+	if code != 0 {
+		t.Fatalf("list --md failed: %s", stderr)
+	}
+	if !strings.Contains(stdout, "- 1 [medium] a") {
+		t.Fatalf("untagged row must stay bare: %q", stdout)
+	}
+	if !strings.Contains(stdout, "- 2 [medium] tagged (tags: x,y)") {
+		t.Fatalf("tagged row must carry tags: %q", stdout)
+	}
+
+	code, stdout, _ = runBoard(t, root, "list")
+	if code != 0 {
+		t.Fatalf("list failed")
+	}
+	if !strings.Contains(stdout, "TAGS") || !strings.Contains(stdout, "x,y") {
+		t.Fatalf("table must show TAGS column: %q", stdout)
+	}
+}
+
 func TestListEmpty(t *testing.T) {
 	root := initProject(t)
 	code, stdout, stderr := runBoard(t, root, "list")

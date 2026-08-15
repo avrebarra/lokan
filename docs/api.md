@@ -209,8 +209,10 @@ entry points, both frozen:
   markdown summary —
   a `# Board — <n> active, <n> archived` header, then one `## <status>`
   group per configured lane (in lane order) with one
-  `- <id> [<priority>] <title>` line per task. The
-  `--type/--status/--priority` filters apply as normal.
+  `- <id> [<priority>] <title>` line per task, plus `(tags: a,b)` when
+  the task carries tags. The `--type/--status/--priority/--tag` filters
+  apply as normal; `--tag` accepts comma-separated or repeated values
+  (AND semantics).
 
 Mutations use the regular CLI (stable commands): `lokan create "<title>"`
 (`--type/--priority/--parent/--tag`) and `lokan edit <id>`
