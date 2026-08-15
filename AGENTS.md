@@ -28,7 +28,6 @@ implement the same contract.
 | [`docs/guides.md`](./docs/guides.md) | How-to: human daily loop, roadmap modeling, agent workflow, AI+human collaboration, gotchas |
 | [`docs/architecture.md`](./docs/architecture.md) | Stack, repo layout, storage model, build chain |
 | [`docs/roadmap.md`](./docs/roadmap.md) | Future plans (phases, gated items) |
-| [`docs/review.md`](./docs/review.md) | Design invariants + test coverage priorities |
 | [`docs/release.md`](./docs/release.md) | Release routine — tagging, GoReleaser pipeline, install.sh |
 
 **Keyfiles:** storage & parsing → `engine/internal/store/`; API → `engine/internal/server/`; UI → `web/src/`.

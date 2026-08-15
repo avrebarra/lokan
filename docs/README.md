@@ -8,7 +8,6 @@ Deep reference for lokan. One line per area — open what you need.
 | [`api.md`](./api.md)                         | Frozen HTTP API contract — domain types, endpoints, errors        |
 | [`guides.md`](./guides.md)                   | How-to for humans + agents — daily loop, roadmap modeling, AI+human collaboration, gotchas |
 | [`roadmap.md`](./roadmap.md)                 | Future plans                                                      |
-| [`review.md`](./review.md)                   | Design invariants + test coverage priorities from the code review |
 | [`release.md`](./release.md)                 | Release routine — tag → workflow → GoReleaser → install.sh        |
 | [`design/tokens.md`](./design/tokens.md)     | Frozen design spec — colors, type, components, contrast rules     |
 | [`design/mockup.html`](./design/mockup.html) | Approved visual contract (hi-fi mockup, open in browser)          |
