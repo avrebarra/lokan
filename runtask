@@ -19,6 +19,7 @@ GROUPS = {
 
 COMMANDS = {
   %w[build]     => c("Build the full lokan binary (web + engine)") { cmd_build },
+  %w[install]   => c("Build + copy the binary to ~/.local/bin (PATH)") { cmd_install },
   %w[test]      => c("Run engine Go tests") { run "cd #{SCRIPT_DIR}/engine && go test ./..." },
   %w[e2e]       => c("End-to-end smoke: init, create, list, ui, API") { cmd_e2e },
   %w[bump]       => c("Bump patch version → git tag → push (release routine)")        { bump("patch") },
@@ -55,6 +56,18 @@ def cmd_build
   run "mkdir -p #{SCRIPT_DIR}/dist"
   run "cd #{SCRIPT_DIR}/engine && go build -o #{SCRIPT_DIR}/dist/lokan ./cmd/lokan"
   puts "built #{SCRIPT_DIR}/dist/lokan"
+  true
+end
+
+# build the binary and copy it into the user's PATH bin dir, so local
+# testing after engine changes never needs a release/push
+def cmd_install
+  cmd_build
+  bin_dir = File.expand_path("~/.local/bin")
+  Dir.mkdir(bin_dir) unless Dir.exist?(bin_dir)
+  run "cp #{SCRIPT_DIR}/dist/lokan #{bin_dir}/lokan"
+  run "chmod +x #{bin_dir}/lokan"
+  puts "installed #{bin_dir}/lokan"
   true
 end
 
