@@ -213,8 +213,12 @@ func isSectionHeader(line string) bool {
 
 // serializeBoard renders tasks back to a single board document: the config
 // block first, then active tasks under "## Active" and finished ones under
-// "## Archive".
-func serializeBoard(tasks []types.Task, cfg types.LokanConfig) (string, error) {
+// "## Archive". The board's heading is preserved when given; an empty
+// heading falls back to the default board header.
+func serializeBoard(tasks []types.Task, cfg types.LokanConfig, heading string) (string, error) {
+	if heading == "" {
+		heading = boardHeader
+	}
 	var active, archived []types.Task
 	for _, t := range tasks {
 		if IsArchived(t.Status, cfg.Statuses) {
@@ -238,7 +242,7 @@ func serializeBoard(tasks []types.Task, cfg types.LokanConfig) (string, error) {
 	}
 	b.WriteString(configMarkerLine + "\n")
 	b.Write(cfgRaw)
-	b.WriteString(commentClose + "\n\n" + boardHeader + "\n\n")
+	b.WriteString(commentClose + "\n\n" + heading + "\n\n")
 	writeSection := func(title string, section []types.Task) error {
 		b.WriteString(title + "\n")
 		if len(section) == 0 {
@@ -418,6 +422,30 @@ var (
 	errInvalidFrontmatter = errors.New("invalid task frontmatter")
 )
 
+// headingFromBoard returns the board's top-level heading — the first "# "
+// line after the config block — so a board may be titled anything and the
+// engine preserves that title across rewrites. Falls back to the default
+// board header when the board carries none (fresh or legacy boards).
+func headingFromBoard(raw string) string {
+	lines := strings.Split(raw, "\n")
+	for i, line := range lines {
+		if !isConfigMarker(line) {
+			continue
+		}
+		for _, l := range lines[i+1:] {
+			t := strings.TrimSpace(l)
+			if t == commentClose {
+				continue
+			}
+			if strings.HasPrefix(t, "# ") {
+				return t
+			}
+		}
+		return boardHeader
+	}
+	return boardHeader
+}
+
 // parseConfigBlock extracts the lokan config from the board's config block
 // (the first "<!-- lokan:config -->" block, ending at the board header). A
 // missing or unparseable block yields the defaults.
@@ -430,7 +458,10 @@ func parseConfigBlock(raw string) types.LokanConfig {
 		}
 		var yamlLines []string
 		for _, l := range lines[i+1:] {
-			if strings.HasPrefix(l, boardHeader) {
+			// the config block ends at its own comment close; a top-level
+			// heading terminates legacy boards that lack a comment wrapper
+			t := strings.TrimSpace(l)
+			if t == commentClose || strings.HasPrefix(t, "# ") {
 				break
 			}
 			yamlLines = append(yamlLines, l)
@@ -457,5 +488,5 @@ func parseConfigBlock(raw string) types.LokanConfig {
 // InitialBoard renders a fresh board document: config block plus empty
 // Active/Archive sections. Used by lokan init to scaffold a new project.
 func InitialBoard(cfg types.LokanConfig) (string, error) {
-	return serializeBoard(nil, cfg)
+	return serializeBoard(nil, cfg, "")
 }

@@ -459,9 +459,14 @@ func readBoard(board string) ([]types.Task, types.LokanConfig, error) {
 }
 
 // writeBoard atomically persists the full board document: config block first,
-// then tasks grouped into Active/Archive sections.
+// then tasks grouped into Active/Archive sections. The board's current
+// heading is preserved (boards may be titled anything).
 func writeBoard(board string, tasks []types.Task, cfg types.LokanConfig) error {
-	raw, err := serializeBoard(tasks, cfg)
+	heading := boardHeader
+	if old, err := os.ReadFile(board); err == nil {
+		heading = headingFromBoard(string(old))
+	}
+	raw, err := serializeBoard(tasks, cfg, heading)
 	if err != nil {
 		return err
 	}
