@@ -28,8 +28,8 @@ sidecar.
 | Fonts    | Geist Sans + Geist Mono (Google Fonts)                  | terminal design heritage                                     |
 | Build    | `runtask` (root) → `go:embed`                           | One command produces the final binary                        |
 
-Stack evolution is tracked in [`roadmap.md`](./roadmap.md) (Protobuf is a
-planned assessment).
+Stack evolution is tracked in [`roadmap.md`](./roadmap.md) — a lokan board
+(phases are epics, items are tasks; read with `lokan list --md docs/roadmap.md`).
 
 ## Repository Layout
 

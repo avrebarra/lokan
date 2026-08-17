@@ -7,7 +7,7 @@ Deep reference for lokan. One line per area — open what you need.
 | [`architecture.md`](./architecture.md)       | Stack, repo layout, storage model, build chain, design language   |
 | [`api.md`](./api.md)                         | Frozen HTTP API contract — domain types, endpoints, errors        |
 | [`guides.md`](./guides.md)                   | How-to for humans + agents — daily loop, roadmap modeling, AI+human collaboration, gotchas |
-| [`roadmap.md`](./roadmap.md)                 | Future plans                                                      |
+| [`roadmap.md`](./roadmap.md)                 | Future plans — a lokan board (read with `lokan list --md docs/roadmap.md`) |
 | [`release.md`](./release.md)                 | Release routine — tag → workflow → GoReleaser → install.sh        |
 | [`design/tokens.md`](./design/tokens.md)     | Frozen design spec — colors, type, components, contrast rules     |
 | [`design/mockup.html`](./design/mockup.html) | Approved visual contract (hi-fi mockup, open in browser)          |
