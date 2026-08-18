@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import type { DragEvent } from 'react'
-import type { Status, TaskSummary } from '../types'
+import type { Status, TaskSummary } from '../lib/types'
 import TaskRow from './TaskRow'
 
 interface Props {

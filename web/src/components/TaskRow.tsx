@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import type { DragEvent } from 'react'
 import { Check, Copy } from 'lucide-react'
-import type { TaskSummary } from '../types'
-import { fetchTask } from '../api'
-import { priorityTag } from '../format'
+import type { TaskSummary } from '../lib/types'
+import { fetchTask } from '../lib/api'
+import { priorityTag } from '../lib/format'
 
 interface Props {
   task: TaskSummary

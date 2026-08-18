@@ -7,9 +7,9 @@ import {
   moveTask,
   updateStatuses,
   updateTask,
-} from './api'
-import type { CreateTaskInput } from './api'
-import type { Status, StatusDef, Task, TaskSummary, TaskType } from './types'
+} from './lib/api'
+import type { CreateTaskInput } from './lib/api'
+import type { Status, StatusDef, Task, TaskSummary, TaskType } from './lib/types'
 import Topline from './components/Topline'
 import Board from './components/Board'
 import ModalDetail from './components/ModalDetail'

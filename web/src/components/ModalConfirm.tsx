@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import Modal from './Modal'
-import { buttonClass, confirmClass } from './modal-classes'
+import { buttonClass, confirmClass } from '../lib/modal-classes'
 
 interface Props {
   title: string

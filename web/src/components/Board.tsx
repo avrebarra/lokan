@@ -1,4 +1,4 @@
-import type { Status, StatusDef, TaskSummary } from '../types'
+import type { Status, StatusDef, TaskSummary } from '../lib/types'
 import Column from './Column'
 
 interface Props {

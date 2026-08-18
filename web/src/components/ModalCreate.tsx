@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import type { CreateTaskInput } from '../api'
-import type { Priority, TaskType } from '../types'
+import type { CreateTaskInput } from '../lib/api'
+import type { Priority, TaskType } from '../lib/types'
 import Modal from './Modal'
-import { buttonClass, fieldClass } from './modal-classes'
+import { buttonClass, fieldClass } from '../lib/modal-classes'
 
 interface Props {
   onClose: () => void
