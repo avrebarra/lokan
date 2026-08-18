@@ -866,6 +866,72 @@ func TestClearInvalidScope(t *testing.T) {
 	}
 }
 
+// POST /api/delete
+// ---------------------------------------------------------------------------
+
+func TestDeleteTasksViaAPI(t *testing.T) {
+	board := newTestProject(t)
+	createTestTask(t, board, "1", "one", types.StatusTodo, types.PriorityMedium)
+	createTestTask(t, board, "2", "two", types.StatusTodo, types.PriorityMedium)
+	createTestTask(t, board, "3", "three", types.StatusTodo, types.PriorityMedium)
+
+	rec := doRequest(t, New(board).Handler(), "POST", "/api/delete", map[string]any{"ids": []string{"1", "3"}})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+	var resp struct {
+		Deleted int `json:"deleted"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatal(err)
+	}
+	if resp.Deleted != 2 {
+		t.Fatalf("deleted = %d, want 2", resp.Deleted)
+	}
+	if _, err := store.FindByID(board, "2"); err != nil {
+		t.Fatalf("unlisted task should remain: %v", err)
+	}
+	if _, err := store.FindByID(board, "1"); err == nil {
+		t.Fatalf("deleted task should be gone")
+	}
+}
+
+func TestDeleteSingleTaskViaAPI(t *testing.T) {
+	board := newTestProject(t)
+	createTestTask(t, board, "1", "one", types.StatusTodo, types.PriorityMedium)
+	createTestTask(t, board, "2", "two", types.StatusTodo, types.PriorityMedium)
+
+	rec := doRequest(t, New(board).Handler(), "POST", "/api/delete", map[string]any{"ids": []string{"2"}})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+	if _, err := store.FindByID(board, "2"); err == nil {
+		t.Fatalf("deleted task should be gone")
+	}
+}
+
+func TestDeleteMissingTaskViaAPI(t *testing.T) {
+	board := newTestProject(t)
+	createTestTask(t, board, "1", "one", types.StatusTodo, types.PriorityMedium)
+
+	rec := doRequest(t, New(board).Handler(), "POST", "/api/delete", map[string]any{"ids": []string{"1", "99"}})
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("status = %d, want 404", rec.Code)
+	}
+	// all-or-nothing: the valid id must survive
+	if _, err := store.FindByID(board, "1"); err != nil {
+		t.Fatalf("valid task should survive a failed delete: %v", err)
+	}
+}
+
+func TestDeleteEmptyIDsViaAPI(t *testing.T) {
+	board := newTestProject(t)
+	rec := doRequest(t, New(board).Handler(), "POST", "/api/delete", map[string]any{"ids": []string{}})
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want 400", rec.Code)
+	}
+}
+
 func TestUpdateRejectsUnknownLane(t *testing.T) {
 	// status validation follows the configured lanes, not the built-in enum
 	board := newTestProject(t)

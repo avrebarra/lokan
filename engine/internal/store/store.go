@@ -448,6 +448,46 @@ func clearTasks(board string, drop func(types.Task) bool) (int, error) {
 	return deleted, err
 }
 
+// DeleteTasks removes the tasks with the given ids in one atomic rewrite.
+// Every id must exist; a missing id fails the whole delete (all-or-nothing).
+func DeleteTasks(board string, ids []string) (int, error) {
+	deleted := 0
+	err := withBoardLock(board, func() error {
+		tasks, cfg, err := readBoard(board)
+		if err != nil {
+			return err
+		}
+		// validate every id up front so a miss aborts the whole delete
+		want := map[string]bool{}
+		for _, id := range ids {
+			if want[id] {
+				continue
+			}
+			found := false
+			for _, t := range tasks {
+				if t.ID == id {
+					found = true
+					break
+				}
+			}
+			if !found {
+				return fmt.Errorf("%w: %s", ErrNotFound, id)
+			}
+			want[id] = true
+		}
+		kept := tasks[:0]
+		for _, t := range tasks {
+			if want[t.ID] {
+				deleted++
+				continue
+			}
+			kept = append(kept, t)
+		}
+		return writeBoard(board, kept, cfg)
+	})
+	return deleted, err
+}
+
 // readBoard loads the board file, returning its task blocks and config block.
 func readBoard(board string) ([]types.Task, types.LokanConfig, error) {
 	raw, err := os.ReadFile(board)

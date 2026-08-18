@@ -63,23 +63,6 @@ parent: "37"
 ASSESSED (2026-08-18) — parked, revisit later. Idea: one `lokan ui` process; re-invoking `lokan ui <file>` registers a new board entry (filepath identifier) into the running server instead of spawning a new process. Open question: how to close — no browser-driven close signal exists; needs explicit `lokan ui close <file>` / `ui stop`, an idle TTL, or a UI close-button that unregisters. Plus daemon ownership (stale locks, orphans, registry location, control channel). Current auto-pick already solved crashes; this would fix process/tab sprawl. See handoff: docs/design/shared-ui-daemon-handoff.md
 ```
 
-### 40 — UI: multi-select (marquee) + bulk actions + drag multiple cards
-
-```lokan
-id: "40"
-title: 'UI: multi-select (marquee) + bulk actions + drag multiple cards'
-type: task
-status: backlog
-priority: medium
-created: "2026-08-17"
-updated: "2026-08-18"
-parent: "37"
-```
-
-```markdown
-ASSESSED (2026-08-18) — from Annotaat review. Multi-select via marquee drag (image-editor style); once a selection exists, checkboxes appear on cards; sticky floating bulk-action bar at bottom (delete / archive / etc.); selected cards can be dragged together to move multiple at once. Complements single-card drag (task 13). Open questions: marquee start zone, drag-vs-marquee gesture conflict, checkbox-only entry, bulk action scope.
-```
-
 ### 43 — Subtask visibility & navigation in UI
 
 ```lokan
@@ -197,6 +180,22 @@ From Annotaat review (2026-08-18). Show the opened board's filepath in two place
 
 The engine already receives the board path; the API just needs to pass it through (e.g. a `board_path` field in the config/status response) and the UI renders it.
 ```
+
+### 40 — UI: multi-select (marquee) + bulk actions + drag multiple cards
+```lokan
+id: "40"
+title: 'UI: multi-select (marquee) + bulk actions + drag multiple cards'
+type: task
+status: done
+priority: medium
+created: "2026-08-17"
+updated: "2026-08-18"
+parent: "37"
+```
+
+````markdown
+DONE (2026-08-18): multi-select (marquee from empty board space), checkboxes appear once a selection exists, sticky bottom BulkBar (delete / archive / move-to-lane / clear selection), and group drag (selected cards move together preserving selection order). New engine surface: POST /api/delete {ids} — store DeleteTasks, all-or-nothing, 404 on missing id — plus single-task delete from the detail modal. Click contract: selection active → row click toggles, double-click opens detail. Built in workpool/multiselect.
+````
 
 ### 41 — Board format: human-readable raw header (title section or frontmatter)
 

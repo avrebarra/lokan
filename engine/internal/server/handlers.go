@@ -286,6 +286,44 @@ func (s *Server) HandleClear(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, ResponseDataClear{Deleted: deleted})
 }
 
+func (s *Server) HandleDelete(w http.ResponseWriter, r *http.Request) {
+	// decode the request body
+	var req RequestDataDelete
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+	if len(req.IDs) == 0 {
+		writeError(w, http.StatusBadRequest, "Missing ids")
+		return
+	}
+
+	// validate every id exists before deleting anything
+	summaries, err := store.LoadAllSummaries(s.boardPath)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	known := map[string]bool{}
+	for _, t := range summaries {
+		known[t.ID] = true
+	}
+	for _, id := range req.IDs {
+		if !known[id] {
+			writeError(w, http.StatusNotFound, fmt.Sprintf("task not found: %s", id))
+			return
+		}
+	}
+
+	// apply the delete and respond
+	deleted, err := store.DeleteTasks(s.boardPath, req.IDs)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, ResponseDataDelete{Deleted: deleted})
+}
+
 func (s *Server) HandleSeed(w http.ResponseWriter, r *http.Request) {
 	created, err := SeedDemoData(s.boardPath)
 	if err != nil {

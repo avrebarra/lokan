@@ -30,6 +30,10 @@ type RequestDataClear struct {
 	Scope string `json:"scope"`
 }
 
+type RequestDataDelete struct {
+	IDs []string `json:"ids"`
+}
+
 // Response types — payload contracts for the API responses.
 type ResponseDataTasks struct {
 	Tasks     []types.TaskSummary `json:"tasks"`
@@ -61,6 +65,10 @@ type ResponseDataConfigStatuses struct {
 }
 
 type ResponseDataClear struct {
+	Deleted int `json:"deleted"`
+}
+
+type ResponseDataDelete struct {
 	Deleted int `json:"deleted"`
 }
 

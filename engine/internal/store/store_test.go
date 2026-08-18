@@ -879,6 +879,60 @@ func TestClearArchivedUsesConfiguredArchivedFlag(t *testing.T) {
 	}
 }
 
+func TestDeleteTasksDeletesListed(t *testing.T) {
+	board := newTempBoard(t)
+	mustCreate(t, board, makeFrontmatter(nil))
+	mustCreate(t, board, makeFrontmatter(map[string]interface{}{"id": "2"}))
+	mustCreate(t, board, makeFrontmatter(map[string]interface{}{"id": "3"}))
+
+	deleted, err := DeleteTasks(board, []string{"1", "3"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if deleted != 2 {
+		t.Fatalf("deleted = %d, want 2", deleted)
+	}
+	remaining, err := LoadAllSummaries(board)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(remaining) != 1 || remaining[0].ID != "2" {
+		t.Fatalf("remaining = %+v", remaining)
+	}
+}
+
+func TestDeleteTasksIgnoresDuplicateIDs(t *testing.T) {
+	board := newTempBoard(t)
+	mustCreate(t, board, makeFrontmatter(nil))
+
+	deleted, err := DeleteTasks(board, []string{"1", "1"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if deleted != 1 {
+		t.Fatalf("deleted = %d, want 1", deleted)
+	}
+}
+
+func TestDeleteTasksMissingIDFailsWholeDelete(t *testing.T) {
+	board := newTempBoard(t)
+	mustCreate(t, board, makeFrontmatter(nil))
+	mustCreate(t, board, makeFrontmatter(map[string]interface{}{"id": "2"}))
+
+	_, err := DeleteTasks(board, []string{"1", "99"})
+	if !errors.Is(err, ErrNotFound) {
+		t.Fatalf("err = %v, want ErrNotFound", err)
+	}
+	// all-or-nothing: the valid id must survive
+	remaining, err := LoadAllSummaries(board)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(remaining) != 2 {
+		t.Fatalf("remaining = %+v, want both tasks intact", remaining)
+	}
+}
+
 // ---------------------------------------------------------------------------
 // self-contained config & explicit board paths
 
