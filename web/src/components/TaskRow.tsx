@@ -75,11 +75,6 @@ export default function TaskRow({ task, subtaskCount, moved, onClick }: Props) {
               {priorityTag(task.priority)}
             </span>
           </div>
-          {subtaskCount > 0 && (
-            <span className="flex-none text-[11px] text-muted group-hover:invisible">
-              [{subtaskCount}]
-            </span>
-          )}
         </div>
         <div
           className={`mt-[3px] font-sans font-normal leading-[1.35] group-hover:underline ${
@@ -87,6 +82,9 @@ export default function TaskRow({ task, subtaskCount, moved, onClick }: Props) {
           }`}
         >
           {isSubtask ? `— ${task.title}` : task.title}
+          {subtaskCount > 0 && (
+            <span className="ml-2 text-[11px] text-muted">[{subtaskCount}]</span>
+          )}
         </div>
       </button>
       <button
