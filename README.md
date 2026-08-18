@@ -1,17 +1,26 @@
-# lokan
-
-Markdown-based task manager — your board is a plain `.md` file.
+<div align="center">
+  <h1>lokan</h1>
+  <p>Markdown-based task manager — your board is a plain <code>.md</code> file.</p>
+  <p>
+    <a href="docs/api.md">API</a> ·
+    <a href="docs/guides.md">Guides</a> ·
+    <a href="docs/architecture.md">Architecture</a> ·
+    <a href="docs/roadmap.md">Roadmap</a> ·
+    <a href="https://github.com/avrebarra/lokan/releases">Releases</a>
+  </p>
+  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-green"></a>
+</div>
 
 <img src="docs/screenshot.jpg" alt="lokan kanban board" style="max-width: 600px" />
 
 ## Features
 
-- **One file, plain markdown** — the whole board is a git-friendly `.md` file. Diffable, greppable, reviewable in PRs.
-- **No database** — state is the file; every command targets it explicitly (`lokan <cmd> <board>`). No discovery, no default path, no sync.
-- **Two interfaces, one board** — humans get a terminal-aesthetic web UI + CLI; AI agents get the same file and a compact `list --md` view. Both read and write the same board.
-- **One binary** — no database, no server to install. Download, run, done.
-- **Configurable lanes** — statuses live in the board's config block: add, rename, archive lanes, bulk-clear.
-- **Frozen contracts** — HTTP API and design tokens are versioned docs (`docs/api.md`, `docs/design/tokens.md`); drift needs a doc update first.
+- 📄 **One file, plain markdown** — the whole board is a git-friendly `.md` file. Diffable, greppable, reviewable in PRs.
+- 🚫 **No database** — state is the file; every command targets it explicitly (`lokan <cmd> <board>`). No discovery, no default path, no sync.
+- 🖥️ **Two interfaces, one board** — humans get a terminal-aesthetic web UI + CLI; AI agents get the same file and a compact `list --md` view. Both read and write the same board.
+- 📦 **One binary** — no database, no server to install. Download, run, done.
+- 🏷️ **Configurable lanes** — statuses live in the board's config block: add, rename, archive lanes, bulk-clear.
+- 🔒 **Frozen contracts** — HTTP API and design tokens are versioned docs (`docs/api.md`, `docs/design/tokens.md`); drift needs a doc update first.
 
 ## Install
 
@@ -197,10 +206,6 @@ Building from source needs the toolchain:
 as the installed one. Release binaries come from tagged commits; the pipeline
 (GoReleaser + GitHub Actions + `install.sh`) is documented in
 [`docs/release.md`](docs/release.md).
-
-Layout: `engine/` (Go: urfave/cli, core store/id/query, HTTP server, embedded
-web) · `web/` (Vite + React + TS, design system in `docs/design/`). The build
-copies `web/dist` into `engine/web/dist` and embeds it via `go:embed`.
 
 ## Design
 
