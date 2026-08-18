@@ -6,12 +6,14 @@ dual use — humans and AI agents operate the same board.
 ## Architecture in Brief
 
 **The board file is the whole state.** A board is a markdown file whose first
-block is a `<!-- lokan:config` block (counter, version, lanes), followed
-by `<!-- lokan:<id>` task blocks (YAML frontmatter + markdown body)
-grouped into Active / Archive sections. A banner comment at the top explains
-the format to cold-start readers. Every command takes the board as its
-first positional argument — there is no discovery or default path.
-Read the board file directly for full state.
+block is a `<!-- lokan:config` block (title, counter, version, lanes),
+followed by task blocks grouped into Active / Archive sections. Each task
+opens with a `### <id> — <title>` heading, then a ```lokan code block
+(YAML frontmatter) and a markdown body — the frontmatter is visible on
+render, the banner and config stay comment-hidden. A banner comment at the
+top explains the format to cold-start readers. Every command takes the
+board as its first positional argument — there is no discovery or default
+path. Read the board file directly for full state.
 
 **The Go engine is the source of truth.** Every mutation (create/edit/move/
 clear/lane rename) rewrites the board file atomically under a `<board>.lock`.

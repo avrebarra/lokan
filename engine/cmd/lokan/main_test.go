@@ -82,7 +82,7 @@ func TestInitCreatesConfig(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if cfg.Counter != 0 || cfg.Version != "1" {
+	if cfg.Counter != 0 || cfg.Version != "2" {
 		t.Fatalf("cfg = %+v", cfg)
 	}
 	if _, err := os.Stat(bp(root)); err != nil {
@@ -125,7 +125,7 @@ func TestInitWithCustomBoard(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if cfg.Counter != 0 || cfg.Version != "1" {
+	if cfg.Counter != 0 || cfg.Version != "2" {
 		t.Fatalf("cfg = %+v", cfg)
 	}
 }

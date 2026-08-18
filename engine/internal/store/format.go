@@ -36,7 +36,9 @@ func parseFullFile(raw string, filePath string, statuses []types.StatusDef) (*ty
 	return &types.Task{TaskFrontmatter: fm, Body: body, FilePath: filePath}, nil
 }
 
-// serializeTask renders a task back to markdown with YAML frontmatter.
+// serializeTask renders a task's frontmatter and body as visible code
+// fences, followed by nothing — the fences make both legible in raw and
+// rendered output while staying machine-parseable.
 func serializeTask(task types.Task) (string, error) {
 	// copy core fields, omitting empty optionals
 	fm := types.TaskFrontmatter{
@@ -61,16 +63,12 @@ func serializeTask(task types.Task) (string, error) {
 		fm.Tags = task.Tags
 	}
 
-	// marshal the frontmatter; the marker line opens the html comment and this
-	// closer hides the yaml in rendered output. The yaml is written fenceless
-	// (no --- delimiters) so formatters like prettier 2 treat the comment as
-	// opaque — fences and column-0 list markers get re-parsed as markdown and
-	// leak the markup into rendered output.
 	raw, err := yaml.Marshal(fm)
 	if err != nil {
 		return "", fmt.Errorf("serialize frontmatter: %w", err)
 	}
-	return fmt.Sprintf("%s%s\n%s", raw, commentClose, task.Body), nil
+	bodyClose := strings.Repeat("`", strings.Count(bodyFenceOpen, "`"))
+	return fmt.Sprintf("%s\n%s%s\n\n%s\n%s%s\n", fenceOpen, raw, fenceClose, bodyFenceOpen, strings.TrimLeft(task.Body, "\n"), bodyClose), nil
 }
 
 // buildInitialBody scaffolds the default markdown body for a new task.
@@ -92,11 +90,19 @@ const (
 	markerPrefix     = "<!-- lokan:"
 	configMarkerID   = "config"
 	configMarkerLine = markerPrefix + configMarkerID
-	// comment wrapper: the marker line opens one html comment that hides the
-	// engine markup in rendered output (GitHub etc.) while the raw file stays
-	// parseable. YAML is written fenceless so formatters (prettier 2) keep
-	// the comment opaque; older boards with --- fences or a self-closed
-	// marker line are still accepted.
+	// task frontmatter lives in a visible code fence so the yaml is legible
+	// in rendered markdown (GitHub etc.) and stays machine-parseable; the
+	// fence tag also lets editors distinguish it from body code blocks.
+	fenceOpen  = "```lokan"
+	fenceClose = "```"
+	// the body is fenced too (4 backticks) so raw and rendered views match
+	// and a body's internal markdown can never outrank the task heading;
+	// the extra backtick lets 3-backtick code blocks inside bodies survive.
+	bodyFenceOpen = "````markdown"
+	// comment wrapper: the config block and banner are hidden in rendered
+	// output — the board title lives inside the config, not as a visible
+	// heading. Legacy boards (comment-wrapped task blocks, bare --- fences,
+	// self-closed markers) are still accepted on read.
 	commentOpen  = "<!--"
 	commentClose = "-->"
 	// DefaultGuideURL is where cold-start readers learn to read this file.
@@ -107,9 +113,10 @@ const (
 	boardBanner = `This board is a lokan kanban / roadmap — created and managed by lokan,
 a single-file markdown task tool (CLI + web UI).
 
-File format: markdown with a lokan:config block and task blocks marked
-lokan:<id> (YAML frontmatter + markdown body). All engine markup is
-comment-wrapped, so rendered markdown shows only the human-readable part.
+File format: markdown with a lokan:config block (board title, counter,
+lanes) and task blocks — each task opens with a "### <id> — <title>"
+heading, a lokan code fence (YAML frontmatter), and the markdown body in
+its own code fence, so raw and rendered views show the same thing.
 
 Prefer the lokan tool (CLI or UI) for edits — hand-editing is possible
 but the engine rewrites this file atomically on every change.
@@ -138,18 +145,20 @@ func statusIDs(statuses []types.StatusDef) []types.Status {
 	return ids
 }
 
-// parseBoard splits a board document into task blocks. Each task block starts
-// with a "<!-- lokan:<id> -->" marker; blocks that fail to parse are skipped
-// with a warning. Section headers and blank lines between blocks are dropped.
+// parseBoard splits a board document into task blocks. A block opens at a
+// task marker — the current ```lokan fence line or a legacy
+// "<!-- lokan:<id> -->" comment — and runs to the next marker or the end of
+// the document. Blocks that fail to parse are skipped with a warning.
+// Section headers, headings, and blank lines between blocks are dropped.
 func parseBoard(raw string, statuses []types.StatusDef) []types.Task {
 	var tasks []types.Task
 	var block []string
-	blockID := ""
+	inBlock := false
 	blockStart := 0
 	blockEnd := 0
 
 	flush := func() {
-		if blockID == "" {
+		if !inBlock {
 			return
 		}
 		// trim leading/trailing blank lines and stray section headers
@@ -158,15 +167,15 @@ func parseBoard(raw string, statuses []types.StatusDef) []types.Task {
 		}
 		for len(block) > 0 {
 			last := strings.TrimSpace(block[len(block)-1])
-			if last == "" || last == sectionActive || last == sectionArchive || last == boardHeader {
+			if last == "" || last == sectionActive || last == sectionArchive || last == boardHeader || isTaskHeading(last) {
 				block = block[:len(block)-1]
 				continue
 			}
 			break
 		}
-		parsed, err := parseFullFile(strings.Join(block, "\n")+"\n", blockID, statuses)
+		parsed, err := parseFullFile(strings.Join(block, "\n")+"\n", "", statuses)
 		if err != nil {
-			log.Printf("Warning: skipping invalid task block: %s", blockID)
+			log.Printf("Warning: skipping invalid task block at line %d", blockStart)
 		} else {
 			// record the block's extent in the board file (1-based lines)
 			parsed.LineStart = blockStart
@@ -177,21 +186,33 @@ func parseBoard(raw string, statuses []types.StatusDef) []types.Task {
 			tasks = append(tasks, *parsed)
 		}
 		block = nil
-		blockID = ""
+		inBlock = false
 	}
 
 	for i, line := range strings.Split(raw, "\n") {
-		if id, ok := markerID(line); ok {
+		if isConfigMarker(line) {
 			flush()
-			if id == configMarkerID {
-				continue
-			}
-			blockID = id
-			blockStart = i + 1
-			blockEnd = i + 1
 			continue
 		}
-		if blockID != "" {
+		if isTaskMarker(line) {
+			flush()
+			inBlock = true
+			blockStart = i + 1
+			blockEnd = i + 1
+			// the fence opener belongs to the block — splitFrontmatter needs
+			// it to recognize the fenced layout (legacy comment markers are
+			// consumed whole and stay out of the block)
+			if strings.TrimSpace(line) == fenceOpen {
+				block = append(block, line)
+			}
+			continue
+		}
+		if inBlock {
+			// task headings and section headers are layout chrome — dropped
+			// from the block and excluded from its reported line range
+			if isTaskHeading(line) {
+				continue
+			}
 			block = append(block, line)
 			// extend the end only over content lines, so the reported range
 			// stays tight (no trailing blanks or section headers)
@@ -204,6 +225,19 @@ func parseBoard(raw string, statuses []types.StatusDef) []types.Task {
 	return tasks
 }
 
+// isTaskMarker reports whether a line opens a task block: the lokan code
+// fence (current format) or a legacy "<!-- lokan:<id>" comment marker.
+func isTaskMarker(line string) bool {
+	line = strings.TrimSpace(line)
+	if line == fenceOpen {
+		return true
+	}
+	if id, ok := markerID(line); ok && id != configMarkerID {
+		return true
+	}
+	return false
+}
+
 // isSectionHeader reports whether a line is a board layout header, which is
 // trimmed from blocks and excluded from their reported line ranges.
 func isSectionHeader(line string) bool {
@@ -211,14 +245,24 @@ func isSectionHeader(line string) bool {
 	return line == sectionActive || line == sectionArchive || line == boardHeader
 }
 
-// serializeBoard renders tasks back to a single board document: the config
-// block first, then active tasks under "## Active" and finished ones under
-// "## Archive". The board's heading is preserved when given; an empty
-// heading falls back to the default board header.
-func serializeBoard(tasks []types.Task, cfg types.LokanConfig, heading string) (string, error) {
-	if heading == "" {
-		heading = boardHeader
+// isTaskHeading reports whether a line matches the engine's per-task heading
+// ("### <id> — <title>") — layout chrome, dropped like section headers. The
+// "id — " shape guard keeps plain body headings (e.g. "### Notes") intact.
+func isTaskHeading(line string) bool {
+	line = strings.TrimSpace(line)
+	if !strings.HasPrefix(line, "### ") {
+		return false
 	}
+	rest := strings.TrimPrefix(line, "### ")
+	em := strings.Index(rest, " — ")
+	return em > 0
+}
+
+// serializeBoard renders tasks back to a single board document: the config
+// block first (carrying the board title), then active tasks under "## Active"
+// and finished ones under "## Archive". Each task opens with a
+// "### <id> — <title>" heading followed by its lokan fence block.
+func serializeBoard(tasks []types.Task, cfg types.LokanConfig) (string, error) {
 	var active, archived []types.Task
 	for _, t := range tasks {
 		if IsArchived(t.Status, cfg.Statuses) {
@@ -231,7 +275,7 @@ func serializeBoard(tasks []types.Task, cfg types.LokanConfig, heading string) (
 	var b strings.Builder
 
 	// descriptive banner opens the board: self-identifies lokan, the format,
-	// and the reference for readers without lokan knowledge
+	// and the reference for readers without lokan knowledge (comment-hidden)
 	b.WriteString(commentOpen + "\n")
 	b.WriteString(boardBanner + "\n")
 	b.WriteString(commentClose + "\n\n")
@@ -242,7 +286,7 @@ func serializeBoard(tasks []types.Task, cfg types.LokanConfig, heading string) (
 	}
 	b.WriteString(configMarkerLine + "\n")
 	b.Write(cfgRaw)
-	b.WriteString(commentClose + "\n\n" + heading + "\n\n")
+	b.WriteString(commentClose + "\n\n")
 	writeSection := func(title string, section []types.Task) error {
 		b.WriteString(title + "\n")
 		if len(section) == 0 {
@@ -254,7 +298,7 @@ func serializeBoard(tasks []types.Task, cfg types.LokanConfig, heading string) (
 			if err != nil {
 				return err
 			}
-			fmt.Fprintf(&b, "\n<!-- lokan:%s\n%s", t.ID, raw)
+			fmt.Fprintf(&b, "\n### %s — %s\n%s", t.ID, t.Title, raw)
 		}
 		return nil
 	}
@@ -295,9 +339,22 @@ func isConfigMarker(line string) bool {
 
 // splitFrontmatter extracts the YAML block and body from a task file.
 func splitFrontmatter(raw string) (fm string, body string, ok bool) {
-	// normalize CRLF, then unwrap the v1 comment opener (older boards carry
-	// bare --- fences and are accepted unchanged)
+	// normalize CRLF
 	raw = strings.ReplaceAll(raw, "\r\n", "\n")
+
+	// current: fenced yaml inside a ```lokan code block, cut at the fence close
+	if strings.HasPrefix(raw, fenceOpen+"\n") {
+		rest := raw[len(fenceOpen)+1:]
+		end := strings.Index(rest, "\n"+fenceClose+"\n")
+		if end < 0 {
+			return "", "", false
+		}
+		body := rest[end+len("\n"+fenceClose+"\n"):]
+		return rest[:end], unwrapBodyFence(body), true
+	}
+
+	// legacy: comment-wrapped blocks, unwrap the v1 comment opener (older
+	// boards carry bare --- fences and are accepted unchanged)
 	if strings.HasPrefix(raw, commentOpen+"\n") {
 		raw = strings.TrimPrefix(raw, commentOpen+"\n")
 	}
@@ -322,7 +379,47 @@ func splitFrontmatter(raw string) (fm string, body string, ok bool) {
 	if end < 0 {
 		return "", "", false
 	}
-	return raw[:end], raw[end+len("\n"+commentClose+"\n"):], true
+	return raw[:end], unwrapBodyFence(raw[end+len("\n"+commentClose+"\n"):]), true
+}
+
+// unwrapBodyFence strips the body's markdown fence (current format:
+// ````markdown; hand-written/older boards may use ```markdown), returning
+// the inner markdown. Unfenced bodies (legacy boards) pass through, and a
+// leading code block followed by real content is preserved untouched. The
+// loop clears double-wraps left by earlier writers that stored a fence as
+// body content.
+func unwrapBodyFence(body string) string {
+	for {
+		// tolerate the blank separator line between the frontmatter and body fences
+		trimmed := strings.TrimPrefix(body, "\n")
+		open := ""
+		for _, f := range []string{bodyFenceOpen, "```markdown"} {
+			if strings.HasPrefix(trimmed, f+"\n") {
+				open = f
+				break
+			}
+		}
+		if open == "" {
+			return body
+		}
+		closeFence := strings.Repeat("`", strings.Count(open, "`"))
+		rest := trimmed[len(open)+1:]
+		end := strings.Index(rest, "\n"+closeFence+"\n")
+		if end < 0 {
+			return body
+		}
+		// an engine wrapper spans the whole body — if content follows the
+		// close, this is a real leading code block, not a wrapper
+		if strings.TrimSpace(rest[end+len("\n"+closeFence+"\n"):]) != "" {
+			return body
+		}
+		// keep the newline that precedes the closing fence (it belongs to the body)
+		next := rest[:end+1]
+		if next == body {
+			return body
+		}
+		body = next
+	}
 }
 
 // parseFrontmatter validates and converts YAML into a TaskFrontmatter.
@@ -422,10 +519,12 @@ var (
 	errInvalidFrontmatter = errors.New("invalid task frontmatter")
 )
 
-// headingFromBoard returns the board's top-level heading — the first "# "
-// line after the config block — so a board may be titled anything and the
-// engine preserves that title across rewrites. Falls back to the default
-// board header when the board carries none (fresh or legacy boards).
+// headingFromBoard returns a legacy board's top-level heading — the first
+// "# " line between the config block and the first section — so old boards
+// with a visible title migrate it into the config on rewrite. Boards that
+// carry none (fresh v2 boards) fall back to the default board header. The
+// scan stops at sections and task markers so it can never drift into task
+// bodies (whose markdown may open with "# <title>").
 func headingFromBoard(raw string) string {
 	lines := strings.Split(raw, "\n")
 	for i, line := range lines {
@@ -436,6 +535,9 @@ func headingFromBoard(raw string) string {
 			t := strings.TrimSpace(l)
 			if t == commentClose {
 				continue
+			}
+			if t == sectionActive || t == sectionArchive || isTaskMarker(t) {
+				return boardHeader
 			}
 			if strings.HasPrefix(t, "# ") {
 				return t
@@ -488,5 +590,5 @@ func parseConfigBlock(raw string) types.LokanConfig {
 // InitialBoard renders a fresh board document: config block plus empty
 // Active/Archive sections. Used by lokan init to scaffold a new project.
 func InitialBoard(cfg types.LokanConfig) (string, error) {
-	return serializeBoard(nil, cfg, "")
+	return serializeBoard(nil, cfg)
 }

@@ -385,10 +385,10 @@ func TestArchiveSectionGroupsDoneTasks(t *testing.T) {
 		t.Fatal(err)
 	}
 	content := string(raw)
-	if !strings.Contains(content, "## Archive\n\n<!-- lokan:1\n") {
+	if !strings.Contains(content, "## Archive\n\n### 1 — Test Task\n```lokan\n") {
 		t.Fatalf("done task not under Archive section:\n%s", content)
 	}
-	if strings.Contains(content, "## Active\n\n<!-- lokan:1\n") {
+	if strings.Contains(content, "## Active\n\n### 1 — Test Task\n") {
 		t.Fatalf("done task still under Active:\n%s", content)
 	}
 
@@ -420,7 +420,7 @@ func TestWriteTaskUnarchivesOnReopen(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(raw), "## Active\n\n<!-- lokan:1\n") {
+	if !strings.Contains(string(raw), "## Active\n\n### 1 — Test Task\n```lokan\n") {
 		t.Fatalf("reopened task not back under Active:\n%s", raw)
 	}
 }
@@ -592,7 +592,7 @@ func TestAcceptsValidFrontmatterWithOptionalFields(t *testing.T) {
 // frontmatter hiding (comment-wrapped, invisible in rendered output)
 // ---------------------------------------------------------------------------
 
-func TestSerializeTaskWrapsFrontmatterInComment(t *testing.T) {
+func TestSerializeTaskUsesLokanFence(t *testing.T) {
 	task := types.Task{
 		TaskFrontmatter: makeFrontmatter(nil),
 		Body:            "# Test Task\n\n## Notes\n\n\n## Work Log\n",
@@ -601,17 +601,16 @@ func TestSerializeTaskWrapsFrontmatterInComment(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// the marker line opens the html comment and this closer hides the yaml:
-	// the raw block must be fenceless (prettier 2 re-parses --- fences as
-	// markdown) with a trailing --> before the body
-	if strings.HasPrefix(raw, "---\n") {
-		t.Fatalf("frontmatter fence-wrapped, should be fenceless:\n%s", raw)
+	// the frontmatter and body each live in a visible code fence so the
+	// whole task is legible in rendered output while staying parseable
+	if !strings.HasPrefix(raw, "```lokan\n") {
+		t.Fatalf("task frontmatter not fenced:\n%s", raw)
 	}
 	if !strings.Contains(raw, "id: ") {
 		t.Fatalf("frontmatter missing:\n%s", raw)
 	}
-	if !strings.Contains(raw, commentClose+"\n# Test Task") {
-		t.Fatalf("comment not closed before body:\n%s", raw)
+	if !strings.Contains(raw, "```\n\n````markdown\n# Test Task") {
+		t.Fatalf("fences not closed before body:\n%s", raw)
 	}
 }
 
@@ -663,7 +662,7 @@ func TestParseAcceptsCommentWrappedFrontmatter(t *testing.T) {
 	}
 }
 
-func TestBoardFileHidesMarkupInComments(t *testing.T) {
+func TestBoardFileUsesVisibleFencesAndHiddenConfig(t *testing.T) {
 	board := newTempBoard(t)
 	mustCreate(t, board, makeFrontmatter(map[string]interface{}{"id": "1"}))
 
@@ -676,16 +675,16 @@ func TestBoardFileHidesMarkupInComments(t *testing.T) {
 	if !strings.HasPrefix(content, commentOpen+"\n"+boardBanner+"\n"+commentClose+"\n\n") {
 		t.Fatalf("board banner missing:\n%s", content)
 	}
-	// config block is one comment opened by its marker
+	// config block is one comment opened by its marker (hidden on render)
 	if !strings.Contains(content, "<!-- lokan:config\n") {
 		t.Fatalf("config marker not merged:\n%s", content)
 	}
-	// task block is one comment opened by its marker, fenceless yaml inside
-	if !strings.Contains(content, "<!-- lokan:1\nid:") {
-		t.Fatalf("task marker not merged:\n%s", content)
+	// task block opens with a human heading + a visible lokan fence
+	if !strings.Contains(content, "### 1 — Test Task\n```lokan\nid:") {
+		t.Fatalf("task heading/fence missing:\n%s", content)
 	}
-	if strings.Contains(content, "<!-- lokan:1\n---\n") {
-		t.Fatalf("task block fence-wrapped, should be fenceless:\n%s", content)
+	if strings.Contains(content, "<!-- lokan:1") {
+		t.Fatalf("task block still comment-wrapped:\n%s", content)
 	}
 
 	// the wrapped board still round-trips through the engine
@@ -1007,6 +1006,9 @@ func TestBoardTracksBlockLineNumbers(t *testing.T) {
 	markerOf := func(id string) int {
 		for i, l := range lines {
 			trimmed := strings.TrimSpace(l)
+			if trimmed == "```lokan" && i+1 < len(lines) && strings.Contains(lines[i+1], `id: "`+id+`"`) {
+				return i + 1
+			}
 			if trimmed == "<!-- lokan:"+id || trimmed == "<!-- lokan:"+id+" -->" {
 				return i + 1
 			}

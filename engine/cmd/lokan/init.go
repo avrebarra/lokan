@@ -41,7 +41,7 @@ func newInitCmd() *cli.Command {
 			// empty sections
 			raw, err := store.InitialBoard(types.LokanConfig{
 				Counter:  0,
-				Version:  "1",
+				Version:  "2",
 				Statuses: types.DefaultStatusDefs(),
 			})
 			if err != nil {

@@ -38,7 +38,7 @@ critical | high | medium | low
 | subtask | task, bug       |
 | bug     | epic, task      |
 
-## Task frontmatter (YAML blocks in `docs/board.md`)
+## Task frontmatter (```lokan blocks in `docs/board.md`)
 
 | field    | type       | required | notes                       |
 | -------- | ---------- | -------- | --------------------------- |
@@ -59,9 +59,10 @@ critical | high | medium | low
 `TaskSummary` = frontmatter + `filePath` + `lineStart`/`lineEnd` (no body).
 
 > `filePath` is a **virtual path** — all tasks live in one file
-> (`docs/board.md`) as `<!-- lokan:<id>`-delimited blocks. The reported
-> path (`<board>#<id>`) is stable per task and is how the
-> engine addresses a block; it is not a real file on disk.
+> (`docs/board.md`) as `### <id> — <title>`-headed blocks whose frontmatter
+> sits in a visible ```lokan fence (legacy `<!-- lokan:<id>` comments still
+> parse). The reported path (`<board>#<id>`) is stable per task and is how
+> the engine addresses a block; it is not a real file on disk.
 >
 > `lineStart`/`lineEnd` address the block's location in `.lokan/board.md`,
 > e.g. `lineStart: 5, lineEnd: 20` = "`.lokan/board.md` lines 5–20". An agent
@@ -262,18 +263,17 @@ and embedded via `//go:embed all:dist` (package `engine/web`). `GET /` serves
 
 A board is a markdown file that opens with a descriptive banner comment
 (what lokan is, the file format, and a reference to the docs), followed by
-the `<!-- lokan:config` block (YAML: `counter`, `version`, `statuses`) and the
-task blocks. Every command takes the board as its first positional argument —
-there is no discovery and no default path. `lokan init <file>` creates a
-fresh board; any markdown file can become one.
+the `<!-- lokan:config` block (YAML: `title`, `counter`, `version`,
+`statuses`) and the task blocks. Every command takes the board as its first
+positional argument — there is no discovery and no default path.
+`lokan init <file>` creates a fresh board; any markdown file can become one.
 
-The board file holds every task as a `<!-- lokan:<id>`-delimited block (YAML
-frontmatter fields above + markdown body), grouped into two sections. The
-marker line opens an HTML comment that hides all engine markup in rendered
-output (e.g. GitHub) while the raw file stays parseable. The YAML is written
-fenceless (no `---` delimiters) so markdown formatters like prettier treat the
-comment blocks as opaque instead of re-parsing their content; older boards
-with bare `---` fences or a self-closed marker line are still read:
+The board file holds every task as a `### <id> — <title>` heading plus a
+```lokan fence (YAML frontmatter fields above + markdown body), grouped
+into two sections. The fence keeps the frontmatter visible in rendered
+output (e.g. GitHub) while the raw file stays parseable; the banner and
+config stay comment-hidden. Older boards (comment-wrapped task blocks with
+bare `---` fences or a self-closed marker line) are still read:
 
 ```
 <!--

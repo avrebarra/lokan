@@ -82,7 +82,7 @@ func ReadConfig(board string) (types.LokanConfig, error) {
 
 // defaultConfig is the config a fresh board starts with.
 func defaultConfig() types.LokanConfig {
-	return types.LokanConfig{Counter: 0, Version: "1", Statuses: types.DefaultStatusDefs()}
+	return types.LokanConfig{Counter: 0, Version: "2", Statuses: types.DefaultStatusDefs()}
 }
 
 // WriteConfig rewrites the board's config block, preserving all tasks.
@@ -459,14 +459,16 @@ func readBoard(board string) ([]types.Task, types.LokanConfig, error) {
 }
 
 // writeBoard atomically persists the full board document: config block first,
-// then tasks grouped into Active/Archive sections. The board's current
-// heading is preserved (boards may be titled anything).
+// then tasks grouped into Active/Archive sections. The board title lives in
+// the config; legacy boards with a visible "# Heading" migrate it into the
+// config title on their first rewrite.
 func writeBoard(board string, tasks []types.Task, cfg types.LokanConfig) error {
-	heading := boardHeader
-	if old, err := os.ReadFile(board); err == nil {
-		heading = headingFromBoard(string(old))
+	if old, err := os.ReadFile(board); err == nil && cfg.Title == "" {
+		if h := headingFromBoard(string(old)); h != "" && h != boardHeader {
+			cfg.Title = strings.TrimPrefix(h, "# ")
+		}
 	}
-	raw, err := serializeBoard(tasks, cfg, heading)
+	raw, err := serializeBoard(tasks, cfg)
 	if err != nil {
 		return err
 	}

@@ -58,16 +58,18 @@ lokan/
     board.md              whole project: config block + all task blocks (Active/Archive)
 ```
 
-- **One board file, one block per task:** every task is a
-  `<!-- lokan:<id>`-delimited block (YAML frontmatter — `id, title, type,
-status, priority, parent?, related?, docs?, tags?, created, updated` — plus
-  markdown body), grouped into `## Active` and `## Archive` (done/cancelled).
-  The marker line opens one HTML comment that hides all engine markup when the
-  markdown renders (e.g. GitHub); the engine reads the raw file, so parsing is
-  unaffected. Older boards with bare `---` fences or self-closed markers
-  still parse. A descriptive banner comment opens the file — what lokan is,
-  the file format, and the reference — so cold-start readers understand it
-  without lokan knowledge.
+- **One board file, one block per task:** every task opens with a
+  `### <id> — <title>` heading, then a ```lokan fence holding the YAML
+  frontmatter — `id, title, type, status, priority, parent?, related?,
+  docs?, tags?, created, updated` — plus the markdown body, grouped into
+  `## Active` and `## Archive` (done/cancelled). The fence keeps the
+  frontmatter visible in rendered markdown (e.g. GitHub) while staying
+  machine-parseable; the engine reads the raw file. Older boards
+  (comment-wrapped task blocks, bare `---` fences, self-closed markers)
+  still parse, and a legacy visible `# Heading` migrates into the config
+  title on the first rewrite. A banner comment opens the file (hidden on
+  render) — what lokan is, the file format, and the reference — so
+  cold-start readers understand it without lokan knowledge.
 - **Configurable lanes:** the board's statuses live in the board's
   `<!-- lokan:config` block as an ordered `statuses` array (`id` +
   `archived` flag). Unconfigured projects

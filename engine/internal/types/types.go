@@ -111,6 +111,7 @@ func DefaultStatusDefs() []StatusDef {
 
 // LokanConfig is the config block stored in the board file.
 type LokanConfig struct {
+	Title    string      `json:"title,omitempty" yaml:"title,omitempty"`
 	Counter  int         `json:"counter" yaml:"counter"`
 	Version  string      `json:"version" yaml:"version"`
 	Statuses []StatusDef `json:"statuses,omitempty" yaml:"statuses,omitempty"`

@@ -63,8 +63,10 @@ error: not a lokan board: /abs/path/nope.md (run lokan init nope.md)
 ## How the board works
 
 The board file is the whole state: a banner comment explaining the format,
-a `<!-- lokan:config` block (counter, version, lanes), and
-`<!-- lokan:<id>` task blocks, grouped into Active / Archive sections.
+a `<!-- lokan:config` block (title, counter, version, lanes), and task
+blocks grouped into Active / Archive sections. Each task opens with a
+`### <id> — <title>` heading and a ```lokan code block holding the YAML
+frontmatter, so the details are visible in rendered markdown too.
 Archived lanes (`done`, `cancelled` by default) live
 under `## Archive`; everything else under `## Active`.
 
@@ -72,13 +74,14 @@ under `## Archive`; everything else under `## Active`.
 ```markdown
 <!--
 This board is a lokan kanban / roadmap — created and managed by lokan.
-Format: lokan:config block + lokan:<id> task blocks.
+Format: lokan:config block + ### <id> — <title> heading + lokan fence + body.
 Reference: https://github.com/avrebarra/lokan/blob/main/docs/guides.md
 -->
 
 <!-- lokan:config
+title: Lokan Board
 counter: 3
-version: "1"
+version: "2"
 statuses:
     - id: backlog
     - id: todo
@@ -89,11 +92,10 @@ statuses:
       archived: true
 -->
 
-# Lokan Board
-
 ## Active
 
-<!-- lokan:1
+### 1 — Fix counter race
+```lokan
 id: "1"
 title: Fix counter race
 type: task
@@ -101,14 +103,16 @@ status: in-progress
 priority: high
 created: "2026-08-13"
 updated: "2026-08-13"
--->
+```
+
 # Fix counter race
 
 Body markdown — notes, links, anything. `created`/`updated` are engine-owned.
 
 ## Archive
 
-<!-- lokan:2
+### 2 — Submit route approval to FAA and JCAB
+```lokan
 id: "2"
 title: Submit route approval to FAA and JCAB
 type: task
@@ -116,7 +120,8 @@ status: done
 priority: high
 created: "2026-08-13"
 updated: "2026-08-13"
--->
+```
+
 # Submit route approval to FAA and JCAB
 ```
 

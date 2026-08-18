@@ -12,18 +12,19 @@ self-describing — everything you need is inside it:
   kanban/roadmap), its format, and where to read the reference. The board
   file's raw markdown IS the whole state — read it directly.
 - After the banner, a `<!-- lokan:config ... -->` block holds the engine
-  config (counter, format version, lane definitions). Each task is a
-  `<!-- lokan:<id> ... -->` block: YAML frontmatter (`id`, `title`, `type`,
+  config (board title, counter, format version, lane definitions) — comment
+  hidden on render. Each task opens with a `### <id> — <title>` heading,
+  then a ```lokan code block: YAML frontmatter (`id`, `title`, `type`,
   `status`, `priority`, `parent?`, `related?`, `docs?`, `tags?`, `created`,
-  `updated`) followed by the markdown body (`# Title`, `## Notes`,
-  `## Work Log`).
+  `updated`), then the markdown body (`# Title`, `## Notes`,
+  `## Work Log`) in its own ````markdown fence. Both fences are visible in
+  rendered output, so the rendered view shows the task exactly as the raw
+  file does.
 - Blocks group under `## Active` (open statuses) and `## Archive` (lanes with
-  `archived: true`). Engine markup sits inside HTML comments, so rendered
-  markdown shows only the human-readable parts. The YAML is written fenceless
-  (no `---` delimiters) so markdown formatters like prettier leave the comment
-  blocks untouched instead of re-parsing their content — boards survive
-  prettier 2+ / 3+ intact (prettier may normalize blank lines inside task
-  bodies; that's the visible markdown and harmless).
+  `archived: true`). The board title lives inside the config block, not as a
+  visible heading. Legacy boards (comment-wrapped task blocks, bare `---`
+  fences) still parse; their `# Heading` migrates into the config title on
+  the first rewrite.
 - **To read:** the board file (full state) or `lokan list --md <board>` (one
   line per task). **To change:** the `lokan` CLI only — never hand-rewrite
   the file; every mutation rewrites it atomically under a `<board>.lock`.
@@ -95,8 +96,9 @@ exit code 1 with a stderr message; re-read and retry.
 - **Counter only increments.** IDs are plain counters (`1`, `2`, …) and never
   reused, even after a task is archived or deleted.
 - **Type change keeps the ID.** Changing a task's `type` does not change its id.
-- **Bad blocks are skipped with a warning.** If a `<!-- lokan:<id>` block
-  fails to parse (broken YAML, missing marker), the engine skips it and prints
+- **Bad blocks are skipped with a warning.** If a task block (```lokan fence
+  or a legacy `<!-- lokan:<id>` comment) fails to parse (broken YAML, missing
+  marker), the engine skips it and prints
   `Warning: skipping invalid task block` to stderr. The task still won't appear
   on the board — keep the board file well-formed; prefer the CLI/UI over
   hand-editing.
