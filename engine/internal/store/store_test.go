@@ -16,13 +16,11 @@ import (
 
 func makeFrontmatter(overrides map[string]interface{}) types.TaskFrontmatter {
 	fm := types.TaskFrontmatter{
-		ID:       "1",
-		Title:    "Test Task",
-		Type:     types.TypeTask,
-		Status:   types.StatusTodo,
-		Priority: types.PriorityMedium,
-		Created:  "2024-01-01",
-		Updated:  "2024-01-01",
+		ID:      "1",
+		Title:   "Test Task",
+		Status:  types.StatusTodo,
+		Created: "2024-01-01",
+		Updated: "2024-01-01",
 	}
 	if v, ok := overrides["id"].(string); ok {
 		fm.ID = v
@@ -30,17 +28,8 @@ func makeFrontmatter(overrides map[string]interface{}) types.TaskFrontmatter {
 	if v, ok := overrides["title"].(string); ok {
 		fm.Title = v
 	}
-	if v, ok := overrides["type"].(types.TaskType); ok {
-		fm.Type = v
-	}
 	if v, ok := overrides["status"].(types.Status); ok {
 		fm.Status = v
-	}
-	if v, ok := overrides["priority"].(types.Priority); ok {
-		fm.Priority = v
-	}
-	if v, ok := overrides["parent"].(string); ok {
-		fm.Parent = v
 	}
 	if v, ok := overrides["tags"].([]string); ok {
 		fm.Tags = v
@@ -110,7 +99,7 @@ func TestSectionsNeverGlueOntoTaskBody(t *testing.T) {
 	// the last active task's body
 	board := newTempBoard(t)
 	for _, title := range []string{"Task one", "Task two", "Task three"} {
-		if _, err := CreateTaskFromInput(board, title, types.TypeTask, types.PriorityMedium, "", nil); err != nil {
+		if _, err := CreateTaskFromInput(board, title, nil); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -146,7 +135,7 @@ func TestSectionsNeverGlueOntoTaskBody(t *testing.T) {
 
 func TestCreateTaskReturnsFields(t *testing.T) {
 	board := newTempBoard(t)
-	fm := makeFrontmatter(map[string]interface{}{"id": "5", "title": "Big Epic", "type": types.TypeEpic})
+	fm := makeFrontmatter(map[string]interface{}{"id": "5", "title": "Big Epic"})
 	task, err := CreateTask(board, fm, "")
 	if err != nil {
 		t.Fatal(err)
@@ -165,7 +154,7 @@ func TestCreateTaskReturnsFields(t *testing.T) {
 
 func TestLoadTaskRoundTrip(t *testing.T) {
 	board := newTempBoard(t)
-	fm := makeFrontmatter(map[string]interface{}{"id": "42", "title": "Round-trip Task", "priority": types.PriorityHigh})
+	fm := makeFrontmatter(map[string]interface{}{"id": "42", "title": "Round-trip Task"})
 	created, err := CreateTask(board, fm, "")
 	if err != nil {
 		t.Fatal(err)
@@ -174,8 +163,8 @@ func TestLoadTaskRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if loaded.ID != fm.ID || loaded.Title != fm.Title || loaded.Type != fm.Type ||
-		loaded.Status != fm.Status || loaded.Priority != fm.Priority {
+	if loaded.ID != fm.ID || loaded.Title != fm.Title ||
+		loaded.Status != fm.Status {
 		t.Fatalf("loaded = %+v, want frontmatter %+v", loaded, fm)
 	}
 	if !strings.Contains(loaded.Body, "## Notes") || !strings.Contains(loaded.Body, "## Work Log") {
@@ -325,7 +314,6 @@ func TestWriteTaskPersistsChanges(t *testing.T) {
 		t.Fatal(err)
 	}
 	created.Status = types.StatusInProgress
-	created.Priority = types.PriorityHigh
 	if err := WriteTask(created); err != nil {
 		t.Fatal(err)
 	}
@@ -333,7 +321,7 @@ func TestWriteTaskPersistsChanges(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if reloaded.Status != types.StatusInProgress || reloaded.Priority != types.PriorityHigh {
+	if reloaded.Status != types.StatusInProgress {
 		t.Fatalf("reloaded = %+v", reloaded)
 	}
 }
@@ -341,9 +329,8 @@ func TestWriteTaskPersistsChanges(t *testing.T) {
 func TestWriteTaskPreservesBodyAndOptionalFields(t *testing.T) {
 	board := newTempBoard(t)
 	fm := makeFrontmatter(map[string]interface{}{
-		"id":     "9",
-		"parent": "1",
-		"tags":   []string{"frontend", "auth"},
+		"id":   "9",
+		"tags": []string{"frontend", "auth"},
 	})
 	created, err := CreateTask(board, fm, "")
 	if err != nil {
@@ -357,7 +344,7 @@ func TestWriteTaskPreservesBodyAndOptionalFields(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if reloaded.Parent != "1" || len(reloaded.Tags) != 2 || reloaded.Tags[0] != "frontend" {
+	if len(reloaded.Tags) != 2 || reloaded.Tags[0] != "frontend" {
 		t.Fatalf("reloaded = %+v", reloaded)
 	}
 	if !strings.Contains(reloaded.Body, "custom note") {
@@ -552,15 +539,12 @@ func TestRejectsInvalidFrontmatterFiles(t *testing.T) {
 		name  string
 		front string
 	}{
-		{"missing id", "title: X\ntype: task\nstatus: todo\npriority: medium\ncreated: 2024-01-01\nupdated: 2024-01-01\n"},
-		{"bad type", "id: \"1\"\ntitle: X\ntype: banana\nstatus: todo\npriority: medium\ncreated: 2024-01-01\nupdated: 2024-01-01\n"},
-		{"bad status", "id: \"1\"\ntitle: X\ntype: task\nstatus: whenever\npriority: medium\ncreated: 2024-01-01\nupdated: 2024-01-01\n"},
-		{"bad priority", "id: \"1\"\ntitle: X\ntype: task\nstatus: todo\npriority: urgent\ncreated: 2024-01-01\nupdated: 2024-01-01\n"},
-		{"numeric id", "id: 42\ntitle: X\ntype: task\nstatus: todo\npriority: medium\ncreated: 2024-01-01\nupdated: 2024-01-01\n"},
-		{"non-string parent", "id: \"1\"\ntitle: X\ntype: task\nstatus: todo\npriority: medium\nparent: 42\ncreated: 2024-01-01\nupdated: 2024-01-01\n"},
-		{"non-array tags", "id: \"1\"\ntitle: X\ntype: task\nstatus: todo\npriority: medium\ntags: not-an-array\ncreated: 2024-01-01\nupdated: 2024-01-01\n"},
-		{"non-string tag element", "id: \"1\"\ntitle: X\ntype: task\nstatus: todo\npriority: medium\ntags: [1, 2]\ncreated: 2024-01-01\nupdated: 2024-01-01\n"},
-		{"non-array related", "id: \"1\"\ntitle: X\ntype: task\nstatus: todo\npriority: medium\nrelated: foo\ncreated: 2024-01-01\nupdated: 2024-01-01\n"},
+		{"missing id", "title: X\nstatus: todo\ncreated: 2024-01-01\nupdated: 2024-01-01\n"},
+		{"bad status", "id: \"1\"\ntitle: X\nstatus: whenever\ncreated: 2024-01-01\nupdated: 2024-01-01\n"},
+		{"numeric id", "id: 42\ntitle: X\nstatus: todo\ncreated: 2024-01-01\nupdated: 2024-01-01\n"},
+		{"non-array tags", "id: \"1\"\ntitle: X\nstatus: todo\ntags: not-an-array\ncreated: 2024-01-01\nupdated: 2024-01-01\n"},
+		{"non-string tag element", "id: \"1\"\ntitle: X\nstatus: todo\ntags: [1, 2]\ncreated: 2024-01-01\nupdated: 2024-01-01\n"},
+		{"non-array related", "id: \"1\"\ntitle: X\nstatus: todo\nrelated: foo\ncreated: 2024-01-01\nupdated: 2024-01-01\n"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -573,7 +557,9 @@ func TestRejectsInvalidFrontmatterFiles(t *testing.T) {
 	}
 }
 
-func TestAcceptsValidFrontmatterWithOptionalFields(t *testing.T) {
+func TestToleratesLegacyTypePriorityParentFields(t *testing.T) {
+	// pre-flattening boards carry type/priority/parent — they must parse
+	// (unknown keys are skipped), and a rewrite must not write them back
 	raw := "---\n" +
 		"id: \"1\"\ntitle: X\ntype: subtask\nstatus: in-progress\npriority: high\n" +
 		"parent: \"2\"\nrelated: [a, b]\ndocs: [d1]\ntags: [t1]\n" +
@@ -583,7 +569,37 @@ func TestAcceptsValidFrontmatterWithOptionalFields(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if summary.Parent != "2" || len(summary.Related) != 2 || len(summary.Docs) != 1 || len(summary.Tags) != 1 {
+	if len(summary.Related) != 2 || len(summary.Docs) != 1 || len(summary.Tags) != 1 {
+		t.Fatalf("summary = %+v", summary)
+	}
+
+	// the model never carries the legacy dimensions — round-trip drops them
+	task, err := parseFullFile(raw, "/tmp/x.md", types.DefaultStatusDefs())
+	if err != nil {
+		t.Fatal(err)
+	}
+	out, err := serializeTask(*task)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, legacy := range []string{"type:", "priority:", "parent:"} {
+		if strings.Contains(out, legacy) {
+			t.Fatalf("serialized output still carries legacy field %q:\n%s", legacy, out)
+		}
+	}
+}
+
+func TestAcceptsValidFrontmatterWithOptionalFields(t *testing.T) {
+	raw := "---\n" +
+		"id: \"1\"\ntitle: X\nstatus: in-progress\n" +
+		"related: [a, b]\ndocs: [d1]\ntags: [t1]\n" +
+		"created: \"2024-01-01\"\nupdated: \"2024-01-01\"\n" +
+		"---\n# Body\n"
+	summary, err := parseFile(raw, "/tmp/x.md", types.DefaultStatusDefs())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(summary.Related) != 2 || len(summary.Docs) != 1 || len(summary.Tags) != 1 {
 		t.Fatalf("summary = %+v", summary)
 	}
 }

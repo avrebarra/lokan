@@ -16,9 +16,7 @@ func newListCmd() *cli.Command {
 		ArgsUsage:    "<board>",
 		OnUsageError: quietUsageError,
 		Flags: []cli.Flag{
-			&cli.StringFlag{Name: "type", Usage: "Filter by type: epic, task, subtask, bug"},
 			&cli.StringFlag{Name: "status", Usage: "Filter by status: todo, in-progress, backlog, done, cancelled"},
-			&cli.StringFlag{Name: "priority", Usage: "Filter by priority: critical, high, medium, low"},
 			&cli.StringSliceFlag{Name: "tag", Usage: "Filter by tag (comma-separated or repeatable, AND semantics)"},
 			&cli.BoolFlag{Name: "md", Usage: "Output compact markdown (agent-friendly)"},
 		},
@@ -41,24 +39,21 @@ func newListCmd() *cli.Command {
 				return err
 			}
 
-			// load, filter, sort the board
+			// load and filter the board
 			all, err := store.LoadAllSummaries(board)
 			if err != nil {
 				return err
 			}
 			filtered := query.FilterTasks(all, types.QueryOptions{
-				Type:     types.TaskType(c.String("type")),
-				Status:   types.Status(c.String("status")),
-				Priority: types.Priority(c.String("priority")),
-				Tags:     c.StringSlice("tag"),
+				Status: types.Status(c.String("status")),
+				Tags:   c.StringSlice("tag"),
 			})
-			sorted := query.SortByPriority(filtered)
 
 			// render as markdown or the aligned table
 			if c.Bool("md") {
-				fmt.Fprintln(c.App.Writer, renderMarkdownBoard(sorted, cfg.Statuses))
+				fmt.Fprintln(c.App.Writer, renderMarkdownBoard(filtered, cfg.Statuses))
 			} else {
-				fmt.Fprintln(c.App.Writer, renderTable(sorted))
+				fmt.Fprintln(c.App.Writer, renderTable(filtered))
 			}
 			return nil
 		},

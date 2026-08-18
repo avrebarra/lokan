@@ -300,31 +300,10 @@ func CreateTask(board string, fm types.TaskFrontmatter, body string) (types.Task
 // id from the counter and landing it in the first non-archived lane. It is the
 // single creation path shared by the CLI and the HTTP API, so both enforce
 // identical rules. Invalid input returns a *ValidationError.
-func CreateTaskFromInput(board, title string, taskType types.TaskType, priority types.Priority, parent string, tags []string) (types.Task, error) {
-	// validate title and enums before touching the board
+func CreateTaskFromInput(board, title string, tags []string) (types.Task, error) {
+	// validate title before touching the board
 	if title == "" {
 		return types.Task{}, validationErrorf("Missing title")
-	}
-	if !types.Contains(types.TaskTypes, taskType) {
-		return types.Task{}, validationErrorf("Invalid type %q. Must be one of: %s", taskType, joinEnums(types.TaskTypes))
-	}
-	if !types.Contains(types.Priorities, priority) {
-		return types.Task{}, validationErrorf("Invalid priority %q. Must be one of: %s", priority, joinEnums(types.Priorities))
-	}
-
-	// resolve and validate the parent, if given
-	if parent != "" {
-		parentSummary, err := FindByID(board, parent)
-		if err != nil {
-			return types.Task{}, validationErrorf("Parent task not found: %s", parent)
-		}
-		allowed := joinEnums(types.AllowedParents[taskType])
-		if allowed == "" {
-			allowed = "none"
-		}
-		if !types.Contains(types.AllowedParents[taskType], parentSummary.Type) {
-			return types.Task{}, validationErrorf("Cannot create %s under %s (%s). Allowed parents: %s", taskType, parentSummary.Type, parent, allowed)
-		}
 	}
 
 	// allocate the id and write the task in the first non-archived lane
@@ -334,15 +313,12 @@ func CreateTaskFromInput(board, title string, taskType types.TaskType, priority 
 	}
 	today := time.Now().UTC().Format("2006-01-02")
 	return CreateTask(board, types.TaskFrontmatter{
-		ID:       strconv.Itoa(counter),
-		Title:    title,
-		Type:     taskType,
-		Status:   defaultStatus(board),
-		Priority: priority,
-		Created:  today,
-		Updated:  today,
-		Parent:   parent,
-		Tags:     tags,
+		ID:      strconv.Itoa(counter),
+		Title:   title,
+		Status:  defaultStatus(board),
+		Created: today,
+		Updated: today,
+		Tags:    tags,
 	}, "")
 }
 
@@ -359,15 +335,6 @@ func defaultStatus(board string) types.Status {
 		}
 	}
 	return cfg.Statuses[0].ID
-}
-
-// joinEnums renders enum values as a comma-separated list for error copy.
-func joinEnums[T ~string](items []T) string {
-	parts := make([]string, len(items))
-	for i, v := range items {
-		parts[i] = string(v)
-	}
-	return strings.Join(parts, ", ")
 }
 
 // UpdateLanes atomically applies lane renames and persists the new lane set

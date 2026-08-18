@@ -82,7 +82,7 @@ func TestInitCreatesConfig(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if cfg.Counter != 0 || cfg.Version != "2" {
+	if cfg.Counter != 0 || cfg.Version != "3" {
 		t.Fatalf("cfg = %+v", cfg)
 	}
 	if _, err := os.Stat(bp(root)); err != nil {
@@ -125,7 +125,7 @@ func TestInitWithCustomBoard(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if cfg.Counter != 0 || cfg.Version != "2" {
+	if cfg.Counter != 0 || cfg.Version != "3" {
 		t.Fatalf("cfg = %+v", cfg)
 	}
 }
@@ -155,7 +155,6 @@ func TestNotABoardError(t *testing.T) {
 		{"create", "hello"},
 		{"get", "1"},
 		{"edit", "1", "--status", "done"},
-		{"subtasks", "1"},
 	} {
 		code, _, stderr := runBoard(t, root, args...)
 		if code == 0 {
@@ -184,7 +183,7 @@ func TestCreateValid(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if summary.Type != types.TypeTask || summary.Status != types.StatusBacklog || summary.Priority != types.PriorityMedium {
+	if summary.Status != types.StatusBacklog {
 		t.Fatalf("summary = %+v", summary)
 	}
 	if summary.Title != "hello" {
@@ -192,9 +191,9 @@ func TestCreateValid(t *testing.T) {
 	}
 }
 
-func TestCreateWithTypePriorityAndTags(t *testing.T) {
+func TestCreateWithTags(t *testing.T) {
 	root := initProject(t)
-	code, _, stderr := runBoard(t, root, "create", "--type", "bug", "--priority", "high", "--tag", "a", "--tag", "b", "broken thing")
+	code, _, stderr := runBoard(t, root, "create", "--tag", "a", "--tag", "b", "broken thing")
 	if code != 0 {
 		t.Fatalf("create failed: %s", stderr)
 	}
@@ -202,71 +201,8 @@ func TestCreateWithTypePriorityAndTags(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if summary.Type != types.TypeBug || summary.Priority != types.PriorityHigh {
-		t.Fatalf("summary = %+v", summary)
-	}
 	if len(summary.Tags) != 2 || summary.Tags[0] != "a" || summary.Tags[1] != "b" {
 		t.Fatalf("tags = %v", summary.Tags)
-	}
-}
-
-func TestCreateInvalidType(t *testing.T) {
-	root := initProject(t)
-	code, _, stderr := runBoard(t, root, "create", "--type", "banana", "hello")
-	if code == 0 {
-		t.Fatalf("invalid type should fail")
-	}
-	if !strings.Contains(stderr, `Invalid type "banana". Must be one of: epic, task, subtask, bug`) {
-		t.Fatalf("stderr = %q", stderr)
-	}
-}
-
-func TestCreateInvalidPriority(t *testing.T) {
-	root := initProject(t)
-	code, _, stderr := runBoard(t, root, "create", "--priority", "urgent", "hello")
-	if code == 0 {
-		t.Fatalf("invalid priority should fail")
-	}
-	if !strings.Contains(stderr, `Invalid priority "urgent". Must be one of: critical, high, medium, low`) {
-		t.Fatalf("stderr = %q", stderr)
-	}
-}
-
-func TestCreateParentNotFound(t *testing.T) {
-	root := initProject(t)
-	code, _, stderr := runBoard(t, root, "create", "--parent", "99", "hello")
-	if code == 0 {
-		t.Fatalf("missing parent should fail")
-	}
-	if !strings.Contains(stderr, "Parent task not found: 99") {
-		t.Fatalf("stderr = %q", stderr)
-	}
-}
-
-func TestCreateParentTypeNotAllowed(t *testing.T) {
-	root := initProject(t)
-	// 1 can hold task
-	if code, _, stderr := runBoard(t, root, "create", "--type", "epic", "e"); code != 0 {
-		t.Fatalf("create epic failed: %s", stderr)
-	}
-	if code, _, stderr := runBoard(t, root, "create", "--parent", "1", "t"); code != 0 {
-		t.Fatalf("create task under epic failed: %s", stderr)
-	}
-	// task cannot be created under a task
-	if code, _, stderr := runBoard(t, root, "create", "--parent", "2", "sub"); code == 0 {
-		t.Fatalf("task under task should fail")
-	} else if !strings.Contains(stderr, "Allowed parents: epic") {
-		t.Fatalf("stderr = %q", stderr)
-	}
-}
-
-func TestCreateEpicNoParent(t *testing.T) {
-	root := initProject(t)
-	mustCreate(t, root, "parent task")
-	if code, _, stderr := runBoard(t, root, "create", "--type", "epic", "--parent", "1", "e"); code == 0 {
-		t.Fatalf("epic with parent should fail")
-	} else if !strings.Contains(stderr, "Allowed parents: none") {
-		t.Fatalf("stderr = %q", stderr)
 	}
 }
 
@@ -280,9 +216,6 @@ func TestGet(t *testing.T) {
 	code, stdout, stderr := runBoard(t, root, "get", "1")
 	if code != 0 {
 		t.Fatalf("get failed: %s", stderr)
-	}
-	if !strings.Contains(stdout, "1 · task") {
-		t.Fatalf("stdout = %q", stdout)
 	}
 	if !strings.Contains(stdout, "Title:    hello") {
 		t.Fatalf("stdout = %q", stdout)
@@ -338,20 +271,6 @@ func TestEditInvalidStatus(t *testing.T) {
 	}
 }
 
-func TestEditInvalidPriority(t *testing.T) {
-	root := initProject(t)
-	mustCreate(t, root, "hello")
-	code, _, stderr := runBoard(t, root, "edit", "1", "--priority", "urgent")
-	if code == 0 {
-		t.Fatalf("invalid priority should fail")
-	}
-	if !strings.Contains(stderr, `Invalid priority "urgent".`) {
-		t.Fatalf("stderr = %q", stderr)
-	}
-}
-
-// Title edits update the task block in place — per-task file renames are gone
-// with single-board storage.
 func TestEditTitleUpdatesInPlace(t *testing.T) {
 	root := initProject(t)
 	mustCreate(t, root, "hello")
@@ -386,40 +305,6 @@ func TestEditTitleTwiceKeepsID(t *testing.T) {
 	}
 	if len(taskIDs(t, root)) != 1 {
 		t.Fatalf("ids = %v", taskIDs(t, root))
-	}
-}
-
-func TestEditParentClear(t *testing.T) {
-	root := initProject(t)
-	mustCreate(t, root, "--type", "epic", "e")
-	mustCreate(t, root, "--parent", "1", "child")
-	code, _, stderr := runBoard(t, root, "edit", "2", "--parent", "")
-	if code != 0 {
-		t.Fatalf("parent clear failed: %s", stderr)
-	}
-	summary, err := store.FindByID(bp(root), "2")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if summary.Parent != "" {
-		t.Fatalf("parent = %q, want empty", summary.Parent)
-	}
-}
-
-func TestEditParentSet(t *testing.T) {
-	root := initProject(t)
-	mustCreate(t, root, "--type", "epic", "e")
-	mustCreate(t, root, "child")
-	code, _, stderr := runBoard(t, root, "edit", "2", "--parent", "1")
-	if code != 0 {
-		t.Fatalf("parent set failed: %s", stderr)
-	}
-	summary, err := store.FindByID(bp(root), "2")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if summary.Parent != "1" {
-		t.Fatalf("parent = %q", summary.Parent)
 	}
 }
 
@@ -462,31 +347,12 @@ func TestListFilters(t *testing.T) {
 	if code, _, stderr := runBoard(t, root, "edit", "1", "--status", "done"); code != 0 {
 		t.Fatalf("edit failed: %s", stderr)
 	}
-	if code, _, stderr := runBoard(t, root, "edit", "2", "--priority", "high"); code != 0 {
-		t.Fatalf("edit failed: %s", stderr)
-	}
 
 	code, stdout, stderr := runBoard(t, root, "list", "--status", "done")
 	if code != 0 {
 		t.Fatalf("list failed: %s", stderr)
 	}
 	if !strings.Contains(stdout, "1") || strings.Contains(stdout, "2") {
-		t.Fatalf("stdout = %q", stdout)
-	}
-
-	code, stdout, _ = runBoard(t, root, "list", "--priority", "high")
-	if code != 0 {
-		t.Fatalf("list failed")
-	}
-	if !strings.Contains(stdout, "2") || strings.Contains(stdout, "1") {
-		t.Fatalf("stdout = %q", stdout)
-	}
-
-	code, stdout, _ = runBoard(t, root, "list", "--type", "epic")
-	if code != 0 {
-		t.Fatalf("list failed")
-	}
-	if strings.Contains(stdout, "1") {
 		t.Fatalf("stdout = %q", stdout)
 	}
 }
@@ -503,7 +369,7 @@ func TestListTags(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("list failed: %s", stderr)
 	}
-	if !strings.Contains(stdout, "- 3 [medium] tagged (tags: roadmap,g10)") || strings.Contains(stdout, "- 1 [") || strings.Contains(stdout, "- 2 [") {
+	if !strings.Contains(stdout, "- 3 tagged (tags: roadmap,g10)") || strings.Contains(stdout, "- 1 [") || strings.Contains(stdout, "- 2 [") {
 		t.Fatalf("stdout = %q", stdout)
 	}
 
@@ -511,7 +377,7 @@ func TestListTags(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("list failed")
 	}
-	if !strings.Contains(stdout, "- 3 [medium] tagged") {
+	if !strings.Contains(stdout, "- 3 tagged") {
 		t.Fatalf("stdout = %q", stdout)
 	}
 
@@ -535,10 +401,10 @@ func TestListTagDisplay(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("list --md failed: %s", stderr)
 	}
-	if !strings.Contains(stdout, "- 1 [medium] a") {
+	if !strings.Contains(stdout, "- 1 a") {
 		t.Fatalf("untagged row must stay bare: %q", stdout)
 	}
-	if !strings.Contains(stdout, "- 2 [medium] tagged (tags: x,y)") {
+	if !strings.Contains(stdout, "- 2 tagged (tags: x,y)") {
 		t.Fatalf("tagged row must carry tags: %q", stdout)
 	}
 
@@ -579,54 +445,7 @@ func TestListMarkdown(t *testing.T) {
 	if !strings.Contains(stdout, "## backlog") || !strings.Contains(stdout, "## done") {
 		t.Fatalf("missing status groups: %q", stdout)
 	}
-	if !strings.Contains(stdout, "- 1 [medium] alpha") || !strings.Contains(stdout, "- 2 [medium] beta") {
+	if !strings.Contains(stdout, "- 1 alpha") || !strings.Contains(stdout, "- 2 beta") {
 		t.Fatalf("missing task lines: %q", stdout)
-	}
-}
-
-// ---------------------------------------------------------------------------
-// subtasks
-// ---------------------------------------------------------------------------
-
-func TestSubtasks(t *testing.T) {
-	root := initProject(t)
-	mustCreate(t, root, "--type", "epic", "e")
-	mustCreate(t, root, "--parent", "1", "one")
-	mustCreate(t, root, "--parent", "1", "two")
-	code, stdout, stderr := runBoard(t, root, "subtasks", "1")
-	if code != 0 {
-		t.Fatalf("subtasks failed: %s", stderr)
-	}
-	if !strings.Contains(stdout, "Subtasks of 1") {
-		t.Fatalf("stdout = %q", stdout)
-	}
-	if !strings.Contains(stdout, "2") || !strings.Contains(stdout, "3") {
-		t.Fatalf("stdout = %q", stdout)
-	}
-	if strings.Contains(stdout, "1") == false {
-		t.Fatalf("stdout = %q", stdout)
-	}
-}
-
-func TestSubtasksNone(t *testing.T) {
-	root := initProject(t)
-	mustCreate(t, root, "only")
-	code, stdout, stderr := runBoard(t, root, "subtasks", "1")
-	if code != 0 {
-		t.Fatalf("subtasks failed: %s", stderr)
-	}
-	if !strings.Contains(stdout, "No subtasks for 1.") {
-		t.Fatalf("stdout = %q", stdout)
-	}
-}
-
-func TestSubtasksNotFound(t *testing.T) {
-	root := initProject(t)
-	code, _, stderr := runBoard(t, root, "subtasks", "99")
-	if code == 0 {
-		t.Fatalf("missing task should fail")
-	}
-	if !strings.Contains(stderr, "task not found: 99") {
-		t.Fatalf("stderr = %q", stderr)
 	}
 }

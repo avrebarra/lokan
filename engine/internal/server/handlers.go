@@ -65,7 +65,7 @@ func (s *Server) HandleCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// create via the shared flow — same validation as the CLI
-	task, err := store.CreateTaskFromInput(s.boardPath, req.Title, req.Type, req.Priority, req.Parent, nil)
+	task, err := store.CreateTaskFromInput(s.boardPath, req.Title, nil)
 	if err != nil {
 		var ve *store.ValidationError
 		if errors.As(err, &ve) {
@@ -106,22 +106,8 @@ func (s *Server) HandleUpdate(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		task.Status = types.Status(req.Value)
-	case "priority":
-		if !types.Contains(types.Priorities, types.Priority(req.Value)) {
-			writeError(w, http.StatusBadRequest, fmt.Sprintf("Invalid priority: %s", req.Value))
-			return
-		}
-		task.Priority = types.Priority(req.Value)
 	case "title":
 		task.Title = req.Value
-	case "type":
-		if !types.Contains(types.TaskTypes, types.TaskType(req.Value)) {
-			writeError(w, http.StatusBadRequest, fmt.Sprintf("Invalid type: %s", req.Value))
-			return
-		}
-		task.Type = types.TaskType(req.Value)
-	case "parent":
-		task.Parent = req.Value
 	case "tags":
 		tags := []string{}
 		for _, tag := range strings.Split(req.Value, ",") {

@@ -16,9 +16,7 @@ func newEditCmd() *cli.Command {
 		OnUsageError: quietUsageError,
 		Flags: []cli.Flag{
 			&cli.StringFlag{Name: "status", Usage: "New status: todo, in-progress, backlog, done, cancelled"},
-			&cli.StringFlag{Name: "priority", Usage: "New priority: critical, high, medium, low"},
 			&cli.StringFlag{Name: "title", Usage: "New title"},
-			&cli.StringFlag{Name: "parent", Usage: "Set parent task ID (empty clears)"},
 		},
 		Action: func(c *cli.Context) error {
 			// validate the positional board and id
@@ -31,16 +29,11 @@ func newEditCmd() *cli.Command {
 			}
 			taskID := c.Args().Get(1)
 			newStatus := c.String("status")
-			newPriority := c.String("priority")
 			newTitle := c.String("title")
-			newParent := c.String("parent")
 
 			// validate flag enums before touching the store
 			if newStatus != "" && !types.Contains(statusIDs(board), types.Status(newStatus)) {
 				return cliErrorf("Invalid status %q. Must be one of: %s", newStatus, joinStatuses(board))
-			}
-			if newPriority != "" && !types.Contains(types.Priorities, types.Priority(newPriority)) {
-				return cliErrorf("Invalid priority %q. Must be one of: %s", newPriority, joinPriorities())
 			}
 
 			// load the target task
@@ -54,22 +47,10 @@ func newEditCmd() *cli.Command {
 			}
 			changes := []string{}
 
-			// apply status, priority, parent, title edits
+			// apply status and title edits
 			if newStatus != "" && types.Status(newStatus) != task.Status {
 				changes = append(changes, fmt.Sprintf("status: %s → %s", task.Status, newStatus))
 				task.Status = types.Status(newStatus)
-			}
-			if newPriority != "" && types.Priority(newPriority) != task.Priority {
-				changes = append(changes, fmt.Sprintf("priority: %s → %s", task.Priority, newPriority))
-				task.Priority = types.Priority(newPriority)
-			}
-			if c.IsSet("parent") {
-				old := task.Parent
-				if old == "" {
-					old = "none"
-				}
-				changes = append(changes, fmt.Sprintf("parent: %s → %s", old, parentLabel(newParent)))
-				task.Parent = newParent
 			}
 			titleChanged := newTitle != "" && newTitle != task.Title
 			if titleChanged {
@@ -95,11 +76,4 @@ func newEditCmd() *cli.Command {
 			return nil
 		},
 	}
-}
-
-func parentLabel(p string) string {
-	if p == "" {
-		return "none"
-	}
-	return p
 }

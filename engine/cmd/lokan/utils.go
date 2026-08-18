@@ -31,15 +31,6 @@ func statusIDs(board string) []types.Status {
 	return ids
 }
 
-// joinPriorities renders the allowed priorities as a comma-separated list.
-func joinPriorities() string {
-	parts := make([]string, len(types.Priorities))
-	for i, p := range types.Priorities {
-		parts[i] = string(p)
-	}
-	return strings.Join(parts, ", ")
-}
-
 // notFoundError converts a store not-found error into a NotFoundError.
 func notFoundError(id string, err error) error {
 	if errors.Is(err, store.ErrNotFound) {

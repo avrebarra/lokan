@@ -22,13 +22,13 @@ func renderTable(tasks []types.TaskSummary) string {
 			break
 		}
 	}
-	headers := []string{"ID", "TYPE", "STATUS", "PRIORITY", "TITLE"}
+	headers := []string{"ID", "STATUS", "TITLE"}
 	if showTags {
 		headers = append(headers, "TAGS")
 	}
 	rows := make([][]string, len(tasks))
 	for i, t := range tasks {
-		row := []string{t.ID, string(t.Type), string(t.Status), string(t.Priority), t.Title}
+		row := []string{t.ID, string(t.Status), t.Title}
 		if showTags {
 			row = append(row, strings.Join(t.Tags, ","))
 		}
@@ -81,13 +81,9 @@ func renderTable(tasks []types.TaskSummary) string {
 // renderTaskDetail renders a full task: frontmatter fields plus body.
 func renderTaskDetail(task types.Task) string {
 	var b strings.Builder
-	fmt.Fprintf(&b, "%s · %s\n", task.ID, task.Type)
+	fmt.Fprintf(&b, "%s\n", task.ID)
 	fmt.Fprintf(&b, "Title:    %s\n", task.Title)
 	fmt.Fprintf(&b, "Status:   %s\n", task.Status)
-	fmt.Fprintf(&b, "Priority: %s\n", task.Priority)
-	if task.Parent != "" {
-		fmt.Fprintf(&b, "Parent:   %s\n", task.Parent)
-	}
 	if len(task.Related) > 0 {
 		fmt.Fprintf(&b, "Related:  %s\n", strings.Join(task.Related, ", "))
 	}
@@ -101,11 +97,6 @@ func renderTaskDetail(task types.Task) string {
 	b.WriteString(strings.Repeat("─", 50) + "\n")
 	b.WriteString(task.Body)
 	return b.String()
-}
-
-// rowLine renders a single task as one table row.
-func rowLine(t types.TaskSummary) string {
-	return fmt.Sprintf("%s  %s  %s  %s  %s", t.ID, t.Type, t.Status, t.Priority, t.Title)
 }
 
 // renderMarkdownBoard renders tasks grouped by status as compact markdown,
@@ -142,7 +133,7 @@ func renderMarkdownBoard(tasks []types.TaskSummary, statuses []types.StatusDef) 
 		}
 		b.WriteString("\n## " + string(status.ID) + "\n")
 		for _, t := range group {
-			line := fmt.Sprintf("- %s [%s] %s", t.ID, t.Priority, t.Title)
+			line := fmt.Sprintf("- %s %s", t.ID, t.Title)
 			if len(t.Tags) > 0 {
 				line += fmt.Sprintf(" (tags: %s)", strings.Join(t.Tags, ","))
 			}

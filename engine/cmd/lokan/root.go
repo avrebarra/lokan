@@ -89,7 +89,6 @@ func newApp() *cli.App {
 			newGetCmd(),
 			newListCmd(),
 			newEditCmd(),
-			newSubtasksCmd(),
 			newClearCmd(),
 			newUICmd(),
 		},

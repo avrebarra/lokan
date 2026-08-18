@@ -42,16 +42,11 @@ func parseFullFile(raw string, filePath string, statuses []types.StatusDef) (*ty
 func serializeTask(task types.Task) (string, error) {
 	// copy core fields, omitting empty optionals
 	fm := types.TaskFrontmatter{
-		ID:       task.ID,
-		Title:    task.Title,
-		Type:     task.Type,
-		Status:   task.Status,
-		Priority: task.Priority,
-		Created:  task.Created,
-		Updated:  task.Updated,
-	}
-	if task.Parent != "" {
-		fm.Parent = task.Parent
+		ID:      task.ID,
+		Title:   task.Title,
+		Status:  task.Status,
+		Created: task.Created,
+		Updated: task.Updated,
 	}
 	if len(task.Related) > 0 {
 		fm.Related = task.Related
@@ -440,19 +435,18 @@ func parseFrontmatter(fmStr string, statuses []types.StatusDef) (types.TaskFront
 		return fm, errInvalidFrontmatter
 	}
 
-	// field handlers: scalar strings, enums, and string arrays
+	// field handlers: scalar strings, status enum, and string arrays.
+	// Legacy fields (type, priority, parent) are tolerated on read — unknown
+	// keys are skipped, so pre-flattening boards keep parsing unchanged.
 	fields := map[string]func(*yaml.Node) error{
-		"id":       func(n *yaml.Node) error { return scalarString(n, &fm.ID) },
-		"title":    func(n *yaml.Node) error { return scalarString(n, &fm.Title) },
-		"created":  func(n *yaml.Node) error { return scalarString(n, &fm.Created) },
-		"updated":  func(n *yaml.Node) error { return scalarString(n, &fm.Updated) },
-		"type":     func(n *yaml.Node) error { return enumString(n, &fm.Type, types.TaskTypes) },
-		"status":   func(n *yaml.Node) error { return enumString(n, &fm.Status, statusIDs(statuses)) },
-		"priority": func(n *yaml.Node) error { return enumString(n, &fm.Priority, types.Priorities) },
-		"parent":   func(n *yaml.Node) error { return scalarString(n, &fm.Parent) },
-		"tags":     func(n *yaml.Node) error { return stringArray(n, &fm.Tags) },
-		"related":  func(n *yaml.Node) error { return stringArray(n, &fm.Related) },
-		"docs":     func(n *yaml.Node) error { return stringArray(n, &fm.Docs) },
+		"id":      func(n *yaml.Node) error { return scalarString(n, &fm.ID) },
+		"title":   func(n *yaml.Node) error { return scalarString(n, &fm.Title) },
+		"created": func(n *yaml.Node) error { return scalarString(n, &fm.Created) },
+		"updated": func(n *yaml.Node) error { return scalarString(n, &fm.Updated) },
+		"status":  func(n *yaml.Node) error { return enumString(n, &fm.Status, statusIDs(statuses)) },
+		"tags":    func(n *yaml.Node) error { return stringArray(n, &fm.Tags) },
+		"related": func(n *yaml.Node) error { return stringArray(n, &fm.Related) },
+		"docs":    func(n *yaml.Node) error { return stringArray(n, &fm.Docs) },
 	}
 
 	// apply handlers per key, tracking which fields were seen
@@ -470,7 +464,7 @@ func parseFrontmatter(fmStr string, statuses []types.StatusDef) (types.TaskFront
 	}
 
 	// require every mandatory field to be present
-	for _, required := range []string{"id", "title", "type", "status", "priority", "created", "updated"} {
+	for _, required := range []string{"id", "title", "status", "created", "updated"} {
 		if !seen[required] {
 			return fm, fmt.Errorf("%w: missing required field %q", errInvalidFrontmatter, required)
 		}
