@@ -29,6 +29,22 @@ COMMANDS = {
   %w[web dev]   => c("Start Vite dev server + mock API (interactive UI)") { cmd_web_dev },
   %w[web mock]  => c("Run the mock API server only (port 8787)") { cmd_web_mock },
   %w[web build] => c("Build the web frontend only") { run "cd #{SCRIPT_DIR}/web && npm run build" },
+
+# Linting
+%w[lint]   => c("Check formatting: prettier (TS/MD) + gofmt (Go)") do
+  run "cd #{SCRIPT_DIR} && npx prettier --check ."
+  unformatted = `cd #{SCRIPT_DIR} && gofmt -l engine/`.strip
+  unless unformatted.empty?
+    puts "gofmt: unformatted files:\n#{unformatted}"
+    bail "gofmt -l engine/ found unformatted files"
+  end
+  true
+end,
+%w[format] => c("Fix formatting: prettier --write (TS/MD) + gofmt -w (Go)") do
+  run "cd #{SCRIPT_DIR} && npx prettier --write ."
+  run "cd #{SCRIPT_DIR} && gofmt -w engine/"
+  true
+end,
 }.freeze
 
 # ─── config & helpers ────────────────────────────────────────────────────────
@@ -42,7 +58,8 @@ end
 
 def run(cmd)
   puts "  $ #{cmd}"
-  bail("#{cmd.split.first} failed") unless system(cmd)
+  label = cmd.sub(/\Acd \S+ && /, "").split.first
+  bail("#{label} failed") unless system(cmd)
   true
 end
 
