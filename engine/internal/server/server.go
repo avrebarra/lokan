@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"io/fs"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/avrebarra/lokan/internal/store"
@@ -84,11 +86,38 @@ func (s *Server) handleTasks(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+	path, root := s.boardLocation()
 	writeJSON(w, http.StatusOK, map[string]any{
-		"tasks":    tasks,
-		"statuses": cfg.Statuses,
-		"root":     s.board,
+		"tasks":      tasks,
+		"statuses":   cfg.Statuses,
+		"root":       s.board,
+		"board_path": path,
+		"board_root": root,
 	})
+}
+
+// boardLocation reports the board path relative to the nearest git root and
+// that root's directory name, for display in the UI. Falls back to the raw
+// path and an empty root when no git root is found.
+func (s *Server) boardLocation() (path, root string) {
+	abs, err := filepath.Abs(s.board)
+	if err != nil {
+		return s.board, ""
+	}
+	for dir := abs; ; {
+		if _, err := os.Stat(filepath.Join(dir, ".git")); err == nil {
+			rel, err := filepath.Rel(dir, abs)
+			if err != nil {
+				return s.board, ""
+			}
+			return filepath.ToSlash(rel), filepath.Base(dir)
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return s.board, ""
+		}
+		dir = parent
+	}
 }
 
 func (s *Server) handleTask(w http.ResponseWriter, r *http.Request) {

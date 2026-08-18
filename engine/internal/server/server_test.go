@@ -77,8 +77,9 @@ func TestTasksEmpty(t *testing.T) {
 		t.Fatalf("content-type = %q, want application/json", ct)
 	}
 	var resp struct {
-		Tasks []types.TaskSummary `json:"tasks"`
-		Root  string              `json:"root"`
+		Tasks     []types.TaskSummary `json:"tasks"`
+		Root      string              `json:"root"`
+		BoardPath string              `json:"board_path"`
 	}
 	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
 		t.Fatalf("decode response: %v", err)
@@ -88,6 +89,46 @@ func TestTasksEmpty(t *testing.T) {
 	}
 	if resp.Root != board {
 		t.Fatalf("board = %q, want %q", resp.Root, board)
+	}
+	if resp.BoardPath != board {
+		t.Fatalf("board_path = %q, want %q (no git root in temp dir)", resp.BoardPath, board)
+	}
+}
+
+func TestTasksBoardPathGitRoot(t *testing.T) {
+	// board nested under a fake git root: board_path is relative to it
+	root := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(root, ".git"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	board := filepath.Join(root, "docs", "roadmap.md")
+	if err := os.MkdirAll(filepath.Dir(board), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	raw, err := store.InitialBoard(types.LokanConfig{Counter: 0, Version: "1"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(board, []byte(raw), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	rec := doRequest(t, New(board).Handler(), "GET", "/api/tasks", nil)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", rec.Code)
+	}
+	var resp struct {
+		BoardPath string `json:"board_path"`
+		BoardRoot string `json:"board_root"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if resp.BoardPath != "docs/roadmap.md" {
+		t.Fatalf("board_path = %q, want %q", resp.BoardPath, "docs/roadmap.md")
+	}
+	if resp.BoardRoot != filepath.Base(root) {
+		t.Fatalf("board_root = %q, want %q", resp.BoardRoot, filepath.Base(root))
 	}
 }
 

@@ -30,14 +30,25 @@ export default function App() {
   const [updatedAt, setUpdatedAt] = useState<Date>(new Date())
   const [movedId, setMovedId] = useState<string | null>(null)
   const movedTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [boardPath, setBoardPath] = useState('')
+  const [boardRoot, setBoardRoot] = useState('')
 
   // reload board and lanes from the api and stamp the refresh time
   const refresh = useCallback(async () => {
-    const { tasks, statuses } = await fetchTasks()
+    const { tasks, statuses, board_path, board_root } = await fetchTasks()
     setTasks(tasks)
     setStatuses(statuses)
+    setBoardPath(board_path)
+    setBoardRoot(board_root)
     setUpdatedAt(new Date())
   }, [])
+
+  // show the opened board filename in the browser tab
+  useEffect(() => {
+    if (!boardPath) return
+    const name = boardPath.split('/').pop() ?? boardPath
+    document.title = `lokan — ${name}`
+  }, [boardPath])
 
   // initial load on mount
   useEffect(() => {
@@ -145,6 +156,8 @@ export default function App() {
       <Topline
         taskCount={tasks.filter((t) => t.type !== 'subtask').length}
         updatedAt={updatedAt}
+        boardPath={boardPath}
+        boardRoot={boardRoot}
         onCreate={() => setCreating({})}
         onOpenConfig={() => setConfigOpen(true)}
       />
