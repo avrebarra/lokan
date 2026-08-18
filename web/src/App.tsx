@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   clearTasks,
   createTask,
+  deleteTasks,
   fetchTask,
   fetchTasks,
   moveTask,
@@ -12,6 +13,7 @@ import type { CreateTaskInput } from './lib/api'
 import type { Status, StatusDef, Task, TaskSummary, TaskType } from './lib/types'
 import Topline from './components/Topline'
 import Board from './components/Board'
+import BulkBar from './components/BulkBar'
 import ModalDetail from './components/ModalDetail'
 import type { TaskFieldChange } from './components/ModalDetail'
 import ModalCreate from './components/ModalCreate'
@@ -30,6 +32,8 @@ export default function App() {
   const [updatedAt, setUpdatedAt] = useState<Date>(new Date())
   const [movedId, setMovedId] = useState<string | null>(null)
   const movedTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // multi-select: ids currently selected for bulk actions / group drag
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [boardPath, setBoardPath] = useState('')
   const [boardRoot, setBoardRoot] = useState('')
 
@@ -69,6 +73,34 @@ export default function App() {
 
   const closeDetail = () => setSelected(null)
 
+  // toggle a task's membership in the multi-select set
+  const toggleSelected = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
+      return next
+    })
+  }
+
+  const clearSelection = () => setSelectedIds(new Set())
+
+  // a finished marquee adds the boxed rows to the existing selection
+  const handleMarqueeSelect = (ids: string[]) =>
+    setSelectedIds((prev) => new Set([...prev, ...ids]))
+
+  // escape clears the selection
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') clearSelection()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
   // flash the left edge of a task after a successful lane move
   const flashMoved = (id: string) => {
     setMovedId(id)
@@ -92,7 +124,77 @@ export default function App() {
     flashMoved(id)
   }
 
+  // dispatch a drop: single card keeps the original path (with its no-op
+  // guards and flash), a group uses the ordered bulk move
+  const handleRowMove = (ids: string[], status: Status, beforeId?: string) => {
+    if (ids.length === 1) {
+      void handleMove(ids[0], status, beforeId)
+    } else {
+      void handleMoveGroup(ids, status, beforeId ?? '')
+    }
+  }
+
+  const handleMoveGroup = async (ids: string[], status: Status, beforeId: string) => {
+    await moveMany(ids, status, beforeId)
+    flashMoved(ids[0])
+  }
+
+  // true when the group already sits where the move would put it — skip the
+  // rewrite so `updated` timestamps don't churn for nothing
+  const isMoveManyNoop = (ids: string[], status: Status, beforeId: string) => {
+    if (beforeId && ids.includes(beforeId)) return false
+    const lane = tasks.filter((t) => t.status === status)
+    const laneIds = lane.map((t) => t.id)
+    const first = laneIds.indexOf(ids[0])
+    if (first < 0) return false
+    if (beforeId) return laneIds[first + ids.length] === beforeId
+    return first + ids.length === laneIds.length
+  }
+
+  // move a group of tasks: forward order for append (keeps selection order),
+  // reverse for beforeId-insertion (each lands before the anchor)
+  const moveMany = async (ids: string[], status: Status, beforeId = '') => {
+    if (isMoveManyNoop(ids, status, beforeId)) return
+    const order = beforeId ? [...ids].reverse() : ids
+    for (const id of order) {
+      await moveTask(id, status, beforeId)
+    }
+    await refresh()
+  }
+
+  // bulk actions from the selection bar
+  const handleDeleteSelected = async () => {
+    const ids = [...selectedIds]
+    clearSelection()
+    await deleteTasks(ids)
+    await refresh()
+  }
+
+  const handleArchiveSelected = async () => {
+    const target = statuses.find((s) => s.archived)
+    if (!target) return
+    const ids = [...selectedIds]
+    clearSelection()
+    await moveMany(ids, target.id)
+    await refresh()
+  }
+
+  const handleMoveSelected = async (status: Status) => {
+    const ids = [...selectedIds]
+    clearSelection()
+    await moveMany(ids, status)
+    await refresh()
+  }
+
   // apply edited fields one at a time, close the modal, reload
+  const handleDeleteTask = async () => {
+    const id = selected?.id
+    setSelected(null)
+    if (!id) return
+    await deleteTasks([id])
+    await refresh()
+  }
+
   const handleSaveChanges = async (changes: TaskFieldChange[]) => {
     if (!selected) return
     for (const change of changes) {
@@ -166,9 +268,23 @@ export default function App() {
         tasks={tasks}
         subtaskCount={subtaskCount}
         movedId={movedId}
+        selectedIds={selectedIds}
         onSelect={openTask}
-        onMove={handleMove}
+        onMove={handleRowMove}
+        onToggleSelect={toggleSelected}
+        onMarqueeSelect={handleMarqueeSelect}
       />
+      {selectedIds.size > 0 && (
+        <BulkBar
+          count={selectedIds.size}
+          lanes={statuses}
+          hasArchived={statuses.some((s) => s.archived)}
+          onDelete={() => void handleDeleteSelected()}
+          onArchive={() => void handleArchiveSelected()}
+          onMoveTo={(status) => void handleMoveSelected(status)}
+          onClear={clearSelection}
+        />
+      )}
       {selected && (
         <ModalDetail
           task={selected}
@@ -177,6 +293,7 @@ export default function App() {
           onClose={closeDetail}
           onSave={handleSaveChanges}
           onAddSubtask={() => setCreating({ parent: selected.id, type: 'subtask' })}
+          onDelete={() => void handleDeleteTask()}
         />
       )}
       {creating && (

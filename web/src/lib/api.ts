@@ -107,3 +107,11 @@ export async function clearTasks(scope: 'archived' | 'all'): Promise<ClearTasksR
     body: JSON.stringify({ scope }),
   })
 }
+
+// delete the tasks with the given ids in one atomic rewrite (all-or-nothing)
+export async function deleteTasks(ids: string[]): Promise<ClearTasksResult> {
+  return req<ClearTasksResult>('/api/delete', {
+    method: 'POST',
+    body: JSON.stringify({ ids }),
+  })
+}

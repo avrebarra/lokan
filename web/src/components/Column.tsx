@@ -10,8 +10,11 @@ interface Props {
   rows: TaskSummary[]
   subtaskCount: Map<string, number>
   movedId: string | null
+  selectedIds: Set<string>
+  scopedIds: Set<string>
   onSelect: (id: string) => void
-  onMove: (id: string, status: Status, beforeId?: string) => void
+  onMove: (ids: string[], status: Status, beforeId?: string) => void
+  onToggleSelect: (id: string) => void
 }
 
 interface Insertion {
@@ -26,8 +29,11 @@ export default function Column({
   rows,
   subtaskCount,
   movedId,
+  selectedIds,
+  scopedIds,
   onSelect,
   onMove,
+  onToggleSelect,
 }: Props) {
   const [dragOver, setDragOver] = useState(false)
   const [insert, setInsert] = useState<Insertion | null>(null)
@@ -69,14 +75,22 @@ export default function Column({
     }
   }
 
-  // accept a lane move: read the carried task id and hand it up
+  // accept a lane move: read the carried task ids (JSON array from a group
+  // drag, or a bare id from an older payload) and hand them up
   const handleDrop = (e: DragEvent) => {
     e.preventDefault()
     setDragOver(false)
-    const id = e.dataTransfer.getData('text/x-lokan-task')
+    const raw = e.dataTransfer.getData('text/x-lokan-task')
+    let ids: string[] = []
+    try {
+      const parsed = JSON.parse(raw)
+      if (Array.isArray(parsed)) ids = parsed
+    } catch {
+      if (raw) ids = [raw]
+    }
     const beforeId = insert ? (rows[insert.index]?.id ?? '') : ''
     setInsert(null)
-    if (id) onMove(id, status, beforeId)
+    if (ids.length > 0) onMove(ids, status, beforeId)
   }
 
   return (
@@ -110,7 +124,10 @@ export default function Column({
               task={row}
               subtaskCount={subtaskCount.get(row.id) ?? 0}
               moved={row.id === movedId}
+              selectedIds={selectedIds}
+              scopedIds={scopedIds}
               onClick={() => onSelect(row.id)}
+              onToggleSelect={() => onToggleSelect(row.id)}
             />
           ))
         )}

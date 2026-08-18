@@ -4,7 +4,8 @@ import type { StatusDef, Task, TaskSummary, Status, Priority, TaskType } from '.
 import { PRIORITIES, TASK_TYPES } from '../lib/types'
 import { priorityTag } from '../lib/format'
 import Modal from './Modal'
-import { buttonClass, fieldClass } from '../lib/modal-classes'
+import ModalConfirm from './ModalConfirm'
+import { buttonClass, confirmClass, fieldClass } from '../lib/modal-classes'
 
 export interface TaskFieldChange {
   field: UpdateTaskInput['field']
@@ -18,6 +19,7 @@ interface Props {
   onClose: () => void
   onSave: (changes: TaskFieldChange[]) => void
   onAddSubtask?: () => void
+  onDelete: () => void
 }
 
 // bordered micro-tag in the header row
@@ -40,10 +42,12 @@ export default function ModalDetail({
   onClose,
   onSave,
   onAddSubtask,
+  onDelete,
 }: Props) {
   // edit mode + draft form state
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState<Draft | null>(null)
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
 
   // derived display values for the header
   const crit = task.priority === 'critical'
@@ -88,7 +92,8 @@ export default function ModalDetail({
   const canHaveSubtasks = task.type === 'task' || task.type === 'bug'
 
   return (
-    <Modal
+    <>
+      <Modal
       title={
         <>
           {editing ? (
@@ -142,6 +147,9 @@ export default function ModalDetail({
                   + subtask
                 </button>
               )}
+              <button className={confirmClass} onClick={() => setConfirmingDelete(true)}>
+                delete
+              </button>
             </>
           )}
         </div>
@@ -312,6 +320,19 @@ export default function ModalDetail({
           </>
         )}
       </div>
-    </Modal>
+      </Modal>
+      {confirmingDelete && (
+        <ModalConfirm
+          title="Delete task"
+          message={`Delete task ${task.id} — ${task.title}? This cannot be undone.`}
+          confirmLabel="delete"
+          onConfirm={() => {
+            setConfirmingDelete(false)
+            onDelete()
+          }}
+          onCancel={() => setConfirmingDelete(false)}
+        />
+      )}
+    </>
   )
 }
