@@ -545,6 +545,28 @@ func TestCreateTaskEndpoint(t *testing.T) {
 	})
 }
 
+func TestCreateTaskEndpointWithNotes(t *testing.T) {
+	board := newTestProject(t)
+	h := New(board).Handler()
+
+	rec := doRequest(t, h, "POST", "/api/create", map[string]any{
+		"title": "Hello from API",
+		"notes": "some seeded notes",
+	})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200: %s", rec.Code, rec.Body.String())
+	}
+	var resp struct {
+		Task types.Task `json:"task"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if !strings.Contains(resp.Task.Body, "some seeded notes") {
+		t.Fatalf("body = %q, want seeded notes", resp.Task.Body)
+	}
+}
+
 func TestCreateTaskValidation(t *testing.T) {
 	board := newTestProject(t)
 	h := New(board).Handler()

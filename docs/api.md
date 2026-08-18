@@ -88,14 +88,14 @@ found, `board_path` falls back to `root` and `board_root` is empty.
 
 ### POST /api/create
 
-Request body: `{ "title": string }`
+Request body: `{ "title": string, "notes"?: string }`
 
 Validation:
 
 - `title` missing/empty → 400 `{ "error": "Missing title" }`
 
 Success: `{ "task": Task }` (status set to the first non-archived lane, id
-from counter)
+from counter; `notes` seeds the task body if provided)
 Failure: 500 `{ "error": "<message>" }`
 
 ### POST /api/update

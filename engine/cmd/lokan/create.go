@@ -15,6 +15,7 @@ func newCreateCmd() *cli.Command {
 		OnUsageError: quietUsageError,
 		Flags: []cli.Flag{
 			&cli.StringSliceFlag{Name: "tag", Usage: "Tag to add (repeatable)"},
+			&cli.StringFlag{Name: "notes", Usage: "Notes to seed the task body with"},
 		},
 		Action: func(c *cli.Context) error {
 			// validate the positional board and title
@@ -29,7 +30,7 @@ func newCreateCmd() *cli.Command {
 			if err != nil {
 				return err
 			}
-			task, err := store.CreateTaskFromInput(board, title, c.StringSlice("tag"))
+			task, err := store.CreateTaskFromInput(board, title, c.StringSlice("tag"), c.String("notes"))
 			if err != nil {
 				return err
 			}

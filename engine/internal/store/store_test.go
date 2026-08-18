@@ -99,7 +99,7 @@ func TestSectionsNeverGlueOntoTaskBody(t *testing.T) {
 	// the last active task's body
 	board := newTempBoard(t)
 	for _, title := range []string{"Task one", "Task two", "Task three"} {
-		if _, err := CreateTaskFromInput(board, title, nil); err != nil {
+		if _, err := CreateTaskFromInput(board, title, nil, ""); err != nil {
 			t.Fatal(err)
 		}
 	}

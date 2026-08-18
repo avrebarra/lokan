@@ -300,7 +300,7 @@ func CreateTask(board string, fm types.TaskFrontmatter, body string) (types.Task
 // id from the counter and landing it in the first non-archived lane. It is the
 // single creation path shared by the CLI and the HTTP API, so both enforce
 // identical rules. Invalid input returns a *ValidationError.
-func CreateTaskFromInput(board, title string, tags []string) (types.Task, error) {
+func CreateTaskFromInput(board, title string, tags []string, notes string) (types.Task, error) {
 	// validate title before touching the board
 	if title == "" {
 		return types.Task{}, validationErrorf("Missing title")
@@ -319,7 +319,7 @@ func CreateTaskFromInput(board, title string, tags []string) (types.Task, error)
 		Created: today,
 		Updated: today,
 		Tags:    tags,
-	}, "")
+	}, notes)
 }
 
 // defaultStatus returns the first non-archived lane — the landing status for

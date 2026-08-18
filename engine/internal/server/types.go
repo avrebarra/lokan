@@ -5,6 +5,7 @@ import "github.com/avrebarra/lokan/internal/types"
 // Request types — payload contracts for the write endpoints.
 type RequestDataCreate struct {
 	Title string `json:"title"`
+	Notes string `json:"notes"`
 }
 
 type RequestDataUpdate struct {

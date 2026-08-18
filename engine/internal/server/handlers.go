@@ -65,7 +65,7 @@ func (s *Server) HandleCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// create via the shared flow — same validation as the CLI
-	task, err := store.CreateTaskFromInput(s.boardPath, req.Title, nil)
+	task, err := store.CreateTaskFromInput(s.boardPath, req.Title, nil, req.Notes)
 	if err != nil {
 		var ve *store.ValidationError
 		if errors.As(err, &ve) {

@@ -206,6 +206,24 @@ func TestCreateWithTags(t *testing.T) {
 	}
 }
 
+func TestCreateWithNotes(t *testing.T) {
+	root := initProject(t)
+	code, _, stderr := runBoard(t, root, "create", "--notes", "some seeded notes", "hello")
+	if code != 0 {
+		t.Fatalf("create failed: %s", stderr)
+	}
+	task, err := store.LoadTask(store.VirtualPath(bp(root), "1"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(task.Body, "some seeded notes") {
+		t.Fatalf("body = %q, want seeded notes", task.Body)
+	}
+	if !strings.Contains(task.Body, "## Notes") {
+		t.Fatalf("body = %q, want ## Notes section", task.Body)
+	}
+}
+
 // ---------------------------------------------------------------------------
 // get
 // ---------------------------------------------------------------------------

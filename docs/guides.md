@@ -34,7 +34,7 @@ self-describing — everything you need is inside it:
 
 1. `lokan init <board>` — create a board (one self-contained markdown
    file; explicit, required once). `docs/board.md` is the conventional spot.
-2. `lokan create "Do thing"` — add work.
+2. `lokan create "Do thing"` — add work (optionally `--notes "<markdown>"` to seed the body).
 3. `lokan list --md` — compact board view; `lokan list` for the UI-style table.
 4. `lokan edit <id> --status in-progress` — advance; or `lokan ui` and click.
 5. `lokan edit <id> --status done` — finishes the task; it auto-moves to Archive.
@@ -63,7 +63,9 @@ Stable entry points (frozen in `api.md`):
   it is the complete
   board as markdown.
 - **Read lean state:** `lokan list --md` — one line per task, grouped by status.
-- **Mutate:** `lokan create` / `lokan edit <id>` only.
+- **Mutate:** `lokan create` / `lokan edit <id>` only. Seed a task's notes at
+  create time with `lokan create <board> "<title>" --notes "<markdown>"` — the
+  notes land at the top of the task body, before `## Notes`.
 
 Conventions an agent should follow:
 
