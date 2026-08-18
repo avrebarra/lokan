@@ -26,10 +26,13 @@ func (s *Server) HandleTasks(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+	path, root := s.boardLocation()
 	writeJSON(w, http.StatusOK, ResponseDataTasks{
-		Tasks:    tasks,
-		Statuses: cfg.Statuses,
-		Root:     s.boardPath,
+		Tasks:     tasks,
+		Statuses:  cfg.Statuses,
+		Root:      s.boardPath,
+		BoardPath: path,
+		BoardRoot: root,
 	})
 }
 

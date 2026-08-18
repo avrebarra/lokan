@@ -32,9 +32,11 @@ type RequestDataClear struct {
 
 // Response types — payload contracts for the API responses.
 type ResponseDataTasks struct {
-	Tasks    []types.TaskSummary `json:"tasks"`
-	Statuses []types.StatusDef   `json:"statuses"`
-	Root     string              `json:"root"`
+	Tasks     []types.TaskSummary `json:"tasks"`
+	Statuses  []types.StatusDef   `json:"statuses"`
+	Root      string              `json:"root"`
+	BoardPath string              `json:"board_path"`
+	BoardRoot string              `json:"board_root"`
 }
 
 type ResponseDataTask struct {

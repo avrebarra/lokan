@@ -82,13 +82,21 @@ Static HTML app (embedded dist).
 {
   "tasks": [TaskSummary...],
   "statuses": [{ "id": Status, "archived": boolean }...],
-  "root": "/abs/path/to/board.md"
+  "root": "/abs/path/to/board.md",
+  "board_path": "docs/board.md",
+  "board_root": "lokan"
 }
 ```
 
 `statuses` is the effective lane set in board order (defaults when the
 project has no configured lanes). The UI renders one column per lane in this
 order.
+
+`root` is the board path the server was started with. `board_path` is that
+path made relative to the nearest git root (walking up from the board file
+for a `.git` entry), so the UI can show the leaf and parent dirs down to the
+repo; `board_root` is that git root's directory name. When no git root is
+found, `board_path` falls back to `root` and `board_root` is empty.
 
 ### GET /api/task/:id
 

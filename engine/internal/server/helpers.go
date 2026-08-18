@@ -3,6 +3,8 @@ package server
 import (
 	"encoding/json"
 	"net/http"
+	"os"
+	"path/filepath"
 
 	"github.com/avrebarra/lokan/internal/store"
 	"github.com/avrebarra/lokan/internal/types"
@@ -30,4 +32,28 @@ func (s *Server) validStatus(v types.Status) bool {
 		}
 	}
 	return false
+}
+
+// boardLocation reports the board path relative to the nearest git root and
+// that root's directory name, for display in the UI. Falls back to the raw
+// path and an empty root when no git root is found.
+func (s *Server) boardLocation() (path, root string) {
+	abs, err := filepath.Abs(s.boardPath)
+	if err != nil {
+		return s.boardPath, ""
+	}
+	for dir := abs; ; {
+		if _, err := os.Stat(filepath.Join(dir, ".git")); err == nil {
+			rel, err := filepath.Rel(dir, abs)
+			if err != nil {
+				return s.boardPath, ""
+			}
+			return filepath.ToSlash(rel), filepath.Base(dir)
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return s.boardPath, ""
+		}
+		dir = parent
+	}
 }

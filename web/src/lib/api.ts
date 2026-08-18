@@ -18,6 +18,8 @@ export interface FetchTasksResult {
   tasks: TaskSummary[]
   statuses: StatusDef[]
   root: string
+  board_path: string
+  board_root: string
 }
 
 export interface FetchTaskResult {
