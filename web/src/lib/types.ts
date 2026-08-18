@@ -1,4 +1,4 @@
-export type TaskType = 'epic' | 'task' | 'subtask' | 'bug'
+export type TaskType = 'task'
 
 // statuses are configurable lanes resolved from the server at runtime
 export type Status = string
@@ -8,20 +8,15 @@ export interface StatusDef {
   archived: boolean
 }
 
-export type Priority = 'critical' | 'high' | 'medium' | 'low'
-
 export interface TaskFrontmatter {
   id: string
   title: string
-  type: TaskType
   status: Status
-  priority: Priority
-  parent?: string
+  created: string
+  updated: string
   related?: string[]
   docs?: string[]
   tags?: string[]
-  created: string
-  updated: string
 }
 
 export interface TaskSummary extends TaskFrontmatter {
@@ -33,7 +28,3 @@ export interface TaskSummary extends TaskFrontmatter {
 export interface Task extends TaskSummary {
   body: string
 }
-
-export const PRIORITIES: Priority[] = ['critical', 'high', 'medium', 'low']
-
-export const TASK_TYPES: TaskType[] = ['epic', 'task', 'subtask', 'bug']

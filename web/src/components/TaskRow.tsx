@@ -3,11 +3,9 @@ import type { DragEvent } from 'react'
 import { Check, Copy } from 'lucide-react'
 import type { TaskSummary } from '../lib/types'
 import { fetchTask } from '../lib/api'
-import { priorityTag } from '../lib/format'
 
 interface Props {
   task: TaskSummary
-  subtaskCount: number
   moved: boolean
   selectedIds: Set<string>
   scopedIds: Set<string>
@@ -17,14 +15,12 @@ interface Props {
 
 export default function TaskRow({
   task,
-  subtaskCount,
   moved,
   selectedIds,
   scopedIds,
   onClick,
   onToggleSelect,
 }: Props) {
-  const isSubtask = task.type === 'subtask'
   const [copied, setCopied] = useState(false)
   const lastClick = useRef(0)
   const selected = selectedIds.has(task.id)
@@ -64,7 +60,7 @@ export default function TaskRow({
     const { task: full } = await fetchTask(task.id)
     const parts = [
       `# ${full.id} — ${full.title}`,
-      `Type: ${full.type} | Status: ${full.status} | Priority: ${full.priority}`,
+      `Status: ${full.status}`,
       `Location: .lokan/board.md lines ${full.lineStart}-${full.lineEnd} (task id: ${full.id})`,
     ]
     if (full.tags?.length) parts.push(`Tags: ${full.tags.join(', ')}`)
@@ -83,7 +79,7 @@ export default function TaskRow({
         moved ? 'animate-left-flash' : ''
       } ${rowBg}`}
     >
-      {(selectionActive) && (
+      {selectionActive && (
         <input
           type="checkbox"
           checked={selected || scoped}
@@ -99,38 +95,12 @@ export default function TaskRow({
         onDragStart={onDragStart}
         onClick={handleClick}
         className={`block w-full border-b border-border py-[11px] text-left hover:border-l-[3px] hover:border-l-accent ${
-          isSubtask ? 'pl-6' : 'pl-2.5'
-        } ${selectionActive ? 'pl-9' : ''}`}
+          selectionActive ? 'pl-9' : 'pl-2.5'
+        }`}
       >
-        <div className="flex items-baseline justify-between gap-4">
-          <div className="flex flex-wrap items-baseline gap-2">
-            <span
-              className={
-                isSubtask ? 'text-[10px] uppercase text-muted' : 'text-[11px] uppercase text-muted'
-              }
-            >
-              {task.id}
-            </span>
-            <span
-              className={
-                !isSubtask && task.priority === 'critical'
-                  ? 'border border-border px-[5px] py-px text-[9px] uppercase leading-[1.2] text-fg'
-                  : 'border border-border px-[5px] py-px text-[9px] uppercase leading-[1.2] text-muted'
-              }
-            >
-              {priorityTag(task.priority)}
-            </span>
-          </div>
-        </div>
-        <div
-          className={`mt-[3px] font-sans font-normal leading-[1.35] group-hover:underline ${
-            isSubtask ? 'text-[13px]' : 'text-sm'
-          }`}
-        >
-          {isSubtask ? `— ${task.title}` : task.title}
-          {subtaskCount > 0 && (
-            <span className="ml-2 text-[11px] text-muted">[{subtaskCount}]</span>
-          )}
+        <div className="mt-[3px] font-sans font-normal leading-[1.35] group-hover:underline">
+          <span className="mr-2 text-[11px] uppercase text-muted">{task.id}</span>
+          {task.title}
         </div>
       </button>
       <button

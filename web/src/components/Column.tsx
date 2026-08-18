@@ -8,7 +8,6 @@ interface Props {
   modifier?: string
   status: Status
   rows: TaskSummary[]
-  subtaskCount: Map<string, number>
   movedId: string | null
   selectedIds: Set<string>
   scopedIds: Set<string>
@@ -27,7 +26,6 @@ export default function Column({
   modifier,
   status,
   rows,
-  subtaskCount,
   movedId,
   selectedIds,
   scopedIds,
@@ -122,7 +120,6 @@ export default function Column({
             <TaskRow
               key={row.id}
               task={row}
-              subtaskCount={subtaskCount.get(row.id) ?? 0}
               moved={row.id === movedId}
               selectedIds={selectedIds}
               scopedIds={scopedIds}

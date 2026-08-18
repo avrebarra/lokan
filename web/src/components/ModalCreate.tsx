@@ -1,33 +1,22 @@
 import { useState } from 'react'
 import type { CreateTaskInput } from '../lib/api'
-import type { Priority, TaskType } from '../lib/types'
 import Modal from './Modal'
 import { buttonClass, fieldClass } from '../lib/modal-classes'
 
 interface Props {
   onClose: () => void
   onCreate: (input: CreateTaskInput) => void
-  initialParent?: string
-  initialType?: TaskType
 }
 
-export default function ModalCreate({ onClose, onCreate, initialParent, initialType }: Props) {
-  // form state for the new task fields
+export default function ModalCreate({ onClose, onCreate }: Props) {
+  // form state for the new task title
   const [title, setTitle] = useState('')
-  const [type, setType] = useState<TaskType>(initialType ?? 'task')
-  const [priority, setPriority] = useState<Priority>('medium')
-  const [parent, setParent] = useState(initialParent ?? '')
 
   // build the create payload from the form, ignoring empty title
   const submit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!title.trim()) return
-    onCreate({
-      title: title.trim(),
-      type,
-      priority,
-      parent: parent.trim() || undefined,
-    })
+    onCreate({ title: title.trim() })
   }
 
   return (
@@ -55,51 +44,6 @@ export default function ModalCreate({ onClose, onCreate, initialParent, initialT
               onChange={(e) => setTitle(e.target.value)}
               autoFocus
               required
-              className={fieldClass}
-            />
-          </div>
-          <div className="mb-4 flex flex-col gap-1.5">
-            <label htmlFor="create-type" className="text-[11px] uppercase text-muted">
-              type
-            </label>
-            <select
-              id="create-type"
-              value={type}
-              onChange={(e) => setType(e.target.value as TaskType)}
-              className={fieldClass}
-            >
-              <option value="task">task</option>
-              <option value="bug">bug</option>
-              <option value="epic">epic</option>
-              <option value="subtask">subtask</option>
-            </select>
-          </div>
-          <div className="mb-4 flex flex-col gap-1.5">
-            <label htmlFor="create-priority" className="text-[11px] uppercase text-muted">
-              priority
-            </label>
-            <select
-              id="create-priority"
-              value={priority}
-              onChange={(e) => setPriority(e.target.value as Priority)}
-              className={fieldClass}
-            >
-              <option value="critical">critical</option>
-              <option value="high">high</option>
-              <option value="medium">medium</option>
-              <option value="low">low</option>
-            </select>
-          </div>
-          <div className="mb-4 flex flex-col gap-1.5">
-            <label htmlFor="create-parent" className="text-[11px] uppercase text-muted">
-              parent (optional)
-            </label>
-            <input
-              id="create-parent"
-              type="text"
-              value={parent}
-              onChange={(e) => setParent(e.target.value)}
-              placeholder="1"
               className={fieldClass}
             />
           </div>

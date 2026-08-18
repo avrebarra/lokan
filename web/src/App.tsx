@@ -10,7 +10,7 @@ import {
   updateTask,
 } from './lib/api'
 import type { CreateTaskInput } from './lib/api'
-import type { Status, StatusDef, Task, TaskSummary, TaskType } from './lib/types'
+import type { Status, StatusDef, Task, TaskSummary } from './lib/types'
 import Topline from './components/Topline'
 import Board from './components/Board'
 import BulkBar from './components/BulkBar'
@@ -24,7 +24,7 @@ export default function App() {
   const [tasks, setTasks] = useState<TaskSummary[]>([])
   const [statuses, setStatuses] = useState<StatusDef[]>([])
   const [selected, setSelected] = useState<Task | null>(null)
-  const [creating, setCreating] = useState<{ parent?: string; type?: TaskType } | null>(null)
+  const [creating, setCreating] = useState(false)
   const [configOpen, setConfigOpen] = useState(false)
   const [theme, setTheme] = useState<'light' | 'dark'>(() =>
     document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light',
@@ -207,7 +207,7 @@ export default function App() {
   // create a task, close the modal, reload
   const handleCreate = async (input: CreateTaskInput) => {
     await createTask(input)
-    setCreating(null)
+    setCreating(false)
     await refresh()
   }
 
@@ -229,15 +229,6 @@ export default function App() {
     await refresh()
   }
 
-  // count children per parent for the row badges
-  const subtaskCount = useMemo(() => {
-    const counts = new Map<string, number>()
-    for (const t of tasks) {
-      if (t.parent) counts.set(t.parent, (counts.get(t.parent) ?? 0) + 1)
-    }
-    return counts
-  }, [tasks])
-
   // per-lane task counts for the config modal's delete confirmations
   const laneCounts = useMemo(() => {
     const counts: Record<string, number> = {}
@@ -247,26 +238,19 @@ export default function App() {
     return counts
   }, [tasks])
 
-  // children of the selected task for the modal list
-  const selectedSubtasks = useMemo(
-    () => (selected ? tasks.filter((t) => t.parent === selected.id) : []),
-    [selected, tasks],
-  )
-
   return (
     <div className="mx-auto w-full max-w-[1200px] px-6 pb-16 pt-8 max-[900px]:px-4 max-[900px]:pb-12 max-[900px]:pt-5">
       <Topline
-        taskCount={tasks.filter((t) => t.type !== 'subtask').length}
+        taskCount={tasks.length}
         updatedAt={updatedAt}
         boardPath={boardPath}
         boardRoot={boardRoot}
-        onCreate={() => setCreating({})}
+        onCreate={() => setCreating(true)}
         onOpenConfig={() => setConfigOpen(true)}
       />
       <Board
         statuses={statuses}
         tasks={tasks}
-        subtaskCount={subtaskCount}
         movedId={movedId}
         selectedIds={selectedIds}
         onSelect={openTask}
@@ -288,22 +272,13 @@ export default function App() {
       {selected && (
         <ModalDetail
           task={selected}
-          subtasks={selectedSubtasks}
           statuses={statuses}
           onClose={closeDetail}
           onSave={handleSaveChanges}
-          onAddSubtask={() => setCreating({ parent: selected.id, type: 'subtask' })}
           onDelete={() => void handleDeleteTask()}
         />
       )}
-      {creating && (
-        <ModalCreate
-          onClose={() => setCreating(null)}
-          onCreate={handleCreate}
-          initialParent={creating.parent}
-          initialType={creating.type}
-        />
-      )}
+      {creating && <ModalCreate onClose={() => setCreating(false)} onCreate={handleCreate} />}
       {configOpen && (
         <ModalConfig
           statuses={statuses}

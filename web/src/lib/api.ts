@@ -1,4 +1,4 @@
-import type { Status, StatusDef, Task, TaskSummary, Priority, TaskType } from './types'
+import type { Status, StatusDef, Task, TaskSummary } from './types'
 
 // fetch wrapper: json in/out, error body extracted as Error
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
@@ -40,7 +40,7 @@ export async function fetchTask(id: string): Promise<FetchTaskResult> {
 
 export interface UpdateTaskInput {
   id: string
-  field: 'status' | 'priority' | 'title' | 'parent' | 'tags' | 'type' | 'body'
+  field: 'status' | 'title' | 'tags' | 'body'
   value: string
 }
 
@@ -70,9 +70,6 @@ export async function moveTask(
 
 export interface CreateTaskInput {
   title: string
-  type: TaskType
-  priority: Priority
-  parent?: string
 }
 
 export async function createTask(input: CreateTaskInput): Promise<UpdateTaskResult> {

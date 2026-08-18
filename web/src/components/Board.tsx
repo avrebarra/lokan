@@ -5,7 +5,6 @@ import Column from './Column'
 interface Props {
   statuses: StatusDef[]
   tasks: TaskSummary[]
-  subtaskCount: Map<string, number>
   movedId: string | null
   selectedIds: Set<string>
   onSelect: (id: string) => void
@@ -30,7 +29,6 @@ const rectsOverlap = (a: { x: number; y: number; w: number; h: number }, b: DOMR
 export default function Board({
   statuses,
   tasks,
-  subtaskCount,
   movedId,
   selectedIds,
   onSelect,
@@ -38,8 +36,6 @@ export default function Board({
   onToggleSelect,
   onMarqueeSelect,
 }: Props) {
-  // subtasks live under their parents, not as board rows
-  const visible = tasks.filter((t) => t.type !== 'subtask')
   const [marquee, setMarquee] = useState<Marquee | null>(null)
   const marqueeStart = useRef<{ x: number; y: number } | null>(null)
   // rows inside the live marquee box — state, so rows re-render and highlight
@@ -130,8 +126,7 @@ export default function Board({
             label={col.id}
             modifier={col.id === 'in-progress' ? 'in-progress' : undefined}
             status={col.id}
-            rows={visible.filter((t) => t.status === col.id)}
-            subtaskCount={subtaskCount}
+            rows={tasks.filter((t) => t.status === col.id)}
             movedId={movedId}
             selectedIds={selectedIds}
             scopedIds={marqueeLive}

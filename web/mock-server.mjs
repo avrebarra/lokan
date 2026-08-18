@@ -178,10 +178,7 @@ const server = http.createServer(async (req, res) => {
       const task = {
         id,
         title: body.title,
-        type: body.type ?? 'task',
         status: 'todo',
-        priority: body.priority ?? 'medium',
-        parent: body.parent ?? '',
         related: [],
         docs: [],
         tags: [],
@@ -202,7 +199,7 @@ const server = http.createServer(async (req, res) => {
       const body = await readBody(req)
       const task = tasks.get(body.id)
       if (!task) return respond(res, 404, { error: `task not found: ${body.id}` })
-      if (!['status', 'priority', 'title'].includes(body.field)) {
+      if (!['status', 'title', 'tags', 'body'].includes(body.field)) {
         return respond(res, 400, { error: `Unknown field: ${body.field}` })
       }
       task[body.field] = body.value

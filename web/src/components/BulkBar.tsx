@@ -31,9 +31,7 @@ export default function BulkBar({
     <>
       <div className="fixed bottom-4 left-1/2 z-30 -translate-x-1/2">
         <div className="flex items-center gap-3 border border-border bg-bg px-4 py-2.5 shadow-lg">
-          <span className="text-[11px] uppercase text-muted">
-            {count} selected
-          </span>
+          <span className="text-[11px] uppercase text-muted">{count} selected</span>
           <span className="h-4 w-px bg-border" aria-hidden />
           <button className={buttonClass} onClick={() => setMoveOpen(true)}>
             move
