@@ -99,7 +99,7 @@ geist package — Google Fonts is the canonical source.
 ### Row (task entry — leaderboard pattern, NO boxes)
 
 ```
-task-05 · MED                  [2]      ← mono meta: id · priority tag · subtask count
+task-05                        ← mono meta: id
 Add cycle detection to buildTree         ← Geist Sans title
 ───────────────────────────────          ← border-bottom: 1px solid var(--border)
 ```
@@ -109,8 +109,6 @@ Add cycle detection to buildTree         ← Geist Sans title
 - `.row-main`: `flex; align-items: baseline; justify-content: space-between`
   (meta left, count right).
 - Hover: `background: var(--zebra)`; title underline.
-- Priority tag: all `1px solid var(--border)`, CRIT differs by `color: var(--fg)`.
-- Subtask count: `[N]` in `--muted` mono, only when `N > 0`, `flex: 0 0 auto`.
 - Row click → detail modal (G4).
 
 ### Detail modal (task detail data — DECIDED 2026-08-13)
@@ -120,13 +118,12 @@ Clicking a row opens a centered modal (share-layer pattern):
 - Backdrop: `color-mix(in srgb, var(--bg) 72%, transparent)`.
 - Panel: `1px solid var(--fg)`, `max-width: 680px`, `max-height: min(92vh, 840px)`,
   the ONLY allowed shadow: `0 24px 80px color-mix(in srgb, var(--fg) 18%, transparent)`.
-- Head: title (Geist Sans 24px) + id line (`1 · CRIT · bug`) + `× close` button.
-- Fields grid (2 cols, 1 col narrow): **status, type, priority, parent, created,
-  updated, tags, related** — label `--muted` mono 11px uppercase left, value
+- Head: title (Geist Sans 24px) + id line + `× close` button.
+- Fields grid (2 cols, 1 col narrow): **status, created, updated, tags,
+  related** — label `--muted` mono 11px uppercase left, value
   right-aligned 12px, `border-bottom` hairlines.
 - `notes` subhead (border-top `--fg` section-head) → body prose 13px.
-- `subtasks` subhead → list rows: title + `--muted` mono id, hairline-separated.
-- Footer actions: `edit`, `+ subtask` (buttons). Lane moves are drag-and-drop
+- Footer actions: `edit`, `delete` (buttons). Lane moves are drag-and-drop
   on the board; the edit form has a status select.
 
 ### Status cycle (interaction contract)
@@ -175,7 +172,7 @@ Mono uppercase `--muted`: `no tasks — create one with lokan create`.
 - All labels UPPERCASE mono (status, buttons, tags, ids).
 - Title case never forced — task titles are user text, left as-is.
 - No icons/emoji. Text glyphs only (`+`, `→`).
-- Numbers: Geist Sans (counts in column heads, subtask counts).
+- Numbers: Geist Sans (counts in column heads).
 
 ## 9. Grid of elements to copy into G4
 

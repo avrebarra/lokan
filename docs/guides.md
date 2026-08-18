@@ -14,8 +14,8 @@ self-describing — everything you need is inside it:
 - After the banner, a `<!-- lokan:config ... -->` block holds the engine
   config (board title, counter, format version, lane definitions) — comment
   hidden on render. Each task opens with a `### <id> — <title>` heading,
-  then a ```lokan code block: YAML frontmatter (`id`, `title`, `type`,
-  `status`, `priority`, `parent?`, `related?`, `docs?`, `tags?`, `created`,
+  then a ```lokan code block: YAML frontmatter (`id`, `title`,
+  `status`, `related?`, `docs?`, `tags?`, `created`,
   `updated`), then the markdown body (`# Title`, `## Notes`,
   `## Work Log`) in its own ````markdown fence. Both fences are visible in
   rendered output, so the rendered view shows the task exactly as the raw
@@ -34,22 +34,22 @@ self-describing — everything you need is inside it:
 
 1. `lokan init <board>` — create a board (one self-contained markdown
    file; explicit, required once). `docs/board.md` is the conventional spot.
-2. `lokan create -t task -p high "Do thing"` — add work.
+2. `lokan create "Do thing"` — add work.
 3. `lokan list --md` — compact board view; `lokan list` for the UI-style table.
 4. `lokan edit <id> --status in-progress` — advance; or `lokan ui` and click.
 5. `lokan edit <id> --status done` — finishes the task; it auto-moves to Archive.
 6. `lokan get <id>` — full task (frontmatter + body) when you need detail.
 
 Every command takes the board as its first positional argument. Filters:
-`--type/--status/--priority` on `list`. Hierarchy: `epic` →
-`task`/`bug` → `subtask` (`lokan subtasks <id>` shows children).
+`--status` and `--tag` on `list`. Every card is a plain task — there are no
+types, priorities, or parent nesting.
 
 ## How to model a roadmap
 
-- **Phase / theme = `epic`** — the container.
-- **Work item = `task`** (or `bug` for defects).
-- **Sub-step = `subtask`** (parent must be a `task`/`bug`).
-- Status: `todo | in-progress | backlog | done | cancelled`.
+- **Every card is a task.** No epic/task/subtask/bug types, no priority, no
+  hierarchy — the board is flat.
+- **Phase / theme = a lane (status).** Rename or add lanes to model stages
+  (`backlog`, `todo`, `in-progress`, `done`, `cancelled` by default).
 - Cross-link code/docs with the `docs:` / `related:` / `tags:` fields.
 
 This maps 1:1 to the board file, so the same board is readable by a human, the
@@ -95,7 +95,6 @@ exit code 1 with a stderr message; re-read and retry.
   a crash leaves it stale, remove it manually and re-run the command.
 - **Counter only increments.** IDs are plain counters (`1`, `2`, …) and never
   reused, even after a task is archived or deleted.
-- **Type change keeps the ID.** Changing a task's `type` does not change its id.
 - **Bad blocks are skipped with a warning.** If a task block (```lokan fence
   or a legacy `<!-- lokan:<id>` comment) fails to parse (broken YAML, missing
   marker), the engine skips it and prints

@@ -5,11 +5,9 @@
 
 ## Domain types
 
-### TaskType
+### Task
 
-```
-epic | task | subtask | bug
-```
+Every card on a board is a plain task.
 
 ### Status
 
@@ -23,36 +21,18 @@ backlog | todo | in-progress | done | cancelled
 `done` and `cancelled` are archived by default. Status validation on every
 endpoint is against the project's **configured** lanes, not this default.
 
-### Priority
-
-```
-critical | high | medium | low
-```
-
-### ALLOWED_PARENTS (parent validation)
-
-| type    | allowed parents |
-| ------- | --------------- |
-| epic    | (none)          |
-| task    | epic            |
-| subtask | task, bug       |
-| bug     | epic, task      |
-
 ## Task frontmatter (```lokan blocks in `docs/board.md`)
 
-| field    | type       | required | notes                       |
-| -------- | ---------- | -------- | --------------------------- |
-| id       | string     | yes      | unique, e.g. `1`            |
-| title    | string     | yes      |                             |
-| type     | TaskType   | yes      |                             |
-| status   | Status     | yes      |                             |
-| priority | Priority   | yes      |                             |
-| parent   | string     | no       | id of parent task           |
-| related  | string[]   | no       |                             |
-| docs     | string[]   | no       |                             |
-| tags     | string[]   | no       |                             |
-| created  | YYYY-MM-DD | yes      | set once on create          |
-| updated  | YYYY-MM-DD | yes      | auto-updated on every write |
+| field   | type       | required | notes                       |
+| ------- | ---------- | -------- | --------------------------- |
+| id      | string     | yes      | unique, e.g. `1`            |
+| title   | string     | yes      |                             |
+| status  | Status     | yes      |                             |
+| related | string[]   | no       |                             |
+| docs    | string[]   | no       |                             |
+| tags    | string[]   | no       |                             |
+| created | YYYY-MM-DD | yes      | set once on create          |
+| updated | YYYY-MM-DD | yes      | auto-updated on every write |
 
 `Task` = frontmatter + `body` (raw markdown) + `filePath` (virtual task path) +
 `lineStart`/`lineEnd` (1-based line range of the block in `board.md`).
@@ -108,13 +88,11 @@ found, `board_path` falls back to `root` and `board_root` is empty.
 
 ### POST /api/create
 
-Request body: `{ "title": string, "type": TaskType, "priority": Priority, "parent"?: string }`
+Request body: `{ "title": string }`
 
 Validation:
 
 - `title` missing/empty → 400 `{ "error": "Missing title" }`
-- `type` not in TASK_TYPES → 400 `{ "error": "Invalid type: <v>" }`
-- `priority` not in PRIORITIES → 400 `{ "error": "Invalid priority: <v>" }`
 
 Success: `{ "task": Task }` (status set to the first non-archived lane, id
 from counter)
@@ -122,15 +100,12 @@ Failure: 500 `{ "error": "<message>" }`
 
 ### POST /api/update
 
-Request body: `{ "id": string, "field": "status"|"priority"|"title"|"type"|"parent"|"tags"|"body", "value": string }`
+Request body: `{ "id": string, "field": "status"|"title"|"tags"|"body", "value": string }`
 
 Validation:
 
 - `status` → must be a configured lane, else 400 `{ "error": "Invalid status: <v>" }`
-- `priority` → must be in PRIORITIES, else 400 `{ "error": "Invalid priority: <v>" }`
 - `title` → free-form string
-- `type` → must be in TASK_TYPES, else 400 `{ "error": "Invalid type: <v>" }`
-- `parent` → free-form string (empty clears)
 - `tags` → comma-separated string; split on `,`, trimmed, empties dropped
 - `body` → free-form string (normalized to end with a trailing newline on write)
 - other field → 400 `{ "error": "Unknown field: <f>" }`
@@ -234,14 +209,14 @@ entry points, both frozen:
   markdown summary —
   a `# Board — <n> active, <n> archived` header, then one `## <status>`
   group per configured lane (in lane order) with one
-  `- <id> [<priority>] <title>` line per task, plus `(tags: a,b)` when
-  the task carries tags. The `--type/--status/--priority/--tag` filters
+  `- <id> <title>` line per task, plus `(tags: a,b)` when
+  the task carries tags. The `--status/--tag` filters
   apply as normal; `--tag` accepts comma-separated or repeated values
   (AND semantics).
 
 Mutations use the regular CLI (stable commands): `lokan create "<title>"`
-(`--type/--priority/--parent/--tag`) and `lokan edit <id>`
-(`--status/--priority/--title/--parent`).
+(`--tag` repeatable) and `lokan edit <id>`
+(`--status/--title`).
 
 Output discipline for agents:
 

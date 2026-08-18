@@ -30,7 +30,7 @@ implement the same contract.
 | [`docs/api.md`](./docs/api.md)                   | Frozen HTTP API + CLI contract — domain types, endpoints, output discipline                 |
 | [`docs/guides.md`](./docs/guides.md)             | How-to: human daily loop, roadmap modeling, agent workflow, AI+human collaboration, gotchas |
 | [`docs/architecture.md`](./docs/architecture.md) | Stack, repo layout, storage model, build chain                                              |
-| [`docs/roadmap.md`](./docs/roadmap.md)           | Future plans — a lokan board (phases=epics, items=tasks)                                    |
+| [`docs/roadmap.md`](./docs/roadmap.md)           | Future plans — a lokan board (flat tasks on lanes)                                          |
 | [`docs/release.md`](./docs/release.md)           | Release routine — tagging, GoReleaser pipeline, install.sh                                  |
 
 **Keyfiles:** storage & parsing → `engine/internal/store/`; API → `engine/internal/server/`; UI → `web/src/`.
@@ -46,7 +46,7 @@ implement the same contract.
   rewrite them. IDs are plain counters (`1`, `2`, …) and never reused.
 - **Statuses are configurable lanes** in the board's `<!-- lokan:config`
   block; tasks in archived lanes live under `## Archive`.
-- **Type change keeps the id.** Changing `type` never changes a task's id.
+- **Every card is a plain task.** No types, priorities, or parent nesting.
 - **Format before finishing** — run `./runtask format` on all git-tracked
   files touched this session (`prettier` for `.ts`/`.tsx`/`.md`, `gofmt`
   for Go); `./runtask lint` to check. Keeps formatting drift out across

@@ -34,21 +34,20 @@ Alternatives:
 
 ```sh
 lokan init docs/board.md                          # create a board — required first
-lokan create docs/board.md -t task --priority high "Fix counter race"
+lokan create docs/board.md "Fix counter race"
 lokan list docs/board.md
 ```
 
 ```text
-ID  TYPE  STATUS       PRIORITY  TITLE
-─────────────────────────────────────────────────────────────
-1   task  in-progress  high      Fix counter race
-2   bug   backlog      medium    Drag ghost on narrow screens
-3   task  backlog      low       Write README
+ID  STATUS       TITLE
+──────────────────────────────
+1   in-progress  Fix counter race
+2   backlog      Drag ghost on narrow screens
+3   backlog      Write README
 ```
 
 ```sh
 lokan edit docs/board.md 1 --status done    # move lanes / update fields
-lokan subtasks docs/board.md 1              # children of a task
 lokan ui docs/board.md                      # web UI — prints the URL (default localhost:17762; auto-picks a free port if taken)
 ```
 
@@ -81,7 +80,7 @@ Reference: https://github.com/avrebarra/lokan/blob/main/docs/guides.md
 <!-- lokan:config
 title: Lokan Board
 counter: 3
-version: "2"
+version: "3"
 statuses:
     - id: backlog
     - id: todo
@@ -98,9 +97,7 @@ statuses:
 ```lokan
 id: "1"
 title: Fix counter race
-type: task
 status: in-progress
-priority: high
 created: "2026-08-13"
 updated: "2026-08-13"
 ```
@@ -116,9 +113,7 @@ Body markdown — notes, links, anything. `created`/`updated` are engine-owned.
 ```lokan
 id: "2"
 title: Submit route approval to FAA and JCAB
-type: task
 status: done
-priority: high
 created: "2026-08-13"
 updated: "2026-08-13"
 ```
@@ -127,7 +122,7 @@ updated: "2026-08-13"
 
 ````
 
-IDs are plain counters (`1`, `2`, …) shared across all types and never reused.
+IDs are plain counters (`1`, `2`, …) and never reused.
 The engine rewrites the file atomically under `<board>.lock` — never hand-edit
 a live board; use the CLI or API.
 
@@ -136,11 +131,10 @@ a live board; use the CLI or API.
 | command                  | description                                                                                 |
 | ------------------------ | ------------------------------------------------------------------------------------------- |
 | `init <board>`           | create a board                                                                              |
-| `create <board> <title>` | new task — `--type` (task/bug/epic/subtask), `--priority`, `--parent`, `--tag` (repeatable) |
+| `create <board> <title>` | new task — `--tag` (repeatable)                                                             |
 | `get <board> <id>`       | full task (frontmatter + body)                                                              |
-| `list <board>`           | tasks as a table — filter `--status/--type/--priority`; `--md` for compact agent markdown   |
-| `edit <board> <id>`      | `--status/--priority/--title/--parent` (empty string clears parent)                         |
-| `subtasks <board> <id>`  | direct children, indented                                                                   |
+| `list <board>`           | tasks as a table — filter `--status/--tag`; `--md` for compact agent markdown               |
+| `edit <board> <id>`      | `--status/--title`                                                                          |
 | `clear <board>`          | bulk delete — `--archived` or `--all`                                                       |
 | `ui <board>`             | serve the web UI — `--port/-p` (default 17762; fails if explicit port is taken), `--no-browser` (skip auto-open) |
 
@@ -154,7 +148,7 @@ rows with hairline separators, one yellow accent on the in-progress column.
 Light is the default; dark is opt-in.
 
 One column per configured lane (narrow screens stack vertically). Click a row
-for detail (fields, notes, subtasks); drag rows between lanes. `+ new task`
+for detail (fields, notes); drag rows between lanes. `+ new task`
 creates from the UI; `config` edits lanes (add/rename/remove, archived flag)
 and bulk-clears archived or all tasks.
 
@@ -167,7 +161,7 @@ JSON API for the UI — contract frozen in `docs/api.md`:
 | `GET /`                     | embedded app                                                    |
 | `GET /api/tasks`            | `{ tasks, statuses, root }` — everything the board renders      |
 | `GET /api/task/:id`         | full task                                                       |
-| `POST /api/create`          | new task `{ title, type, priority, parent? }` → `{ task }`      |
+| `POST /api/create`          | new task `{ title }` → `{ task }`                                         |
 | `POST /api/update`          | `{ id, field, value }` → `{ task }`                             |
 | `POST /api/move`            | `{ id, status, beforeId? }` → `{ task }` (position within lane) |
 | `POST /api/config/statuses` | replace lane set → `{ statuses, moved }`                        |

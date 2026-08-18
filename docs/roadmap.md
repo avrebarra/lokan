@@ -35,9 +35,7 @@ statuses:
 ```lokan
 id: "37"
 title: Phase 7 — UI ergonomics & distribution
-type: epic
 status: backlog
-priority: medium
 created: "2026-08-17"
 updated: "2026-08-18"
 ```
@@ -51,29 +49,47 @@ Proposals assessed (2026-08-18). Each item is a proposal, not a commitment.
 ```lokan
 id: "38"
 title: 2A — Shared `ui` daemon (one server, register boards)
-type: task
 status: backlog
-priority: medium
 created: "2026-08-17"
 updated: "2026-08-17"
-parent: "37"
 ```
 
 ```markdown
 ASSESSED (2026-08-18) — parked, revisit later. Idea: one `lokan ui` process; re-invoking `lokan ui <file>` registers a new board entry (filepath identifier) into the running server instead of spawning a new process. Open question: how to close — no browser-driven close signal exists; needs explicit `lokan ui close <file>` / `ui stop`, an idle TTL, or a UI close-button that unregisters. Plus daemon ownership (stale locks, orphans, registry location, control channel). Current auto-pick already solved crashes; this would fix process/tab sprawl. See handoff: docs/design/shared-ui-daemon-handoff.md
 ```
 
+### 48 — Remove types, priorities, and hierarchy — every card is a plain task
+
+```lokan
+id: "48"
+title: Remove types, priorities, and hierarchy — every card is a plain task
+status: backlog
+created: "2026-08-18"
+updated: "2026-08-18"
+```
+
+```markdown
+# Remove types, priorities, and hierarchy
+
+## Notes
+
+- Every card is a plain task: no epic/task/subtask/bug types, no priority, no parent nesting.
+- Old boards keep parsing — legacy frontmatter fields (type, priority, parent) are tolerated on read and dropped on the next write.
+- Supersedes task 43 (subtask visibility) — cancelled.
+
+## Work Log
+```
+
+## Archive
+
 ### 43 — Subtask visibility & navigation in UI
 
 ```lokan
 id: "43"
 title: Subtask visibility & navigation in UI
-type: task
-status: backlog
-priority: medium
+status: cancelled
 created: "2026-08-18"
 updated: "2026-08-18"
-parent: "37"
 ```
 
 ```markdown
@@ -86,39 +102,14 @@ From Annotaat review (2026-08-18). Three related UI gaps around subtask UX:
 Design tension: subtask depth is currently one level only (parent→child), so a simple indent + type badge approach is sufficient; deeper nesting would need a tree view.
 ```
 
-### 48 — Remove subtask feature from project
-
-```lokan
-id: "48"
-title: Remove subtask feature from project
-type: task
-status: backlog
-priority: medium
-created: "2026-08-18"
-updated: "2026-08-18"
-```
-
-```markdown
-# Remove subtask feature from project
-
-## Notes
-
-## Work Log
-```
-
-## Archive
-
 ### 47 — Agent convention: prettier lint all git-tracked files
 
 ```lokan
 id: "47"
 title: 'Agent convention: prettier lint all git-tracked files'
-type: task
 status: done
-priority: medium
 created: "2026-08-18"
 updated: "2026-08-18"
-parent: "37"
 ```
 
 ```markdown
@@ -130,12 +121,9 @@ From Annotaat review (2026-08-18). Agent convention: always prettier-lint all gi
 ```lokan
 id: "46"
 title: Move modal-classes.ts to lib/
-type: task
 status: done
-priority: medium
 created: "2026-08-18"
 updated: "2026-08-18"
-parent: "37"
 ```
 
 ```markdown
@@ -147,12 +135,9 @@ From Annotaat review (2026-08-18). `modal-classes.ts` exports `buttonClass`, `co
 ```lokan
 id: "45"
 title: Extract server handler functions to handlers.go
-type: task
 status: done
-priority: medium
 created: "2026-08-18"
 updated: "2026-08-18"
-parent: "37"
 ```
 
 ```markdown
@@ -164,12 +149,9 @@ From Annotaat review (2026-08-18). `server.go` mixes handler logic with helpers 
 ```lokan
 id: "44"
 title: Board filepath display in UI header
-type: task
 status: done
-priority: medium
 created: "2026-08-18"
 updated: "2026-08-18"
-parent: "37"
 ```
 
 ```markdown
@@ -182,32 +164,27 @@ The engine already receives the board path; the API just needs to pass it throug
 ```
 
 ### 40 — UI: multi-select (marquee) + bulk actions + drag multiple cards
+
 ```lokan
 id: "40"
 title: 'UI: multi-select (marquee) + bulk actions + drag multiple cards'
-type: task
 status: done
-priority: medium
 created: "2026-08-17"
 updated: "2026-08-18"
-parent: "37"
 ```
 
-````markdown
+```markdown
 DONE (2026-08-18): multi-select (marquee from empty board space), checkboxes appear once a selection exists, sticky bottom BulkBar (delete / archive / move-to-lane / clear selection), and group drag (selected cards move together preserving selection order). New engine surface: POST /api/delete {ids} — store DeleteTasks, all-or-nothing, 404 on missing id — plus single-task delete from the detail modal. Click contract: selection active → row click toggles, double-click opens detail. Built in workpool/multiselect.
-````
+```
 
 ### 41 — Board format: human-readable raw header (title section or frontmatter)
 
 ```lokan
 id: "41"
 title: 'Board format: human-readable raw header (title section or frontmatter)'
-type: task
 status: done
-priority: medium
 created: "2026-08-17"
 updated: "2026-08-18"
-parent: "37"
 ```
 
 ```markdown
@@ -219,12 +196,9 @@ ASSESSED (2026-08-18) — from Annotaat review of this board: the `<!-- lokan:<i
 ```lokan
 id: "42"
 title: runtask install — build + put latest binary on PATH
-type: task
 status: done
-priority: medium
 created: "2026-08-17"
 updated: "2026-08-17"
-parent: "37"
 ```
 
 ```markdown
@@ -236,9 +210,7 @@ DONE (2026-08-18): `./runtask install` implemented — full build then copies di
 ```lokan
 id: "33"
 title: Phase 6 — Multi-board & dev ergonomics
-type: epic
 status: done
-priority: medium
 created: "2026-08-17"
 updated: "2026-08-17"
 ```
@@ -252,9 +224,7 @@ Assessments from annotation pass (2026-08-15). Each item is a proposal, not a co
 ```lokan
 id: "24"
 title: Phase 5 — Dual-use hardening (AI + human)
-type: epic
 status: done
-priority: medium
 created: "2026-08-17"
 updated: "2026-08-17"
 ```
@@ -268,9 +238,7 @@ Assessment (2026-08-13): lokan already works for humans and agents, but the gap 
 ```lokan
 id: "17"
 title: Phase 4 — Storage & stack evolution
-type: epic
 status: done
-priority: medium
 created: "2026-08-17"
 updated: "2026-08-17"
 ```
@@ -284,9 +252,7 @@ Assessments to run; each item is a proposal, not a commitment.
 ```lokan
 id: "10"
 title: Phase 3 — Kanban depth
-type: epic
 status: done
-priority: medium
 created: "2026-08-17"
 updated: "2026-08-17"
 ```
@@ -300,9 +266,7 @@ The board is read + status-advance only. Natural next steps.
 ```lokan
 id: "7"
 title: Phase 2 — AI agent integration
-type: epic
 status: done
-priority: medium
 created: "2026-08-17"
 updated: "2026-08-17"
 ```
@@ -316,9 +280,7 @@ The task files and CLI are meant to be operated by AI agents, not just humans.
 ```lokan
 id: "1"
 title: Phase 1 — Ship the binary
-type: epic
 status: done
-priority: medium
 created: "2026-08-17"
 updated: "2026-08-17"
 ```
@@ -332,12 +294,9 @@ The rebuild is functionally complete. Make it distributable.
 ```lokan
 id: "39"
 title: 2B — npx install instead of Go
-type: task
 status: cancelled
-priority: medium
 created: "2026-08-17"
 updated: "2026-08-17"
-parent: "37"
 ```
 
 ```markdown
@@ -349,12 +308,9 @@ CANCELLED (2026-08-18): a Go binary can't ride npm directly — an npm wrapper n
 ```lokan
 id: "36"
 title: Extract a shared Modal shell
-type: task
 status: done
-priority: medium
 created: "2026-08-17"
 updated: "2026-08-17"
-parent: "33"
 ```
 
 ```markdown
@@ -366,12 +322,9 @@ DONE (2026-08-15): shared `Modal.tsx` (overlay + escape + header/footer slots, `
 ```lokan
 id: "35"
 title: Consolidate dev commands
-type: task
 status: done
-priority: medium
 created: "2026-08-17"
 updated: "2026-08-17"
-parent: "33"
 ```
 
 ```markdown
@@ -383,12 +336,9 @@ DONE (2026-08-15): `./runtask preview` dropped; `dev web` (renamed from `web dev
 ```lokan
 id: "34"
 title: Multi-board UI without port crashes
-type: task
 status: done
-priority: medium
 created: "2026-08-17"
 updated: "2026-08-17"
-parent: "33"
 ```
 
 ```markdown
@@ -400,12 +350,9 @@ DONE (2026-08-15): `lokan ui` defaults to port 17762; when the default port is t
 ```lokan
 id: "32"
 title: G11 — Dogfood the roadmap
-type: task
 status: done
-priority: medium
 created: "2026-08-17"
 updated: "2026-08-17"
-parent: "24"
 ```
 
 ```markdown
@@ -417,12 +364,9 @@ DONE (2026-08-18): `docs/roadmap.md` is now a lokan board — phases are epics, 
 ```lokan
 id: "31"
 title: G10 — Surface `related`/`docs`/`tags`
-type: task
 status: done
-priority: medium
 created: "2026-08-17"
 updated: "2026-08-17"
-parent: "24"
 ```
 
 ```markdown
@@ -434,12 +378,9 @@ DONE (2026-08-15): `--tag` filter added to `list` (comma-separated, AND semantic
 ```lokan
 id: "30"
 title: G7 — Parser warnings
-type: task
 status: done
-priority: medium
 created: "2026-08-17"
 updated: "2026-08-17"
-parent: "24"
 ```
 
 ```markdown
@@ -451,12 +392,9 @@ DONE (2026-08-13): already implemented — `parseBoard` logs `Warning: skipping 
 ```lokan
 id: "29"
 title: G1 — Configurable board path
-type: task
 status: done
-priority: medium
 created: "2026-08-17"
 updated: "2026-08-17"
-parent: "24"
 ```
 
 ```markdown
@@ -468,12 +406,9 @@ DONE (2026-08-13): every command takes the board as its first positional argumen
 ```lokan
 id: "28"
 title: '`guides.md` registered in `docs/README.md`'
-type: task
 status: done
-priority: medium
 created: "2026-08-17"
 updated: "2026-08-17"
-parent: "24"
 ```
 
 ```markdown
@@ -485,12 +420,9 @@ DONE (2026-08-13)
 ```lokan
 id: "27"
 title: Auto-archive + gotchas documented
-type: task
 status: done
-priority: medium
 created: "2026-08-17"
 updated: "2026-08-17"
-parent: "24"
 ```
 
 ```markdown
@@ -502,12 +434,9 @@ DONE (2026-08-13): see `guides.md`
 ```lokan
 id: "26"
 title: Agent write contract in `api.md`
-type: task
 status: done
-priority: medium
 created: "2026-08-17"
 updated: "2026-08-17"
-parent: "24"
 ```
 
 ```markdown
@@ -519,12 +448,9 @@ DONE (2026-08-13): agents read via `board.md`/`list --md`, mutate only via CLI/A
 ```lokan
 id: "25"
 title: docs/guides.md
-type: task
 status: done
-priority: medium
 created: "2026-08-17"
 updated: "2026-08-17"
-parent: "24"
 ```
 
 ```markdown
@@ -536,12 +462,9 @@ DONE (2026-08-13): human daily loop, roadmap modeling (phases=epic, items=task),
 ```lokan
 id: "23"
 title: Hide engine markup when rendered
-type: task
 status: done
-priority: medium
 created: "2026-08-17"
 updated: "2026-08-17"
-parent: "17"
 ```
 
 ```markdown
@@ -553,12 +476,9 @@ DONE (2026-08-15): each block's marker opens one HTML comment (`<!-- lokan:<id>`
 ```lokan
 id: "22"
 title: Protobuf
-type: task
 status: cancelled
-priority: medium
 created: "2026-08-17"
 updated: "2026-08-17"
-parent: "17"
 ```
 
 ```markdown
@@ -570,12 +490,9 @@ CANCELLED (2026-08-18): assessed and rejected — single-user localhost REST is 
 ```lokan
 id: "21"
 title: Tailwind CSS
-type: task
 status: done
-priority: medium
 created: "2026-08-17"
 updated: "2026-08-17"
-parent: "17"
 ```
 
 ```markdown
@@ -587,12 +504,9 @@ DONE (2026-08-13): Tailwind v4 adopted — tokens mapped into `@theme`, all comp
 ```lokan
 id: "20"
 title: Switch CLI framework
-type: task
 status: done
-priority: medium
 created: "2026-08-17"
 updated: "2026-08-17"
-parent: "17"
 ```
 
 ```markdown
@@ -604,12 +518,9 @@ DONE (2026-08-13): urfave/cli v2 adopted — all commands ported (init create ge
 ```lokan
 id: "19"
 title: Single-file storage
-type: task
 status: done
-priority: medium
 created: "2026-08-17"
 updated: "2026-08-17"
-parent: "17"
 ```
 
 ```markdown
@@ -621,12 +532,9 @@ DONE (2026-08-13): storage is one `docs/board.md` (Active/Archive sections, `<!-
 ```lokan
 id: "18"
 title: Decouple type from ID
-type: task
 status: done
-priority: medium
 created: "2026-08-17"
 updated: "2026-08-17"
-parent: "17"
 ```
 
 ```markdown
@@ -638,12 +546,9 @@ DONE (2026-08-13): plain counter IDs (`1`, `2`) instead of type-prefixed (`epic-
 ```lokan
 id: "16"
 title: Default to light mode
-type: task
 status: done
-priority: medium
 created: "2026-08-17"
 updated: "2026-08-17"
-parent: "10"
 ```
 
 ```markdown
@@ -655,12 +560,9 @@ DONE (2026-08-13): new sessions resolve to light regardless of system preference
 ```lokan
 id: "15"
 title: Config page
-type: task
 status: done
-priority: medium
 created: "2026-08-17"
 updated: "2026-08-17"
-parent: "10"
 ```
 
 ```markdown
@@ -672,12 +574,9 @@ DONE (2026-08-13): lanes live in the board's config block as an ordered `statuse
 ```lokan
 id: "14"
 title: Subtask creation from the UI
-type: task
 status: done
-priority: medium
 created: "2026-08-17"
 updated: "2026-08-17"
-parent: "10"
 ```
 
 ```markdown
@@ -689,12 +588,9 @@ DONE (2026-08-13)
 ```lokan
 id: "13"
 title: Drag-and-drop column moves
-type: task
 status: done
-priority: medium
 created: "2026-08-17"
 updated: "2026-08-17"
-parent: "10"
 ```
 
 ```markdown
@@ -706,12 +602,9 @@ DONE (2026-08-13): dragging tasks between lanes; status click stays as the inter
 ```lokan
 id: "12"
 title: Backlog/cancelled columns or filtering UI
-type: task
 status: done
-priority: medium
 created: "2026-08-17"
 updated: "2026-08-17"
-parent: "10"
 ```
 
 ```markdown
@@ -723,12 +616,9 @@ DONE (2026-08-13)
 ```lokan
 id: "11"
 title: Task detail editing from the UI (edit fields in modal, not just advance)
-type: task
 status: done
-priority: medium
 created: "2026-08-17"
 updated: "2026-08-17"
-parent: "10"
 ```
 
 ```markdown
@@ -740,12 +630,9 @@ DONE (2026-08-13)
 ```lokan
 id: "9"
 title: AI-readable `list` output
-type: task
 status: done
-priority: medium
 created: "2026-08-17"
 updated: "2026-08-17"
-parent: "7"
 ```
 
 ```markdown
@@ -757,12 +644,9 @@ DONE (2026-08-13): `lokan list --md` emits compact markdown (status groups, one 
 ```lokan
 id: "8"
 title: AI agent ergonomics
-type: task
 status: done
-priority: medium
 created: "2026-08-17"
 updated: "2026-08-17"
-parent: "7"
 ```
 
 ```markdown
@@ -774,12 +658,9 @@ DONE (2026-08-13): agent interface documented in `docs/api.md` — full state vi
 ```lokan
 id: "6"
 title: Install docs (how to get `lokan` on PATH)
-type: task
 status: done
-priority: medium
 created: "2026-08-17"
 updated: "2026-08-17"
-parent: "1"
 ```
 
 ```markdown
@@ -795,12 +676,9 @@ parent: "1"
 ```lokan
 id: "5"
 title: 'Decide distribution: `go install`, GitHub releases, or plain binary copy'
-type: task
 status: done
-priority: medium
 created: "2026-08-17"
 updated: "2026-08-17"
-parent: "1"
 ```
 
 ```markdown
@@ -816,12 +694,9 @@ parent: "1"
 ```lokan
 id: "4"
 title: Finalize workpool history
-type: task
 status: done
-priority: medium
 created: "2026-08-17"
 updated: "2026-08-17"
-parent: "1"
 ```
 
 ```markdown
@@ -833,12 +708,9 @@ done on main, remaining old branches in the local hub are throwaway
 ```lokan
 id: "3"
 title: E2E smoke (`./runtask e2e`) covering CLI + API + embedded UI
-type: task
 status: done
-priority: medium
 created: "2026-08-17"
 updated: "2026-08-17"
-parent: "1"
 ```
 
 ```markdown
@@ -854,12 +726,9 @@ parent: "1"
 ```lokan
 id: "2"
 title: One-command build (`./runtask build`) → single binary with embedded UI
-type: task
 status: done
-priority: medium
 created: "2026-08-17"
 updated: "2026-08-17"
-parent: "1"
 ```
 
 ```markdown

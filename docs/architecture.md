@@ -29,7 +29,7 @@ sidecar.
 | Build    | `runtask` (root) → `go:embed`                           | One command produces the final binary                        |
 
 Stack evolution is tracked in [`roadmap.md`](./roadmap.md) — a lokan board
-(phases are epics, items are tasks; read with `lokan list --md docs/roadmap.md`).
+(flat tasks on lanes; read with `lokan list --md docs/roadmap.md`).
 
 ## Repository Layout
 
@@ -39,11 +39,11 @@ lokan/
   dist/                   # built binary: dist/lokan (gitignored)
   docs/                   # architecture, API contract, roadmap, design
   engine/                 # Go module github.com/avrebarra/lokan
-    cmd/lokan/            # urfave/cli: init create get list edit subtasks clear ui
+    cmd/lokan/            # urfave/cli: init create get list edit clear ui
     internal/
-      types/              # enums, Task/TaskSummary/TaskFrontmatter, ALLOWED_PARENTS
+      types/              # Status enums, Task/TaskSummary/TaskFrontmatter, config
       store/              # board document parse/serialize, load/find/write/create + input validation (lock + atomic rewrite)
-      query/              # filters, children, sortByPriority
+      query/              # filters (status/tags)
       server/             # HTTP handlers + seed data
     web/                  # embed package: dist/ (built frontend, committed placeholder)
   web/                    # Vite React frontend
@@ -60,8 +60,8 @@ lokan/
 
 - **One board file, one block per task:** every task opens with a
   `### <id> — <title>` heading, then a ```lokan fence holding the YAML
-  frontmatter — `id, title, type, status, priority, parent?, related?,
-docs?, tags?, created, updated` — plus the markdown body, grouped into
+  frontmatter — `id, title, status, related?, docs?, tags?, created,
+updated` — plus the markdown body, grouped into
   `## Active` and `## Archive` (done/cancelled). The fence keeps the
   frontmatter visible in rendered markdown (e.g. GitHub) while staying
   machine-parseable; the engine reads the raw file. Older boards
@@ -80,8 +80,10 @@ docs?, tags?, created, updated` — plus the markdown body, grouped into
   tasks to the leftmost remaining lane.
 - Mutations rewrite the document atomically (temp + rename) under a
   `<board>.lock` guard, so concurrent writers cannot lose updates.
-- IDs are **plain counter values** (`1`, `2`, `3`), shared across all types.
+- IDs are **plain counter values** (`1`, `2`, `3`), never reused.
   The counter lives in the board's config block.
+- **Flat model:** every card is a plain task — no types, priorities, or
+  hierarchy.
 - **Explicit board targeting (DECIDED 2026-08-13):** every command takes the
   board as its required first positional argument. There is no discovery and
   no default path — a markdown file is a board only when its first block is
@@ -113,7 +115,7 @@ GET  /              embedded app (dist/index.html)
 GET  /assets/*      bundled JS/CSS
 GET  /api/tasks     { tasks: [TaskSummary], statuses: [StatusDef], root }
 GET  /api/task/:id  { task: Task }
-POST /api/create    { title, type, priority, parent? } → { task }
+POST /api/create    { title } → { task }
 POST /api/update    { id, field, value } → { task }
 POST /api/move      { id, status, beforeId? } → { task }
 POST /api/config/statuses  { statuses: [{ id, archived }...] } → { statuses, moved }
