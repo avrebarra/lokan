@@ -192,6 +192,22 @@ Validation:
 Success: `{ "deleted": <number of tasks deleted> }`
 Failure: 500 `{ "error": "<message>" }`
 
+### POST /api/delete
+
+Request body: `{ "ids": [string, ...] }`
+
+Deletes the tasks with the given ids in one atomic board rewrite. Every id
+must exist — a missing id fails the whole delete with 404 and nothing is
+removed. Duplicate ids are ignored.
+
+Validation:
+
+- empty `ids` → 400 `{ "error": "Missing ids" }`
+- any id not on the board → 404 `{ "error": "task not found: <id>" }`
+
+Success: `{ "deleted": <number of tasks deleted> }`
+Failure: 500 `{ "error": "<message>" }`
+
 ### POST /api/seed
 
 ```json

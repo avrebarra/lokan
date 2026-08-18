@@ -24,13 +24,14 @@ func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /", s.serveIndex)
 	mux.HandleFunc("GET /assets/", s.serveAssets)
-	mux.HandleFunc("GET /api/tasks", s.HandleTasks)
+mux.HandleFunc("GET /api/tasks", s.HandleTasks)
 	mux.HandleFunc("GET /api/task/", s.HandleTask)
 	mux.HandleFunc("POST /api/create", s.HandleCreate)
 	mux.HandleFunc("POST /api/update", s.HandleUpdate)
 	mux.HandleFunc("POST /api/move", s.HandleMove)
 	mux.HandleFunc("POST /api/config/statuses", s.HandleConfigStatuses)
 	mux.HandleFunc("POST /api/clear", s.HandleClear)
+	mux.HandleFunc("POST /api/delete", s.HandleDelete)
 	mux.HandleFunc("POST /api/seed", s.HandleSeed)
 	return mux
 }
@@ -62,3 +63,4 @@ func (s *Server) serveAssets(w http.ResponseWriter, r *http.Request) {
 	}
 	http.FileServer(http.FS(sub)).ServeHTTP(w, r)
 }
+
