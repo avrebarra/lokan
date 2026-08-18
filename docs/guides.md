@@ -1,7 +1,7 @@
 # Guides — using lokan
 
 Practical how-to for humans and AI agents. The API contract (`api.md`) is the
-frozen source of truth for types/endpoints; this doc is the *workflow* layer.
+frozen source of truth for types/endpoints; this doc is the _workflow_ layer.
 
 ## Reading a board file (cold-start)
 

@@ -20,19 +20,19 @@ Consumed via `web/src/tokens.css`; mapped into Tailwind utilities
 
 ### Light (default)
 
-| token            | value     | use                                    |
-|------------------|-----------|----------------------------------------|
-| `--bg`           | `#fff`    | page background                        |
-| `--fg`           | `#000`    | text, strong borders                   |
-| `--border`       | `#ebebeb` | card borders, hairlines                |
-| `--muted`        | `#888`    | meta text, ids, secondary              |
-| `--accent`       | `#ffc800` | in-progress marker ONLY (sparingly)    |
-| `--zebra`        | `#f5f5f5` | subtle row hover / zebra               |
+| token      | value     | use                                 |
+| ---------- | --------- | ----------------------------------- |
+| `--bg`     | `#fff`    | page background                     |
+| `--fg`     | `#000`    | text, strong borders                |
+| `--border` | `#ebebeb` | card borders, hairlines             |
+| `--muted`  | `#888`    | meta text, ids, secondary           |
+| `--accent` | `#ffc800` | in-progress marker ONLY (sparingly) |
+| `--zebra`  | `#f5f5f5` | subtle row hover / zebra            |
 
 ### Dark
 
 | token      | value     |
-|------------|-----------|
+| ---------- | --------- |
 | `--bg`     | `#000`    |
 | `--fg`     | `#fff`    |
 | `--border` | `#1f1f1f` |
@@ -44,16 +44,16 @@ into dark. (Stored preference wins when present.)
 
 ## 3. Typography
 
-| role          | family     | size  | weight | transform | tracking     |
-|---------------|-----------|-------|--------|-----------|--------------|
-| wordmark      | Geist Sans| 22px  | 700    | —         | `-0.01em`    |
-| column head   | Geist Mono| 11px  | 400    | uppercase | `0`          |
-| section head  | Geist Mono| 11px  | 400    | uppercase | `0`          |
-| card title    | Geist Sans| 14px  | 400    | —         | `0`          |
-| card meta/id  | Geist Mono| 11px  | 400    | uppercase | `0`          |
-| tag / badge   | Geist Mono| 9px   | 400    | uppercase | `0`          |
-| button        | Geist Mono| 11px  | 400    | uppercase | `0`          |
-| empty state   | Geist Mono| 11px  | 400    | uppercase | `0`          |
+| role         | family     | size | weight | transform | tracking  |
+| ------------ | ---------- | ---- | ------ | --------- | --------- |
+| wordmark     | Geist Sans | 22px | 700    | —         | `-0.01em` |
+| column head  | Geist Mono | 11px | 400    | uppercase | `0`       |
+| section head | Geist Mono | 11px | 400    | uppercase | `0`       |
+| card title   | Geist Sans | 14px | 400    | —         | `0`       |
+| card meta/id | Geist Mono | 11px | 400    | uppercase | `0`       |
+| tag / badge  | Geist Mono | 9px  | 400    | uppercase | `0`       |
+| button       | Geist Mono | 11px | 400    | uppercase | `0`       |
+| empty state  | Geist Mono | 11px | 400    | uppercase | `0`       |
 
 Fallbacks: Geist Sans → `Helvetica, Arial, sans-serif`; Geist Mono →
 `"Courier New", monospace`. **Load from Google Fonts** (via `next/font/google`):
@@ -79,12 +79,14 @@ geist package — Google Fonts is the canonical source.
 ## 5. Components
 
 ### Topline (sticky)
+
 - Bottom border `1px solid var(--fg)`, `padding: 14px 0`.
 - Left: wordmark `lokan` (Geist Sans, bold, `-0.01em`).
 - Right: actions — `+ NEW TASK` button, subtle `theme` toggle (text,
   not icon), meta line `N TASKS · updated HH:MM`.
 
 ### Column
+
 - Header: uppercase mono status label + count, `border-top: 1px solid var(--fg)`.
 - **In-progress header: `border-top: 2px solid var(--accent)` bar; TEXT stays
   `--fg`** (contrast rule — yellow is fill-only).
@@ -95,11 +97,13 @@ geist package — Google Fonts is the canonical source.
 - Body: `display: flex; flex-direction: column`.
 
 ### Row (task entry — leaderboard pattern, NO boxes)
+
 ```
 task-05 · MED                  [2]      ← mono meta: id · priority tag · subtask count
 Add cycle detection to buildTree         ← Geist Sans title
 ───────────────────────────────          ← border-bottom: 1px solid var(--border)
 ```
+
 - `border-bottom: 1px solid var(--border)`, `padding: 11px 0`,
   `background: var(--bg)` — rows touch, separated by hairline only.
 - `.row-main`: `flex; align-items: baseline; justify-content: space-between`
@@ -110,7 +114,9 @@ Add cycle detection to buildTree         ← Geist Sans title
 - Row click → detail modal (G4).
 
 ### Detail modal (task detail data — DECIDED 2026-08-13)
+
 Clicking a row opens a centered modal (share-layer pattern):
+
 - Backdrop: `color-mix(in srgb, var(--bg) 72%, transparent)`.
 - Panel: `1px solid var(--fg)`, `max-width: 680px`, `max-height: min(92vh, 840px)`,
   the ONLY allowed shadow: `0 24px 80px color-mix(in srgb, var(--fg) 18%, transparent)`.
@@ -124,27 +130,32 @@ Clicking a row opens a centered modal (share-layer pattern):
   on the board; the edit form has a status select.
 
 ### Status cycle (interaction contract)
+
 Lane moves are drag-and-drop (also editable via the status select in the
 detail modal). Lanes are configurable in the config modal — the board renders
 one column per configured lane in order, archived lanes feed the Archive
 section and bulk clear.
 
 ### Buttons
+
 - `.button`: `1px solid var(--fg)`, radius 0, mono 11px uppercase,
   `padding: 0 10px; min-height: 32px`; hover = **invert** (bg→fg, fg→bg).
 - `.button.accent` (primary CTA): `background: var(--accent)`,
   `border-color: var(--accent)`, `color: #000`; hover invert to `--fg`.
 
 ### Empty state
+
 Mono uppercase `--muted`: `no tasks — create one with lokan create`.
 
 ## 6. Layout
 
 ### Wide (≥ 900px)
+
 - `.wrap`: `max-width: 1200px; margin: 0 auto; padding: 32px 24px 64px`.
 - Board: `display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px`.
 
 ### Narrow (< 900px) — single-column stack
+
 - Board becomes `grid-template-columns: 1fr` — columns **stack vertically**,
   one per section with its own border-top header. No horizontal scroll.
 - Topline actions collapse: `+ NEW TASK` stays, meta line hides or wraps.

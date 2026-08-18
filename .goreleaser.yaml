@@ -18,12 +18,12 @@ builds:
 
 archives:
   - id: lokan
-    name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
+    name_template: '{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}'
     formats: [tar.gz]
     files: []
 
 checksum:
-  name_template: "checksums.txt"
+  name_template: 'checksums.txt'
 
 release:
   github:

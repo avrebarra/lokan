@@ -277,6 +277,7 @@ positional argument — there is no discovery and no default path.
 `lokan init <file>` creates a fresh board; any markdown file can become one.
 
 The board file holds every task as a `### <id> — <title>` heading plus a
+
 ```lokan fence (YAML frontmatter fields above + markdown body), grouped
 into two sections. The fence keeps the frontmatter visible in rendered
 output (e.g. GitHub) while the raw file stays parseable; the banner and
@@ -284,6 +285,7 @@ config stay comment-hidden. Older boards (comment-wrapped task blocks with
 bare `---` fences or a self-closed marker line) are still read:
 
 ```
+
 <!--
 This board is a lokan kanban / roadmap — created and managed by lokan...
 Reference:   https://github.com/avrebarra/lokan/blob/main/docs/guides.md
@@ -310,9 +312,11 @@ id: "1"
 <!-- lokan:2
 ...
 -->
+
 ```
 
 `## Archive` holds tasks whose lane has `archived: true`; everything else
 renders under `## Active` (the default set archives `done` and `cancelled`).
 The engine rewrites the file atomically (temp + rename) under a
 `<board>.lock` guard on every mutation.
+```

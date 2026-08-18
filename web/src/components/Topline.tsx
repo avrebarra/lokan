@@ -7,7 +7,14 @@ interface Props {
   onOpenConfig: () => void
 }
 
-export default function Topline({ taskCount, updatedAt, boardPath, boardRoot, onCreate, onOpenConfig }: Props) {
+export default function Topline({
+  taskCount,
+  updatedAt,
+  boardPath,
+  boardRoot,
+  onCreate,
+  onOpenConfig,
+}: Props) {
   const time = updatedAt.toTimeString().slice(0, 5)
   return (
     <header className="mb-4 flex items-center justify-between gap-4 max-[900px]:flex-wrap">

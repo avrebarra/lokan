@@ -112,6 +112,7 @@ Body markdown — notes, links, anything. `created`/`updated` are engine-owned.
 ## Archive
 
 ### 2 — Submit route approval to FAA and JCAB
+
 ```lokan
 id: "2"
 title: Submit route approval to FAA and JCAB
@@ -123,7 +124,8 @@ updated: "2026-08-13"
 ```
 
 # Submit route approval to FAA and JCAB
-```
+
+````
 
 IDs are plain counters (`1`, `2`, …) shared across all types and never reused.
 The engine rewrites the file atomically under `<board>.lock` — never hand-edit
@@ -195,7 +197,7 @@ Building from source needs the toolchain:
 ./runtask test        # engine Go tests
 ./runtask e2e         # full smoke: build + init + create + list + ui + API
 ./runtask bump patch  # cut a release: tag next version + push (see docs/release.md)
-```
+````
 
 `./runtask build` produces `dist/lokan` — the dev-built binary, same commands
 as the installed one. Release binaries come from tagged commits; the pipeline

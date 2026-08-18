@@ -11,7 +11,7 @@ Concretely: `lokan ui <file>` when a server is already running should **not** sp
 ## The pain it solves
 
 - Today: N boards = N processes + N ports (auto-picked) + N browser tabs.
-- Current auto-pick (already shipped) killed the *crash* problem; this would fix the *sprawl*: one process, one management surface, a natural landing page listing all open boards.
+- Current auto-pick (already shipped) killed the _crash_ problem; this would fix the _sprawl_: one process, one management surface, a natural landing page listing all open boards.
 
 ## Why it's hard — the close problem
 

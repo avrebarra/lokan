@@ -61,7 +61,7 @@ lokan/
 - **One board file, one block per task:** every task opens with a
   `### <id> — <title>` heading, then a ```lokan fence holding the YAML
   frontmatter — `id, title, type, status, priority, parent?, related?,
-  docs?, tags?, created, updated` — plus the markdown body, grouped into
+docs?, tags?, created, updated` — plus the markdown body, grouped into
   `## Active` and `## Archive` (done/cancelled). The fence keeps the
   frontmatter visible in rendered markdown (e.g. GitHub) while staying
   machine-parseable; the engine reads the raw file. Older boards
@@ -84,8 +84,8 @@ lokan/
   The counter lives in the board's config block.
 - **Explicit board targeting (DECIDED 2026-08-13):** every command takes the
   board as its required first positional argument. There is no discovery and
-   no default path — a markdown file is a board only when its first block is
-   the `<!-- lokan:config` marker. `lokan init <file>` creates one;
+  no default path — a markdown file is a board only when its first block is
+  the `<!-- lokan:config` marker. `lokan init <file>` creates one;
   every other command errors when the file is missing or lacks the marker.
 
 ## Build Chain & Embedding

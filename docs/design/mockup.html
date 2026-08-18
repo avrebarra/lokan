@@ -1,321 +1,566 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en" data-theme="light">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>lokan — board</title>
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400..700&family=Geist+Mono:wght@400..500&display=swap" rel="stylesheet" />
-<style>
-  /* ============ tokens ============ */
-  :root, [data-theme="light"] {
-    --bg: #fff;
-    --fg: #000;
-    --border: #ebebeb;
-    --muted: #888;
-    --accent: #ffc800;
-    --zebra: #f5f5f5;
-  }
-  [data-theme="dark"] {
-    --bg: #000;
-    --fg: #fff;
-    --border: #1f1f1f;
-    --muted: #777;
-    --accent: #ffc800;
-    --zebra: #111;
-  }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>lokan — board</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@400..700&family=Geist+Mono:wght@400..500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* ============ tokens ============ */
+      :root,
+      [data-theme='light'] {
+        --bg: #fff;
+        --fg: #000;
+        --border: #ebebeb;
+        --muted: #888;
+        --accent: #ffc800;
+        --zebra: #f5f5f5;
+      }
+      [data-theme='dark'] {
+        --bg: #000;
+        --fg: #fff;
+        --border: #1f1f1f;
+        --muted: #777;
+        --accent: #ffc800;
+        --zebra: #111;
+      }
 
-  /* ============ base ============ */
-  *, *::before, *::after { box-sizing: border-box; }
-  html { background: var(--bg); color: var(--fg); }
-  body {
-    margin: 0;
-    min-height: 100vh;
-    background: var(--bg);
-    color: var(--fg);
-    font-family: "Geist Mono", "Courier New", monospace;
-    -webkit-font-smoothing: antialiased;
-  }
-  a { color: inherit; text-decoration: none; }
-  button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+      /* ============ base ============ */
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+      html {
+        background: var(--bg);
+        color: var(--fg);
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: var(--bg);
+        color: var(--fg);
+        font-family: 'Geist Mono', 'Courier New', monospace;
+        -webkit-font-smoothing: antialiased;
+      }
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+      button {
+        font: inherit;
+        color: inherit;
+        background: none;
+        border: 0;
+        cursor: pointer;
+      }
 
-  /* ============ layout ============ */
-  .wrap { width: 100%; max-width: 1200px; margin: 0 auto; padding: 32px 24px 64px; }
+      /* ============ layout ============ */
+      .wrap {
+        width: 100%;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 32px 24px 64px;
+      }
 
-  /* ============ topline ============ */
-  .topline {
-    display: flex; align-items: center; justify-content: space-between; gap: 16px;
-    border-bottom: 1px solid var(--fg);
-    padding-bottom: 14px; margin-bottom: 32px;
-  }
-  .wordmark {
-    font-family: "Geist", Helvetica, Arial, sans-serif;
-    font-size: 22px; font-weight: 700; letter-spacing: -0.01em;
-  }
-  .topline-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-  .meta-line { color: var(--muted); font-size: 11px; text-transform: uppercase; }
+      /* ============ topline ============ */
+      .topline {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        border-bottom: 1px solid var(--fg);
+        padding-bottom: 14px;
+        margin-bottom: 32px;
+      }
+      .wordmark {
+        font-family: 'Geist', Helvetica, Arial, sans-serif;
+        font-size: 22px;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+      }
+      .topline-actions {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .meta-line {
+        color: var(--muted);
+        font-size: 11px;
+        text-transform: uppercase;
+      }
 
-  .button {
-    display: inline-flex; align-items: center; justify-content: center;
-    min-height: 32px; border: 1px solid var(--fg); border-radius: 0;
-    padding: 0 10px; background: var(--bg); color: var(--fg);
-    font-size: 11px; text-transform: uppercase;
-    transition: background 120ms ease, color 120ms ease;
-  }
-  .button:hover { background: var(--fg); color: var(--bg); }
-  .button.accent { border-color: var(--accent); background: var(--accent); color: #000; font-weight: 500; }
-  .button.accent:hover { border-color: var(--fg); background: var(--fg); color: var(--bg); }
+      .button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 32px;
+        border: 1px solid var(--fg);
+        border-radius: 0;
+        padding: 0 10px;
+        background: var(--bg);
+        color: var(--fg);
+        font-size: 11px;
+        text-transform: uppercase;
+        transition:
+          background 120ms ease,
+          color 120ms ease;
+      }
+      .button:hover {
+        background: var(--fg);
+        color: var(--bg);
+      }
+      .button.accent {
+        border-color: var(--accent);
+        background: var(--accent);
+        color: #000;
+        font-weight: 500;
+      }
+      .button.accent:hover {
+        border-color: var(--fg);
+        background: var(--fg);
+        color: var(--bg);
+      }
 
-  /* ============ board ============ */
-  .board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; align-items: start; }
+      /* ============ board ============ */
+      .board {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 24px;
+        align-items: start;
+      }
 
-  .column { display: flex; flex-direction: column; }
-  .column-head {
-    margin: 0 0 4px;
-    border-top: 1px solid var(--fg);
-    padding-top: 12px;
-    font-size: 11px; font-weight: 400; text-transform: uppercase;
-    display: flex; align-items: baseline; justify-content: space-between;
-  }
-  /* accent bar — the ONLY yellow element: 2px fill */
-  .column.in-progress .column-head {
-    border-top: 2px solid var(--accent);
-    color: var(--fg);
-  }
-  .column-head .count { font-family: "Geist", sans-serif; font-size: 14px; color: var(--muted); }
+      .column {
+        display: flex;
+        flex-direction: column;
+      }
+      .column-head {
+        margin: 0 0 4px;
+        border-top: 1px solid var(--fg);
+        padding-top: 12px;
+        font-size: 11px;
+        font-weight: 400;
+        text-transform: uppercase;
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+      }
+      /* accent bar — the ONLY yellow element: 2px fill */
+      .column.in-progress .column-head {
+        border-top: 2px solid var(--accent);
+        color: var(--fg);
+      }
+      .column-head .count {
+        font-family: 'Geist', sans-serif;
+        font-size: 14px;
+        color: var(--muted);
+      }
 
-  /* ============ rows (.row pattern, no boxes) ============ */
-  .row {
-    display: block; width: 100%; text-align: left;
-    border-bottom: 1px solid var(--border);
-    padding: 11px 0;
-    background: var(--bg); color: var(--fg);
-    transition: background 120ms ease;
-  }
-  .row:hover { background: var(--zebra); }
-  .row:hover .row-title { text-decoration: underline; }
+      /* ============ rows (.row pattern, no boxes) ============ */
+      .row {
+        display: block;
+        width: 100%;
+        text-align: left;
+        border-bottom: 1px solid var(--border);
+        padding: 11px 0;
+        background: var(--bg);
+        color: var(--fg);
+        transition: background 120ms ease;
+      }
+      .row:hover {
+        background: var(--zebra);
+      }
+      .row:hover .row-title {
+        text-decoration: underline;
+      }
 
-  .row-main { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
-  .row-meta { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
-  .row-id { font-size: 11px; text-transform: uppercase; color: var(--muted); }
-  .row-tag {
-    font-size: 9px; text-transform: uppercase; line-height: 1.2;
-    border: 1px solid var(--border); padding: 1px 5px; color: var(--muted);
-  }
-  .row-tag.crit { color: var(--fg); }
-  .row-count { font-size: 11px; color: var(--muted); flex: 0 0 auto; }
+      .row-main {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 16px;
+      }
+      .row-meta {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .row-id {
+        font-size: 11px;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .row-tag {
+        font-size: 9px;
+        text-transform: uppercase;
+        line-height: 1.2;
+        border: 1px solid var(--border);
+        padding: 1px 5px;
+        color: var(--muted);
+      }
+      .row-tag.crit {
+        color: var(--fg);
+      }
+      .row-count {
+        font-size: 11px;
+        color: var(--muted);
+        flex: 0 0 auto;
+      }
 
-  .row-title {
-    font-family: "Geist", Helvetica, Arial, sans-serif;
-    font-size: 14px; font-weight: 400; line-height: 1.35;
-    margin-top: 3px;
-  }
+      .row-title {
+        font-family: 'Geist', Helvetica, Arial, sans-serif;
+        font-size: 14px;
+        font-weight: 400;
+        line-height: 1.35;
+        margin-top: 3px;
+      }
 
-  /* ============ empty ============ */
-  .empty { padding: 14px 0; font-size: 11px; text-transform: uppercase; color: var(--muted); }
+      /* ============ empty ============ */
+      .empty {
+        padding: 14px 0;
+        font-size: 11px;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
 
-  /* ============ detail modal (task detail data) ============ */
-  .detail-layer { position: fixed; inset: 0; z-index: 40; display: flex; align-items: center; justify-content: center; padding: 24px; }
-  .detail-backdrop { position: absolute; inset: 0; background: color-mix(in srgb, var(--bg) 72%, transparent); cursor: pointer; }
-  .detail-panel {
-    position: relative; z-index: 1;
-    display: flex; flex-direction: column;
-    width: min(100%, 680px); max-height: min(92vh, 840px);
-    border: 1px solid var(--fg); background: var(--bg);
-    box-shadow: 0 24px 80px color-mix(in srgb, var(--fg) 18%, transparent);
-  }
-  .detail-head {
-    display: flex; align-items: flex-start; justify-content: space-between; gap: 24px;
-    border-bottom: 1px solid var(--fg); padding: 18px 20px;
-  }
-  .detail-head h2 { margin: 0; font-family: "Geist", sans-serif; font-size: 24px; font-weight: 400; line-height: 1.15; }
-  .detail-idline { margin-top: 8px; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
-  .detail-id { font-size: 11px; text-transform: uppercase; color: var(--muted); }
-  .detail-tag {
-    font-size: 9px; text-transform: uppercase; border: 1px solid var(--border); padding: 1px 5px; color: var(--muted);
-  }
-  .detail-tag.crit { color: var(--fg); }
-  .detail-close { flex: 0 0 auto; }
-  .detail-body { overflow-y: auto; padding: 0 20px 20px; }
-  .detail-fields {
-    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0;
-    border-top: 1px solid var(--border); margin-top: 16px;
-  }
-  .detail-field {
-    display: flex; align-items: baseline; justify-content: space-between; gap: 16px;
-    border-bottom: 1px solid var(--border); padding: 10px 0;
-    font-size: 11px; text-transform: uppercase;
-  }
-  .detail-field-label { color: var(--muted); }
-  .detail-field-value { text-transform: none; font-size: 12px; text-align: right; overflow-wrap: anywhere; }
-  .detail-subhead { margin: 24px 0 0; border-top: 1px solid var(--fg); padding-top: 12px; font-size: 11px; text-transform: uppercase; }
-  .detail-prose { margin: 14px 0 0; font-size: 13px; line-height: 1.55; }
-  .detail-subtask {
-    display: flex; align-items: baseline; justify-content: space-between; gap: 16px;
-    border-bottom: 1px solid var(--border); padding: 9px 0; font-size: 12px;
-  }
-  .detail-subtask .mark { color: var(--muted); font-size: 11px; }
-  .detail-actions { display: flex; gap: 8px; border-top: 1px solid var(--border); padding: 16px 20px 20px; flex-wrap: wrap; }
+      /* ============ detail modal (task detail data) ============ */
+      .detail-layer {
+        position: fixed;
+        inset: 0;
+        z-index: 40;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+      }
+      .detail-backdrop {
+        position: absolute;
+        inset: 0;
+        background: color-mix(in srgb, var(--bg) 72%, transparent);
+        cursor: pointer;
+      }
+      .detail-panel {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        flex-direction: column;
+        width: min(100%, 680px);
+        max-height: min(92vh, 840px);
+        border: 1px solid var(--fg);
+        background: var(--bg);
+        box-shadow: 0 24px 80px color-mix(in srgb, var(--fg) 18%, transparent);
+      }
+      .detail-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 24px;
+        border-bottom: 1px solid var(--fg);
+        padding: 18px 20px;
+      }
+      .detail-head h2 {
+        margin: 0;
+        font-family: 'Geist', sans-serif;
+        font-size: 24px;
+        font-weight: 400;
+        line-height: 1.15;
+      }
+      .detail-idline {
+        margin-top: 8px;
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .detail-id {
+        font-size: 11px;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .detail-tag {
+        font-size: 9px;
+        text-transform: uppercase;
+        border: 1px solid var(--border);
+        padding: 1px 5px;
+        color: var(--muted);
+      }
+      .detail-tag.crit {
+        color: var(--fg);
+      }
+      .detail-close {
+        flex: 0 0 auto;
+      }
+      .detail-body {
+        overflow-y: auto;
+        padding: 0 20px 20px;
+      }
+      .detail-fields {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0;
+        border-top: 1px solid var(--border);
+        margin-top: 16px;
+      }
+      .detail-field {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 16px;
+        border-bottom: 1px solid var(--border);
+        padding: 10px 0;
+        font-size: 11px;
+        text-transform: uppercase;
+      }
+      .detail-field-label {
+        color: var(--muted);
+      }
+      .detail-field-value {
+        text-transform: none;
+        font-size: 12px;
+        text-align: right;
+        overflow-wrap: anywhere;
+      }
+      .detail-subhead {
+        margin: 24px 0 0;
+        border-top: 1px solid var(--fg);
+        padding-top: 12px;
+        font-size: 11px;
+        text-transform: uppercase;
+      }
+      .detail-prose {
+        margin: 14px 0 0;
+        font-size: 13px;
+        line-height: 1.55;
+      }
+      .detail-subtask {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 16px;
+        border-bottom: 1px solid var(--border);
+        padding: 9px 0;
+        font-size: 12px;
+      }
+      .detail-subtask .mark {
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .detail-actions {
+        display: flex;
+        gap: 8px;
+        border-top: 1px solid var(--border);
+        padding: 16px 20px 20px;
+        flex-wrap: wrap;
+      }
 
-  /* ============ narrow ============ */
-  @media (max-width: 900px) {
-    .board { grid-template-columns: 1fr; gap: 40px; }
-    .wrap { padding: 20px 16px 48px; }
-    .topline { flex-wrap: wrap; }
-    .meta-line { display: none; }
-    .detail-fields { grid-template-columns: 1fr; }
-  }
-</style>
-</head>
-<body>
-<div class="wrap">
+      /* ============ narrow ============ */
+      @media (max-width: 900px) {
+        .board {
+          grid-template-columns: 1fr;
+          gap: 40px;
+        }
+        .wrap {
+          padding: 20px 16px 48px;
+        }
+        .topline {
+          flex-wrap: wrap;
+        }
+        .meta-line {
+          display: none;
+        }
+        .detail-fields {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="topline">
+        <div class="wordmark">lokan</div>
+        <div class="topline-actions">
+          <span class="meta-line">8 tasks · updated 13 aug 09:41</span>
+          <button class="button accent">+ new task</button>
+        </div>
+      </header>
 
-  <header class="topline">
-    <div class="wordmark">lokan</div>
-    <div class="topline-actions">
-      <span class="meta-line">8 tasks · updated 13 aug 09:41</span>
-      <button class="button accent">+ new task</button>
+      <main class="board">
+        <!-- TODO -->
+        <section class="column" aria-label="todo">
+          <h2 class="column-head">todo <span class="count">4</span></h2>
+          <button class="row">
+            <div class="row-main">
+              <div class="row-meta">
+                <span class="row-id">task-05</span>
+                <span class="row-tag">med</span>
+              </div>
+              <span class="row-count">[2]</span>
+            </div>
+            <div class="row-title">Add cycle detection to buildTree</div>
+          </button>
+          <button class="row">
+            <div class="row-main">
+              <div class="row-meta">
+                <span class="row-id">task-06</span>
+                <span class="row-tag">low</span>
+              </div>
+            </div>
+            <div class="row-title">Support CRLF line endings in note parsing</div>
+          </button>
+          <button class="row">
+            <div class="row-main">
+              <div class="row-meta">
+                <span class="row-id">task-07</span>
+                <span class="row-tag">high</span>
+              </div>
+              <span class="row-count">[1]</span>
+            </div>
+            <div class="row-title">Port UI server to Go http</div>
+          </button>
+          <button class="row">
+            <div class="row-main">
+              <div class="row-meta">
+                <span class="row-id">task-08</span>
+                <span class="row-tag">med</span>
+              </div>
+            </div>
+            <div class="row-title">Write integration E2E smoke script</div>
+          </button>
+        </section>
+
+        <!-- IN-PROGRESS -->
+        <section class="column in-progress" aria-label="in-progress">
+          <h2 class="column-head">in-progress <span class="count">2</span></h2>
+          <button class="row">
+            <div class="row-main">
+              <div class="row-meta">
+                <span class="row-id">task-01</span>
+                <span class="row-tag crit">crit</span>
+              </div>
+              <span class="row-count">[4]</span>
+            </div>
+            <div class="row-title">Fix counter race in id.NextCounter</div>
+          </button>
+          <button class="row">
+            <div class="row-main">
+              <div class="row-meta">
+                <span class="row-id">task-02</span>
+                <span class="row-tag">high</span>
+              </div>
+              <span class="row-count">[3]</span>
+            </div>
+            <div class="row-title">Implement cobra CLI command tree</div>
+          </button>
+        </section>
+
+        <!-- DONE -->
+        <section class="column" aria-label="done">
+          <h2 class="column-head">done <span class="count">2</span></h2>
+          <button class="row">
+            <div class="row-main">
+              <div class="row-meta">
+                <span class="row-id">task-03</span>
+                <span class="row-tag">med</span>
+              </div>
+            </div>
+            <div class="row-title">Freeze API contract doc</div>
+          </button>
+          <button class="row">
+            <div class="row-main">
+              <div class="row-meta">
+                <span class="row-id">task-04</span>
+                <span class="row-tag">low</span>
+              </div>
+            </div>
+            <div class="row-title">Baseline repo, strip legacy source</div>
+          </button>
+        </section>
+      </main>
     </div>
-  </header>
 
-  <main class="board">
-
-    <!-- TODO -->
-    <section class="column" aria-label="todo">
-      <h2 class="column-head">todo <span class="count">4</span></h2>
-      <button class="row">
-        <div class="row-main">
-          <div class="row-meta">
-            <span class="row-id">task-05</span>
-            <span class="row-tag">med</span>
+    <!-- ============ detail modal (open state mock) ============ -->
+    <div class="detail-layer">
+      <div class="detail-backdrop"></div>
+      <div class="detail-panel" role="dialog" aria-label="task detail">
+        <div class="detail-head">
+          <div>
+            <h2>Fix counter race in id.NextCounter</h2>
+            <div class="detail-idline">
+              <span class="detail-id">task-01</span>
+              <span class="detail-tag crit">crit</span>
+              <span class="detail-tag">bug</span>
+            </div>
           </div>
-          <span class="row-count">[2]</span>
+          <button class="button detail-close">× close</button>
         </div>
-        <div class="row-title">Add cycle detection to buildTree</div>
-      </button>
-      <button class="row">
-        <div class="row-main">
-          <div class="row-meta">
-            <span class="row-id">task-06</span>
-            <span class="row-tag">low</span>
+        <div class="detail-body">
+          <div class="detail-fields">
+            <div class="detail-field">
+              <span class="detail-field-label">status</span
+              ><span class="detail-field-value">in-progress</span>
+            </div>
+            <div class="detail-field">
+              <span class="detail-field-label">type</span
+              ><span class="detail-field-value">bug</span>
+            </div>
+            <div class="detail-field">
+              <span class="detail-field-label">priority</span
+              ><span class="detail-field-value">critical</span>
+            </div>
+            <div class="detail-field">
+              <span class="detail-field-label">parent</span
+              ><span class="detail-field-value">—</span>
+            </div>
+            <div class="detail-field">
+              <span class="detail-field-label">created</span
+              ><span class="detail-field-value">2026-08-10</span>
+            </div>
+            <div class="detail-field">
+              <span class="detail-field-label">updated</span
+              ><span class="detail-field-value">2026-08-13</span>
+            </div>
+            <div class="detail-field">
+              <span class="detail-field-label">tags</span
+              ><span class="detail-field-value">core, concurrency</span>
+            </div>
+            <div class="detail-field">
+              <span class="detail-field-label">related</span
+              ><span class="detail-field-value">task-09</span>
+            </div>
           </div>
-        </div>
-        <div class="row-title">Support CRLF line endings in note parsing</div>
-      </button>
-      <button class="row">
-        <div class="row-main">
-          <div class="row-meta">
-            <span class="row-id">task-07</span>
-            <span class="row-tag">high</span>
+          <h3 class="detail-subhead">notes</h3>
+          <p class="detail-prose">
+            nextCounter does a read-modify-write on config.json without any locking. Two concurrent
+            create invocations both read the same counter, write the same increment, and produce
+            duplicate ids. Fix with an exclusive lock file + atomic rename.
+          </p>
+          <h3 class="detail-subhead">subtasks <span class="count">4</span></h3>
+          <div class="detail-subtask">
+            <span>Add lock file helper in id package</span><span class="mark">task-09</span>
           </div>
-          <span class="row-count">[1]</span>
-        </div>
-        <div class="row-title">Port UI server to Go http</div>
-      </button>
-      <button class="row">
-        <div class="row-main">
-          <div class="row-meta">
-            <span class="row-id">task-08</span>
-            <span class="row-tag">med</span>
+          <div class="detail-subtask">
+            <span>Wrap config write in temp-file rename</span><span class="mark">task-10</span>
           </div>
-        </div>
-        <div class="row-title">Write integration E2E smoke script</div>
-      </button>
-    </section>
-
-    <!-- IN-PROGRESS -->
-    <section class="column in-progress" aria-label="in-progress">
-      <h2 class="column-head">in-progress <span class="count">2</span></h2>
-      <button class="row">
-        <div class="row-main">
-          <div class="row-meta">
-            <span class="row-id">task-01</span>
-            <span class="row-tag crit">crit</span>
+          <div class="detail-subtask">
+            <span>Add concurrency test (N goroutines)</span><span class="mark">task-11</span>
           </div>
-          <span class="row-count">[4]</span>
-        </div>
-        <div class="row-title">Fix counter race in id.NextCounter</div>
-      </button>
-      <button class="row">
-        <div class="row-main">
-          <div class="row-meta">
-            <span class="row-id">task-02</span>
-            <span class="row-tag">high</span>
-          </div>
-          <span class="row-count">[3]</span>
-        </div>
-        <div class="row-title">Implement cobra CLI command tree</div>
-      </button>
-    </section>
-
-    <!-- DONE -->
-    <section class="column" aria-label="done">
-      <h2 class="column-head">done <span class="count">2</span></h2>
-      <button class="row">
-        <div class="row-main">
-          <div class="row-meta">
-            <span class="row-id">task-03</span>
-            <span class="row-tag">med</span>
+          <div class="detail-subtask">
+            <span>Update architecture review doc</span><span class="mark">task-12</span>
           </div>
         </div>
-        <div class="row-title">Freeze API contract doc</div>
-      </button>
-      <button class="row">
-        <div class="row-main">
-          <div class="row-meta">
-            <span class="row-id">task-04</span>
-            <span class="row-tag">low</span>
-          </div>
-        </div>
-        <div class="row-title">Baseline repo, strip legacy source</div>
-      </button>
-    </section>
-
-  </main>
-</div>
-
-<!-- ============ detail modal (open state mock) ============ -->
-<div class="detail-layer">
-  <div class="detail-backdrop"></div>
-  <div class="detail-panel" role="dialog" aria-label="task detail">
-    <div class="detail-head">
-      <div>
-        <h2>Fix counter race in id.NextCounter</h2>
-        <div class="detail-idline">
-          <span class="detail-id">task-01</span>
-          <span class="detail-tag crit">crit</span>
-          <span class="detail-tag">bug</span>
+        <div class="detail-actions">
+          <button class="button">advance → in-progress</button>
+          <button class="button">edit</button>
+          <button class="button">+ subtask</button>
         </div>
       </div>
-      <button class="button detail-close">× close</button>
     </div>
-    <div class="detail-body">
-      <div class="detail-fields">
-        <div class="detail-field"><span class="detail-field-label">status</span><span class="detail-field-value">in-progress</span></div>
-        <div class="detail-field"><span class="detail-field-label">type</span><span class="detail-field-value">bug</span></div>
-        <div class="detail-field"><span class="detail-field-label">priority</span><span class="detail-field-value">critical</span></div>
-        <div class="detail-field"><span class="detail-field-label">parent</span><span class="detail-field-value">—</span></div>
-        <div class="detail-field"><span class="detail-field-label">created</span><span class="detail-field-value">2026-08-10</span></div>
-        <div class="detail-field"><span class="detail-field-label">updated</span><span class="detail-field-value">2026-08-13</span></div>
-        <div class="detail-field"><span class="detail-field-label">tags</span><span class="detail-field-value">core, concurrency</span></div>
-        <div class="detail-field"><span class="detail-field-label">related</span><span class="detail-field-value">task-09</span></div>
-      </div>
-      <h3 class="detail-subhead">notes</h3>
-      <p class="detail-prose">nextCounter does a read-modify-write on config.json without any locking. Two concurrent create invocations both read the same counter, write the same increment, and produce duplicate ids. Fix with an exclusive lock file + atomic rename.</p>
-      <h3 class="detail-subhead">subtasks <span class="count">4</span></h3>
-      <div class="detail-subtask"><span>Add lock file helper in id package</span><span class="mark">task-09</span></div>
-      <div class="detail-subtask"><span>Wrap config write in temp-file rename</span><span class="mark">task-10</span></div>
-      <div class="detail-subtask"><span>Add concurrency test (N goroutines)</span><span class="mark">task-11</span></div>
-      <div class="detail-subtask"><span>Update architecture review doc</span><span class="mark">task-12</span></div>
-    </div>
-    <div class="detail-actions">
-      <button class="button">advance → in-progress</button>
-      <button class="button">edit</button>
-      <button class="button">+ subtask</button>
-    </div>
-  </div>
-</div>
-
-</body>
+  </body>
 </html>

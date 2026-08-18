@@ -6,7 +6,7 @@ mirrors `git-workpool`'s release routine: tag → GitHub Actions → GoReleaser 
 
 ## How to cut a release
 
-1. Bump nothing by hand — the tag *is* the version.
+1. Bump nothing by hand — the tag _is_ the version.
 2. From `main`, cut the release with the bumper:
 
    ```sh
@@ -25,11 +25,11 @@ mirrors `git-workpool`'s release routine: tag → GitHub Actions → GoReleaser 
 
 ## What you get
 
-| Asset | Content |
-|---|---|
-| `lokan_darwin_amd64.tar.gz` / `lokan_darwin_arm64.tar.gz` | macOS binary |
-| `lokan_linux_amd64.tar.gz` / `lokan_linux_arm64.tar.gz` | Linux binary |
-| `checksums.txt` | SHA-256 sums for every asset |
+| Asset                                                     | Content                      |
+| --------------------------------------------------------- | ---------------------------- |
+| `lokan_darwin_amd64.tar.gz` / `lokan_darwin_arm64.tar.gz` | macOS binary                 |
+| `lokan_linux_amd64.tar.gz` / `lokan_linux_arm64.tar.gz`   | Linux binary                 |
+| `checksums.txt`                                           | SHA-256 sums for every asset |
 
 Users install from `latest`:
 
@@ -43,11 +43,11 @@ that dir isn't on `PATH`.
 
 ## Config files
 
-| File | Role |
-|---|---|
-| `.goreleaser.yaml` | Build matrix, archive naming, release target (`dir: ./engine`, `main: ./cmd/lokan` — matches `runtask build`) |
-| `.github/workflows/release.yml` | Tag-triggered CI: checkout → Go → GoReleaser `release --clean` |
-| `install.sh` | One-liner installer used in the README |
+| File                            | Role                                                                                                          |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `.goreleaser.yaml`              | Build matrix, archive naming, release target (`dir: ./engine`, `main: ./cmd/lokan` — matches `runtask build`) |
+| `.github/workflows/release.yml` | Tag-triggered CI: checkout → Go → GoReleaser `release --clean`                                                |
+| `install.sh`                    | One-liner installer used in the README                                                                        |
 
 ## Gotchas
 
