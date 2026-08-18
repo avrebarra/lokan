@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import type { UpdateTaskInput } from '../api'
-import type { StatusDef, Task, TaskSummary, Status, Priority, TaskType } from '../types'
-import { PRIORITIES, TASK_TYPES } from '../types'
-import { priorityTag } from '../format'
+import type { UpdateTaskInput } from '../lib/api'
+import type { StatusDef, Task, TaskSummary, Status, Priority, TaskType } from '../lib/types'
+import { PRIORITIES, TASK_TYPES } from '../lib/types'
+import { priorityTag } from '../lib/format'
 import Modal from './Modal'
-import { buttonClass, fieldClass } from './modal-classes'
+import { buttonClass, fieldClass } from '../lib/modal-classes'
 
 export interface TaskFieldChange {
   field: UpdateTaskInput['field']

@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import type { StatusDef } from '../types'
+import type { StatusDef } from '../lib/types'
 import Modal from './Modal'
-import { buttonClass, confirmClass, fieldClass } from './modal-classes'
+import { buttonClass, confirmClass, fieldClass } from '../lib/modal-classes'
 import ModalConfirm from './ModalConfirm'
 
 interface Props {
