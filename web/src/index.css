@@ -10,6 +10,42 @@
   --color-danger: var(--danger);
   --color-zebra: var(--zebra);
 
+  /* kan neutrals — raw palette */
+  --color-light-50: var(--light-50);
+  --color-light-100: var(--light-100);
+  --color-light-200: var(--light-200);
+  --color-light-300: var(--light-300);
+  --color-light-400: var(--light-400);
+  --color-light-500: var(--light-500);
+  --color-light-600: var(--light-600);
+  --color-light-700: var(--light-700);
+  --color-light-800: var(--light-800);
+  --color-light-900: var(--light-900);
+  --color-light-950: var(--light-950);
+  --color-light-1000: var(--light-1000);
+  --color-dark-50: var(--dark-50);
+  --color-dark-100: var(--dark-100);
+  --color-dark-200: var(--dark-200);
+  --color-dark-300: var(--dark-300);
+  --color-dark-400: var(--dark-400);
+  --color-dark-500: var(--dark-500);
+  --color-dark-600: var(--dark-600);
+  --color-dark-700: var(--dark-700);
+  --color-dark-800: var(--dark-800);
+  --color-dark-900: var(--dark-900);
+  --color-dark-950: var(--dark-950);
+  --color-dark-1000: var(--dark-1000);
+
+  /* kan semantic aliases */
+  --color-card: var(--card-bg);
+  --color-card-border: var(--card-border);
+  --color-list: var(--list-bg);
+  --color-list-border: var(--list-border);
+  --color-surface-hover: var(--surface-hover);
+
+  --radius-card: var(--radius-card);
+  --radius-pill: var(--radius-pill);
+
   --font-sans: 'Geist', Helvetica, Arial, sans-serif;
   --font-mono: 'Geist Mono', 'Courier New', monospace;
 }

@@ -1,6 +1,38 @@
 @import url('https://fonts.googleapis.com/css2?family=Geist:wght@400..700&family=Geist+Mono:wght@400..500&display=swap');
 
-/* ============ lokan design tokens (port of web/design/tokens.md) ============ */
+/* ============ lokan design tokens (port of docs/design/tokens.md) ============ */
+
+/* kan palette — raw neutrals from Kan tooling/tailwind/web.ts (additive, not replacing brutalist core) */
+:root {
+  --light-50: hsl(0deg 0% 98.8%);
+  --light-100: hsl(0deg 0% 97.3%);
+  --light-200: hsl(0deg 0% 95.3%);
+  --light-300: hsl(0deg 0% 92.9%);
+  --light-400: hsl(0deg 0% 91%);
+  --light-500: hsl(0deg 0% 88.6%);
+  --light-600: hsl(0deg 0% 85.9%);
+  --light-700: hsl(0deg 0% 78%);
+  --light-800: hsl(0deg 0% 56.1%);
+  --light-900: hsl(0deg 0% 52.2%);
+  --light-950: hsl(0deg 0% 43.5%);
+  --light-1000: hsl(0deg 0% 9%);
+  --dark-50: #161616;
+  --dark-100: #1c1c1c;
+  --dark-200: #232323;
+  --dark-300: #282828;
+  --dark-400: #2e2e2e;
+  --dark-500: #343434;
+  --dark-600: #3e3e3e;
+  --dark-700: #505050;
+  --dark-800: #707070;
+  --dark-900: #7e7e7e;
+  --dark-950: #bbb;
+  --dark-1000: #ededed;
+
+  /* shape — kan uses rounded-md (6px) for cards/lists; brutalist shell stays 0 */
+  --radius-card: 6px;
+  --radius-pill: 9999px;
+}
 
 :root,
 [data-theme='light'] {
@@ -11,6 +43,13 @@
   --accent: #ffc800;
   --danger: #dc2626;
   --zebra: #f5f5f5;
+
+  /* kan semantic aliases — light */
+  --card-bg: var(--light-50);
+  --card-border: var(--light-200);
+  --list-bg: var(--light-300);
+  --list-border: var(--light-400);
+  --surface-hover: var(--light-400);
 }
 
 [data-theme='dark'] {
@@ -21,4 +60,11 @@
   --accent: #ffc800;
   --danger: #dc2626;
   --zebra: #111;
+
+  /* kan semantic aliases — dark */
+  --card-bg: var(--dark-200);
+  --card-border: var(--dark-200);
+  --list-bg: var(--dark-100);
+  --list-border: var(--dark-300);
+  --surface-hover: var(--dark-300);
 }
