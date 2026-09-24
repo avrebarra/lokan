@@ -174,51 +174,6 @@ M — 2d
 ## Work Log
 ````
 
-### 7 — 07 — Primitives: Badge / Avatar / CircularProgress
-```lokan
-id: "7"
-title: '07 — Primitives: Badge / Avatar / CircularProgress'
-status: backlog
-created: "2026-09-24"
-updated: "2026-09-24"
-tags:
-    - kan-reskin
-    - ui
-```
-
-````markdown
-# 07 — Primitives: Badge / Avatar / CircularProgress
-
-## Goal
-
-Vendor Kan's small UI primitives needed by Card/List; keep them isolated and reusable.
-
-## Scope
-
-- `Badge.tsx` (Kan 399B) → `web/src/components/Kan/Badge.tsx` (`value + iconLeft`, pill style).
-- `Avatar.tsx` (1.6k) → initials-from-email fallback, `size sm/md`, `imageUrl` via `getAvatarUrl` (adapt to `id` initial for Lokan single-user).
-- `CircularProgress.tsx` (1.4k) → `progress 0-100`, `size sm`.
-- `LabelIcon.tsx` + `helpers.getInitialsFromName` + `labelColours` if needed for `colourCode`.
-- Use `tailwind-merge` for class merging where Kan does.
-- No Tippy/Tooltip here (task 8/9).
-
-## Acceptance
-
-- [ ] Each primitive renders in isolation (story-like preview or `Mockup` html).
-- [ ] No `react-icons` dependency — map to `lucide-react` or keep `hi2` if small.
-
-## Refs
-
-- `/tmp/kan/apps/web/src/components/Badge.tsx`, `Avatar.tsx`, `CircularProgress.tsx`, `LabelIcon.tsx`
-- `/tmp/kan/apps/web/src/utils/helpers.ts`, `labelColours.ts`
-
-## Effort
-
-S — 1d
-
-## Work Log
-````
-
 ### 8 — 08 — Chrome & modals polish + brutalist decision
 ```lokan
 id: "8"
@@ -397,6 +352,51 @@ XS — 0.5d
 ````
 
 ## Archive
+
+### 7 — 07 — Primitives: Badge / Avatar / CircularProgress
+```lokan
+id: "7"
+title: '07 — Primitives: Badge / Avatar / CircularProgress'
+status: done
+created: "2026-09-24"
+updated: "2026-09-24"
+tags:
+    - kan-reskin
+    - ui
+```
+
+````markdown
+# 07 — Primitives: Badge / Avatar / CircularProgress
+
+## Goal
+
+Vendor Kan's small UI primitives needed by Card/List; keep them isolated and reusable.
+
+## Scope
+
+- `Badge.tsx` (Kan 399B) → `web/src/components/Kan/Badge.tsx` (`value + iconLeft`, pill style).
+- `Avatar.tsx` (1.6k) → initials-from-email fallback, `size sm/md`, `imageUrl` via `getAvatarUrl` (adapt to `id` initial for Lokan single-user).
+- `CircularProgress.tsx` (1.4k) → `progress 0-100`, `size sm`.
+- `LabelIcon.tsx` + `helpers.getInitialsFromName` + `labelColours` if needed for `colourCode`.
+- Use `tailwind-merge` for class merging where Kan does.
+- No Tippy/Tooltip here (task 8/9).
+
+## Acceptance
+
+- [ ] Each primitive renders in isolation (story-like preview or `Mockup` html).
+- [ ] No `react-icons` dependency — map to `lucide-react` or keep `hi2` if small.
+
+## Refs
+
+- `/tmp/kan/apps/web/src/components/Badge.tsx`, `Avatar.tsx`, `CircularProgress.tsx`, `LabelIcon.tsx`
+- `/tmp/kan/apps/web/src/utils/helpers.ts`, `labelColours.ts`
+
+## Effort
+
+S — 1d
+
+## Work Log
+````
 
 ### 3 — 03 — Board drag: HTML5 → @dnd-kit + collision
 ```lokan
