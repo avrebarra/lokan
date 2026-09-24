@@ -41,8 +41,13 @@ export default function Topline({
         <button
           className="inline-flex min-h-8 items-center justify-center border border-accent bg-accent px-2.5 text-[11px] font-medium uppercase text-black transition-colors duration-[120ms] hover:border-fg hover:bg-fg hover:text-bg"
           onClick={onCreate}
+          title="C — Create new task"
+          aria-keyshortcuts="c"
         >
           + new task
+          <kbd className="ml-1.5 hidden rounded border border-black/20 bg-black/10 px-1 py-0.5 font-mono text-[10px] leading-none sm:inline-flex">
+            C
+          </kbd>
         </button>
       </div>
     </header>

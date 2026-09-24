@@ -319,51 +319,6 @@ S — 1d
 ## Work Log
 ```
 
-### 9 — 09 — Keyboard shortcuts lite (C, ?, Esc)
-
-```lokan
-id: "9"
-title: 09 — Keyboard shortcuts lite (C, ?, Esc)
-status: todo
-created: "2026-09-24"
-updated: "2026-09-24"
-tags:
-    - kan-reskin
-    - a11y
-```
-
-```markdown
-# 09 — Keyboard shortcuts lite (C, ?, Esc)
-
-## Goal
-
-Steal Kan's shortcut _idea_ without vendoring 17.9k tree.
-
-## Scope
-
-- Keep Lokan `Esc` clears selection; add `C` → `setCreating(true)` (Kan `createListShortcut` pattern `useKeyboardShortcut`).
-- Optional: `?` → command palette stub (Kan `CommandPallette 7.6k` — skip full port, just `?` shows help modal listing shortcuts).
-- Optional: `n` → new task (alt), `f` → focus filter, arrow keys via `KeyboardSensor sortableKeyboardCoordinates` already covered by dnd task.
-- Implement via `useEffect keydown` in `App.tsx` or tiny `hooks/useHotkey.ts` (10 LOC), not Kan's `ShortcutTree`.
-- Add `Tooltip` content hints: `C Create new card` like Kan `createListShortcutTooltipContent`.
-
-## Acceptance
-
-- [ ] `C` opens create modal from board; `Esc` still clears selection; `?` opens help (or deferred).
-- [ ] No focus trap/conflict with `Editor`/inputs.
-
-## Refs
-
-- `/tmp/kan/apps/web/src/providers/keyboard-shortcuts.tsx`, `hooks/useEventListener.ts`
-- `web/src/App.tsx` Esc handler
-
-## Effort
-
-XS — 0.5d
-
-## Work Log
-```
-
 ### 10 — 10 — Dark mode & responsive parity
 
 ```lokan
@@ -501,6 +456,51 @@ XS — 0.5d
 ```
 
 ## Archive
+
+### 9 — 09 — Keyboard shortcuts lite (C, ?, Esc)
+
+```lokan
+id: "9"
+title: 09 — Keyboard shortcuts lite (C, ?, Esc)
+status: done
+created: "2026-09-24"
+updated: "2026-09-24"
+tags:
+    - kan-reskin
+    - a11y
+```
+
+```markdown
+# 09 — Keyboard shortcuts lite (C, ?, Esc)
+
+## Goal
+
+Steal Kan's shortcut _idea_ without vendoring 17.9k tree.
+
+## Scope
+
+- Keep Lokan `Esc` clears selection; add `C` → `setCreating(true)` (Kan `createListShortcut` pattern `useKeyboardShortcut`).
+- Optional: `?` → command palette stub (Kan `CommandPallette 7.6k` — skip full port, just `?` shows help modal listing shortcuts).
+- Optional: `n` → new task (alt), `f` → focus filter, arrow keys via `KeyboardSensor sortableKeyboardCoordinates` already covered by dnd task.
+- Implement via `useEffect keydown` in `App.tsx` or tiny `hooks/useHotkey.ts` (10 LOC), not Kan's `ShortcutTree`.
+- Add `Tooltip` content hints: `C Create new card` like Kan `createListShortcutTooltipContent`.
+
+## Acceptance
+
+- [ ] `C` opens create modal from board; `Esc` still clears selection; `?` opens help (or deferred).
+- [ ] No focus trap/conflict with `Editor`/inputs.
+
+## Refs
+
+- `/tmp/kan/apps/web/src/providers/keyboard-shortcuts.tsx`, `hooks/useEventListener.ts`
+- `web/src/App.tsx` Esc handler
+
+## Effort
+
+XS — 0.5d
+
+## Work Log
+```
 
 ### 2 — 02 — Vendor deps & dnd audit (@dnd-kit)
 
