@@ -1,11 +1,14 @@
 import { useRef, useState } from 'react'
-import type { DragEvent } from 'react'
+import { useSortable } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { Check, Copy } from 'lucide-react'
 import type { TaskSummary } from '../lib/types'
+import type { CardDragData } from '../lib/dnd/types'
 import { fetchTask } from '../lib/api'
 
 interface Props {
   task: TaskSummary
+  listId: string
   moved: boolean
   selectedIds: Set<string>
   scopedIds: Set<string>
@@ -15,6 +18,7 @@ interface Props {
 
 export default function TaskRow({
   task,
+  listId,
   moved,
   selectedIds,
   scopedIds,
@@ -29,12 +33,15 @@ export default function TaskRow({
   // live marquee preview uses the hover tint; committed selection the accent
   const rowBg = selected ? 'bg-accent/10' : scoped ? 'bg-zebra' : ''
 
-  // start a lane move: dragging a selected card carries the whole selection
-  // (JSON ids), otherwise just this task
-  const onDragStart = (e: DragEvent<HTMLButtonElement>) => {
-    const ids = selectionActive && selected ? [...selectedIds] : [task.id]
-    e.dataTransfer.setData('text/x-lokan-task', JSON.stringify(ids))
-    e.dataTransfer.effectAllowed = 'move'
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: task.id,
+    data: { type: 'CARD', listPublicId: listId } satisfies CardDragData,
+  })
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.3 : 1,
   }
 
   // with a selection or live marquee active, a row click toggles membership
@@ -75,9 +82,12 @@ export default function TaskRow({
 
   return (
     <div
+      ref={setNodeRef}
+      data-board-draggable
+      style={style}
       className={`group relative w-full select-none bg-bg text-fg transition-colors duration-[120ms] hover:bg-zebra ${
         moved ? 'animate-left-flash' : ''
-      } ${rowBg}`}
+      } ${rowBg} ${isDragging ? 'z-10' : ''}`}
     >
       {selectionActive && (
         <input
@@ -89,14 +99,14 @@ export default function TaskRow({
         />
       )}
       <button
-        draggable
         data-row
         data-row-id={task.id}
-        onDragStart={onDragStart}
         onClick={handleClick}
+        {...attributes}
+        {...listeners}
         className={`block w-full border-b border-border py-[11px] text-left hover:border-l-[3px] hover:border-l-accent ${
           selectionActive ? 'pl-9' : 'pl-2.5'
-        }`}
+        } ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
       >
         <div className="mt-[3px] font-sans font-normal leading-[1.35] group-hover:underline">
           <span className="mr-2 text-[11px] uppercase text-muted">{task.id}</span>
