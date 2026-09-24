@@ -30,59 +30,7 @@ statuses:
 
 ## Active
 
-### 3 — 03 — Board drag: HTML5 → @dnd-kit + collision
-
-```lokan
-id: "3"
-title: '03 — Board drag: HTML5 → @dnd-kit + collision'
-status: backlog
-created: "2026-09-24"
-updated: "2026-09-24"
-tags:
-    - kan-reskin
-    - board
-    - dnd
-```
-
-```markdown
-# 03 — Board drag: HTML5 → @dnd-kit + collision
-
-## Goal
-
-Replace Lokan's native `text/x-lokan-task` drag (Board.tsx `handleDragOver 0.7*height` hack) with Kan's `DndContext + collision.ts`.
-
-## Scope
-
-- Vendor `views/board/dnd/collision.ts` (72 LOC `createBoardCollisionDetection`), `dnd/ids.ts`, `dnd/types.ts` → `web/src/lib/dnd/`.
-- Refactor `Board.tsx`: wrap columns in `DndContext` (`PointerSensor`, `KeyboardSensor`), `SortableContext(horizontalListSortingStrategy)` for columns, `SortableContext(verticalListSortingStrategy)` inside each `Column`.
-- Map `onMove(ids, status, beforeId)` to current `moveTask` / `moveMany` APIs (preserve `beforeId=''` append + `isMoveManyNoop` guards).
-- Keep `selectedIds` multi-select + `marqueeLive` compat (Kan has no marquee — ensure marquee still highlights).
-- Preserve `flashMoved` + `movedId` left-flash.
-
-## Non-goals
-
-- No visual reskin; keep `TaskRow` leaderboard for now.
-
-## Acceptance
-
-- [ ] Single + multi-select drag works cross-lane + reorder-in-lane, with insertion indicator (keep 2px `bg-fg` bar or Kan's overlay).
-- [ ] Keyboard sortable (`sortableKeyboardCoordinates`) works.
-- [ ] No regression on `marquee select` + `BulkBar`.
-
-## Refs
-
-- `/tmp/kan/apps/web/src/views/board/dnd/collision.ts`, `views/board/index.tsx` `DndContext`
-- `web/src/components/Board.tsx`, `Column.tsx`
-
-## Effort
-
-M — 2d
-
-## Work Log
-```
-
 ### 4 — 04 — Horizontal scroll + drag-to-scroll
-
 ```lokan
 id: "4"
 title: 04 — Horizontal scroll + drag-to-scroll
@@ -95,7 +43,7 @@ tags:
     - ux
 ```
 
-```markdown
+````markdown
 # 04 — Horizontal scroll + drag-to-scroll
 
 ## Goal
@@ -126,10 +74,9 @@ Switch board layout from `grid repeat(n,1fr)` to Kan's horizontal scroll, add `u
 S — 1d
 
 ## Work Log
-```
+````
 
 ### 5 — 05 — Column → Kan List (rounded container + header)
-
 ```lokan
 id: "5"
 title: 05 — Column → Kan List (rounded container + header)
@@ -141,7 +88,7 @@ tags:
     - column
 ```
 
-```markdown
+````markdown
 # 05 — Column → Kan List (rounded container + header)
 
 ## Goal
@@ -176,10 +123,9 @@ Restyle `Column.tsx` from brutalist hairline header to Kan `List.tsx` card conta
 M — 1.5d
 
 ## Work Log
-```
+````
 
 ### 6 — 06 — TaskRow → Kan Card (rich card + meta footer)
-
 ```lokan
 id: "6"
 title: 06 — TaskRow → Kan Card (rich card + meta footer)
@@ -191,7 +137,7 @@ tags:
     - card
 ```
 
-```markdown
+````markdown
 # 06 — TaskRow → Kan Card (rich card + meta footer)
 
 ## Goal
@@ -226,10 +172,9 @@ Turn leaderboard `TaskRow` into Kan `Card` — biggest visual win.
 M — 2d
 
 ## Work Log
-```
+````
 
 ### 7 — 07 — Primitives: Badge / Avatar / CircularProgress
-
 ```lokan
 id: "7"
 title: '07 — Primitives: Badge / Avatar / CircularProgress'
@@ -241,7 +186,7 @@ tags:
     - ui
 ```
 
-```markdown
+````markdown
 # 07 — Primitives: Badge / Avatar / CircularProgress
 
 ## Goal
@@ -272,10 +217,9 @@ Vendor Kan's small UI primitives needed by Card/List; keep them isolated and reu
 S — 1d
 
 ## Work Log
-```
+````
 
 ### 8 — 08 — Chrome & modals polish + brutalist decision
-
 ```lokan
 id: "8"
 title: 08 — Chrome & modals polish + brutalist decision
@@ -287,7 +231,7 @@ tags:
     - ux
 ```
 
-```markdown
+````markdown
 # 08 — Chrome & modals polish + brutalist decision
 
 ## Goal
@@ -317,10 +261,9 @@ Decide how far to take the reskin beyond board; polish `Topline`, `ModalDetail`,
 S — 1d
 
 ## Work Log
-```
+````
 
 ### 10 — 10 — Dark mode & responsive parity
-
 ```lokan
 id: "10"
 title: 10 — Dark mode & responsive parity
@@ -332,7 +275,7 @@ tags:
     - theme
 ```
 
-```markdown
+````markdown
 # 10 — Dark mode & responsive parity
 
 ## Goal
@@ -361,10 +304,9 @@ Ensure Kan neutrals have dark variants (`dark:bg-dark-*`) and `<900px` still usa
 S — 1d
 
 ## Work Log
-```
+````
 
 ### 11 — 11 — Build, e2e & single-binary smoke
-
 ```lokan
 id: "11"
 title: 11 — Build, e2e & single-binary smoke
@@ -376,7 +318,7 @@ tags:
     - build
 ```
 
-```markdown
+````markdown
 # 11 — Build, e2e & single-binary smoke
 
 ## Goal
@@ -405,10 +347,9 @@ Prove `runtask build` still produces a single `dist/lokan` with embedded `web/di
 S — 0.5d
 
 ## Work Log
-```
+````
 
 ### 12 — 12 — Docs, screenshot & PR
-
 ```lokan
 id: "12"
 title: 12 — Docs, screenshot & PR
@@ -420,7 +361,7 @@ tags:
     - docs
 ```
 
-```markdown
+````markdown
 # 12 — Docs, screenshot & PR
 
 ## Goal
@@ -453,12 +394,61 @@ Ship the reskin as a clean branch + docs, ready for PR.
 XS — 0.5d
 
 ## Work Log
-```
+````
 
 ## Archive
 
-### 9 — 09 — Keyboard shortcuts lite (C, ?, Esc)
+### 3 — 03 — Board drag: HTML5 → @dnd-kit + collision
+```lokan
+id: "3"
+title: '03 — Board drag: HTML5 → @dnd-kit + collision'
+status: done
+created: "2026-09-24"
+updated: "2026-09-24"
+tags:
+    - kan-reskin
+    - board
+    - dnd
+```
 
+````markdown
+# 03 — Board drag: HTML5 → @dnd-kit + collision
+
+## Goal
+
+Replace Lokan's native `text/x-lokan-task` drag (Board.tsx `handleDragOver 0.7*height` hack) with Kan's `DndContext + collision.ts`.
+
+## Scope
+
+- Vendor `views/board/dnd/collision.ts` (72 LOC `createBoardCollisionDetection`), `dnd/ids.ts`, `dnd/types.ts` → `web/src/lib/dnd/`.
+- Refactor `Board.tsx`: wrap columns in `DndContext` (`PointerSensor`, `KeyboardSensor`), `SortableContext(horizontalListSortingStrategy)` for columns, `SortableContext(verticalListSortingStrategy)` inside each `Column`.
+- Map `onMove(ids, status, beforeId)` to current `moveTask` / `moveMany` APIs (preserve `beforeId=''` append + `isMoveManyNoop` guards).
+- Keep `selectedIds` multi-select + `marqueeLive` compat (Kan has no marquee — ensure marquee still highlights).
+- Preserve `flashMoved` + `movedId` left-flash.
+
+## Non-goals
+
+- No visual reskin; keep `TaskRow` leaderboard for now.
+
+## Acceptance
+
+- [ ] Single + multi-select drag works cross-lane + reorder-in-lane, with insertion indicator (keep 2px `bg-fg` bar or Kan's overlay).
+- [ ] Keyboard sortable (`sortableKeyboardCoordinates`) works.
+- [ ] No regression on `marquee select` + `BulkBar`.
+
+## Refs
+
+- `/tmp/kan/apps/web/src/views/board/dnd/collision.ts`, `views/board/index.tsx` `DndContext`
+- `web/src/components/Board.tsx`, `Column.tsx`
+
+## Effort
+
+M — 2d
+
+## Work Log
+````
+
+### 9 — 09 — Keyboard shortcuts lite (C, ?, Esc)
 ```lokan
 id: "9"
 title: 09 — Keyboard shortcuts lite (C, ?, Esc)
@@ -470,7 +460,7 @@ tags:
     - a11y
 ```
 
-```markdown
+````markdown
 # 09 — Keyboard shortcuts lite (C, ?, Esc)
 
 ## Goal
@@ -500,10 +490,9 @@ Steal Kan's shortcut _idea_ without vendoring 17.9k tree.
 XS — 0.5d
 
 ## Work Log
-```
+````
 
 ### 2 — 02 — Vendor deps & dnd audit (@dnd-kit)
-
 ```lokan
 id: "2"
 title: 02 — Vendor deps & dnd audit (@dnd-kit)
@@ -515,7 +504,7 @@ tags:
     - deps
 ```
 
-```markdown
+````markdown
 # 02 — Vendor deps & dnd audit (@dnd-kit)
 
 ## Goal
@@ -550,10 +539,9 @@ Decide minimal vendor set to steal Kan mechanics without bloat; keep `dist/lokan
 XS — 0.5d
 
 ## Work Log
-```
+````
 
 ### 1 — 01 — Design tokens & palette mapping (Tw v4)
-
 ```lokan
 id: "1"
 title: 01 — Design tokens & palette mapping (Tw v4)
@@ -565,7 +553,7 @@ tags:
     - design
 ```
 
-```markdown
+````markdown
 # 01 — Design tokens & palette mapping (Tw v4)
 
 ## Goal
@@ -603,4 +591,4 @@ Merge Kan's soft neutral palette (Radix slate + `light-50..1000 / dark-50..1000`
 S — 1d
 
 ## Work Log
-```
+````
