@@ -31,6 +31,7 @@ statuses:
 ## Active
 
 ### 38 — 2A — Shared `ui` daemon (one server, register boards)
+
 ```lokan
 id: "38"
 title: 2A — Shared `ui` daemon (one server, register boards)
@@ -39,9 +40,8 @@ created: "2026-08-17"
 updated: "2026-08-17"
 ```
 
-````markdown
+```markdown
 ASSESSED (2026-08-18) — parked, revisit later. Idea: one `lokan ui` process; re-invoking `lokan ui <file>` registers a new board entry (filepath identifier) into the running server instead of spawning a new process. Open question: how to close — no browser-driven close signal exists; needs explicit `lokan ui close <file>` / `ui stop`, an idle TTL, or a UI close-button that unregisters. Plus daemon ownership (stale locks, orphans, registry location, control channel). Current auto-pick already solved crashes; this would fix process/tab sprawl. See handoff: docs/design/shared-ui-daemon-handoff.md
-````
+```
 
 ## Archive
-
