@@ -18,6 +18,8 @@ import ModalDetail from './components/ModalDetail'
 import type { TaskFieldChange } from './components/ModalDetail'
 import ModalCreate from './components/ModalCreate'
 import ModalConfig from './components/ModalConfig'
+import ModalHelp from './components/ModalHelp'
+import { isTypingInInput } from './lib/useHotkey'
 
 export default function App() {
   // board state: tasks, lanes, selection, modals, theme
@@ -26,6 +28,7 @@ export default function App() {
   const [selected, setSelected] = useState<Task | null>(null)
   const [creating, setCreating] = useState(false)
   const [configOpen, setConfigOpen] = useState(false)
+  const [helpOpen, setHelpOpen] = useState(false)
   const [theme, setTheme] = useState<'light' | 'dark'>(() =>
     document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light',
   )
@@ -92,14 +95,33 @@ export default function App() {
   const handleMarqueeSelect = (ids: string[]) =>
     setSelectedIds((prev) => new Set([...prev, ...ids]))
 
-  // escape clears the selection
+  // keyboard shortcuts lite: Esc clears selection, C creates, ? toggles help
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') clearSelection()
+      if (e.key === 'Escape') {
+        if (helpOpen) {
+          setHelpOpen(false)
+          return
+        }
+        clearSelection()
+        return
+      }
+      if (isTypingInInput(e)) return
+      if (e.key === '?') {
+        e.preventDefault()
+        setHelpOpen((v) => !v)
+        return
+      }
+      if (e.key.toLowerCase() === 'c' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        if (creating || configOpen || selected) return
+        if (helpOpen) return
+        e.preventDefault()
+        setCreating(true)
+      }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [])
+  }, [helpOpen, creating, configOpen, selected])
 
   // flash the left edge of a task after a successful lane move
   const flashMoved = (id: string) => {
@@ -279,6 +301,7 @@ export default function App() {
         />
       )}
       {creating && <ModalCreate onClose={() => setCreating(false)} onCreate={handleCreate} />}
+      {helpOpen && <ModalHelp onClose={() => setHelpOpen(false)} />}
       {configOpen && (
         <ModalConfig
           statuses={statuses}
