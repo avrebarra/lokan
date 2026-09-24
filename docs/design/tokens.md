@@ -42,6 +42,46 @@ Consumed via `web/src/tokens.css`; mapped into Tailwind utilities
 Toggle: `data-theme="dark"` on `<html>`; default light, explicit toggle opts
 into dark. (Stored preference wins when present.)
 
+### Kan neutrals (additive, 2026-09-24 — task 01)
+
+Imported from Kan `tooling/tailwind/web.ts` to support Kan-style cards/lists
+without replacing brutalist core. Raw palette is **theme-agnostic**; semantic
+aliases switch per `[data-theme]`.
+
+**Raw palette** (`--light-*` / `--dark-*` in `tokens.css`):
+
+| light token    | value                | dark token    | value     |
+| -------------- | -------------------- | ------------- | --------- |
+| `--light-50`   | `hsl(0deg 0% 98.8%)` | `--dark-50`   | `#161616` |
+| `--light-100`  | `hsl(0deg 0% 97.3%)` | `--dark-100`  | `#1c1c1c` |
+| `--light-200`  | `hsl(0deg 0% 95.3%)` | `--dark-200`  | `#232323` |
+| `--light-300`  | `hsl(0deg 0% 92.9%)` | `--dark-300`  | `#282828` |
+| `--light-400`  | `hsl(0deg 0% 91%)`   | `--dark-400`  | `#2e2e2e` |
+| `--light-500`  | `hsl(0deg 0% 88.6%)` | `--dark-500`  | `#343434` |
+| `--light-600`  | `hsl(0deg 0% 85.9%)` | `--dark-600`  | `#3e3e3e` |
+| `--light-700`  | `hsl(0deg 0% 78%)`   | `--dark-700`  | `#505050` |
+| `--light-800`  | `hsl(0deg 0% 56.1%)` | `--dark-800`  | `#707070` |
+| `--light-900`  | `hsl(0deg 0% 52.2%)` | `--dark-900`  | `#7e7e7e` |
+| `--light-950`  | `hsl(0deg 0% 43.5%)` | `--dark-950`  | `#bbb`    |
+| `--light-1000` | `hsl(0deg 0% 9%)`    | `--dark-1000` | `#ededed` |
+
+**Semantic aliases** (mapped in `tokens.css`, exposed as Tailwind `bg-card` etc via `@theme` in `index.css`):
+
+| alias             | light value        | dark value        | use                                | tailwind                 |
+| ----------------- | ------------------ | ----------------- | ---------------------------------- | ------------------------ |
+| `--card-bg`       | `var(--light-50)`  | `var(--dark-200)` | card surface (Kan `Card`)          | `bg-card` `text-card`    |
+| `--card-border`   | `var(--light-200)` | `var(--dark-200)` | card border                        | `border-card-border`     |
+| `--list-bg`       | `var(--light-300)` | `var(--dark-100)` | column/list container (Kan `List`) | `bg-list`                |
+| `--list-border`   | `var(--light-400)` | `var(--dark-300)` | list border                        | `border-list-border`     |
+| `--surface-hover` | `var(--light-400)` | `var(--dark-300)` | hover on card/list                 | `hover:bg-surface-hover` |
+
+Mapping to brutalist core (for reference): `light-300 (~#ededed)` ≈ `--zebra #f5f5f5`,
+`light-400 (~#e8e8e8)` ≈ `--border #ebebeb` — close but kept distinct so brutalist
+shell is untouched. Tailwind exposes both sets: `bg-zebra` (brutalist) and `bg-list` (Kan).
+
+Tw v4 `@theme` mapping: `--color-card: var(--card-bg)` etc in `index.css` — enables
+`bg-card`, `border-list-border`, `bg-light-200`, `dark:bg-dark-200` utilities.
+
 ## 3. Typography
 
 | role         | family     | size | weight | transform | tracking  |
@@ -63,7 +103,7 @@ geist package — Google Fonts is the canonical source.
 
 ## 4. Shape & rules
 
-- **radius: 0 everywhere.** No rounded corners, no pills.
+- **radius: 0 default, 6px for Kan surfaces (DECIDED 2026-09-24 — task 01).** Brutalist shell (topline, buttons, modals) stays sharp `0`. Kan cards/lists use `--radius-card: 6px` (`rounded-md` in Kan) — exposed as `--radius-card` / `rounded-card` via `@theme`. Pills use `--radius-pill: 9999px` for `Badge`. No other radii.
 - **1px solid borders**, color `--border` for hairlines, `--fg` for
   structural lines (topline, section tops, primary buttons).
 - **No box-shadows** (except detail modal — see 7).
@@ -139,6 +179,7 @@ section and bulk clear.
   `padding: 0 10px; min-height: 32px`; hover = **invert** (bg→fg, fg→bg).
 - `.button.accent` (primary CTA): `background: var(--accent)`,
   `border-color: var(--accent)`, `color: #000`; hover invert to `--fg`.
+- **Kan variants (DECIDED 2026-09-24 — task 01):** Kan `Button` has `primary / secondary / danger / ghost` with `rounded-md shadow-sm` (`primary = bg-light-1000 dark:bg-dark-1000`, `secondary = border-light-600 bg-light-50`). Lokan keeps **invert** hover as the brand (brutalist), but tokens now expose the neutrals so a future `web/src/lib/modal-classes.ts` can map `secondary → border border-card-border bg-card` and `danger → bg-danger` without new CSS. No `shadow-sm` — Lokan stays flat; radius only on Kan cards/lists (`--radius-card`), not buttons (buttons stay `0`).
 
 ### Empty state
 
