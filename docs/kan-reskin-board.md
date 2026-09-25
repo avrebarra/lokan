@@ -76,55 +76,6 @@ S — 1d
 ## Work Log
 ````
 
-### 5 — 05 — Column → Kan List (rounded container + header)
-```lokan
-id: "5"
-title: 05 — Column → Kan List (rounded container + header)
-status: backlog
-created: "2026-09-24"
-updated: "2026-09-24"
-tags:
-    - kan-reskin
-    - column
-```
-
-````markdown
-# 05 — Column → Kan List (rounded container + header)
-
-## Goal
-
-Restyle `Column.tsx` from brutalist hairline header to Kan `List.tsx` card container.
-
-## Scope
-
-- New look: `rounded-md border border-light-400 bg-light-300 dark:bg-dark-100 py-2 pl-2 pr-1 mr-5 min-w-[18rem]` (adapt to tokens: `bg-zebra` → Kan `bg-light-300`).
-- Header: editable `input` for lane name (Kan `useForm` inline edit → reuse Lokan `ModalConfig` rename flow or inline like Kan), `+` add card button (`Tooltip` disabled when no permission), `…` `Dropdown` (Add card / Delete list).
-- Wire `List` `useSortable({id: listPublicId, data:{type:"LIST"}})` + `isDragging`→`cursor-grabbing` (already in kan).
-- Empty state: keep `no tasks — create one` vs Kan empty `min-h-[2rem]`.
-- Decide `Dropdown` vendor: reuse `lucide` `Ellipsis` vs `HiEllipsisHorizontal`.
-
-## Non-goals
-
-- No card styling here.
-
-## Acceptance
-
-- [ ] Column visually matches Kan screenshot (`screenshot.jpg` vs `web/src/components/Column.tsx` before).
-- [ ] Drag column to reorder works (if sortable enabled) — or explicitly disabled if Lokan locks lane order to `statuses[]` config.
-- [ ] Add-card + delete-list actions hooked (or stubbed with TODO).
-
-## Refs
-
-- `/tmp/kan/apps/web/src/views/board/components/List.tsx`
-- `web/src/components/Column.tsx`, `ModalConfig.tsx`
-
-## Effort
-
-M — 1.5d
-
-## Work Log
-````
-
 ### 6 — 06 — TaskRow → Kan Card (rich card + meta footer)
 ```lokan
 id: "6"
@@ -352,6 +303,56 @@ XS — 0.5d
 ````
 
 ## Archive
+
+### 5 — 05 — Column → Kan List (rounded container + header)
+```lokan
+id: "5"
+title: 05 — Column → Kan List (rounded container + header)
+status: done
+created: "2026-09-24"
+updated: "2026-09-25"
+tags:
+    - kan-reskin
+    - column
+```
+
+````markdown
+# 05 — Column → Kan List (rounded container + header)
+
+## Goal
+
+Restyle `Column.tsx` from brutalist hairline header to Kan `List.tsx` card container.
+
+## Scope
+
+- New look: `rounded-md border border-light-400 bg-light-300 dark:bg-dark-100 py-2 pl-2 pr-1 mr-5 min-w-[18rem]` (adapt to tokens: `bg-zebra` → Kan `bg-light-300`).
+- Header: editable `input` for lane name (Kan `useForm` inline edit → reuse Lokan `ModalConfig` rename flow or inline like Kan), `+` add card button (`Tooltip` disabled when no permission), `…` `Dropdown` (Add card / Delete list).
+- Wire `List` `useSortable({id: listPublicId, data:{type:"LIST"}})` + `isDragging`→`cursor-grabbing` (already in kan).
+- Empty state: keep `no tasks — create one` vs Kan empty `min-h-[2rem]`.
+- Decide `Dropdown` vendor: reuse `lucide` `Ellipsis` vs `HiEllipsisHorizontal`.
+
+## Non-goals
+
+- No card styling here.
+
+## Acceptance
+
+- [ ] Column visually matches Kan screenshot (`screenshot.jpg` vs `web/src/components/Column.tsx` before).
+- [ ] Drag column to reorder works (if sortable enabled) — or explicitly disabled if Lokan locks lane order to `statuses[]` config.
+- [ ] Add-card + delete-list actions hooked (or stubbed with TODO).
+
+## Refs
+
+- `/tmp/kan/apps/web/src/views/board/components/List.tsx`
+- `web/src/components/Column.tsx`, `ModalConfig.tsx`
+
+## Effort
+
+M — 1.5d
+
+## Work Log
+- 2026-09-25 — Column → Kan List. `Column.tsx` rewritten to Kan `List.tsx` visuals: `rounded-md border-list-border bg-list py-2 pl-2 pr-1 min-w-[18rem] max-w-[18rem] snap-start`, header `readOnly input + Plus + Ellipsis` menu (Add card → `onAddCard`), sortable scaffold disabled (lane order locked to `statuses[]` — TODO enable with `Board` LIST drop + `updateStatuses` reorder), `LIST_BODY` droppable + `verticalListSortingStrategy` preserved, empty `min-h-[2rem]`. Wired `Board onAddCard` + `App setCreating(true)`. Dark tokens via `bg-list/dark:bg-dark-100`. Verified `vite build` 228k gzip72k.
+````
 
 ### 7 — 07 — Primitives: Badge / Avatar / CircularProgress
 ```lokan
