@@ -279,6 +279,7 @@ export default function App() {
         onMove={handleRowMove}
         onToggleSelect={toggleSelected}
         onMarqueeSelect={handleMarqueeSelect}
+        onAddCard={() => setCreating(true)}
       />
       {selectedIds.size > 0 && (
         <BulkBar
