@@ -29,7 +29,6 @@ interface Props {
   onMove: (ids: string[], status: Status, beforeId?: string) => void
   onToggleSelect: (id: string) => void
   onMarqueeSelect: (ids: string[]) => void
-  onAddCard?: (status: Status) => void
 }
 
 interface Marquee {
@@ -60,7 +59,6 @@ export default function Board({
   onMove,
   onToggleSelect,
   onMarqueeSelect,
-  onAddCard,
 }: Props) {
   // dnd-kit state
   const [activeId, setActiveId] = useState<string | null>(null)
@@ -243,7 +241,6 @@ export default function Board({
                 scopedIds={marqueeLive}
                 onSelect={onSelect}
                 onToggleSelect={onToggleSelect}
-                onAddCard={onAddCard}
               />
             ))}
           </main>
